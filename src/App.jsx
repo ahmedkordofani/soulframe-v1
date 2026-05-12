@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -446,6 +446,7 @@ export function runSoulFrameTests() {
     buildClientUpdate(beforeAfterReport, "detailed").includes("main issues");
 
   const audioPreviewTestsPassed = typeof URL.createObjectURL === "function" || typeof window === "undefined";
+  const waveformTestsPassed = typeof WaveformPreview === "function";
 
   return (
     scoreTestsPassed &&
@@ -453,7 +454,8 @@ export function runSoulFrameTests() {
     reportTestsPassed &&
     workflowTestsPassed &&
     clientUpdateTestsPassed &&
-    audioPreviewTestsPassed
+    audioPreviewTestsPassed &&
+    waveformTestsPassed
   );
 }
 
@@ -547,6 +549,84 @@ function AudioPreview({ src, label }) {
     <div className="rounded-2xl border border-zinc-800 bg-black p-4">
       <p className="mb-3 text-sm font-semibold text-zinc-100">{label}</p>
       <audio controls src={src} className="w-full" />
+    </div>
+  );
+}
+
+function WaveformPreview({ src, label }) {
+  const canvasRef = useRef(null);
+  const [status, setStatus] = useState("Waiting for audio...");
+
+  useEffect(() => {
+    if (!src || !canvasRef.current) return undefined;
+
+    let cancelled = false;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+
+    context.clearRect(0, 0, width, height);
+    setStatus("Drawing waveform...");
+
+    async function drawWaveform() {
+      try {
+        const response = await fetch(src);
+        const arrayBuffer = await response.arrayBuffer();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContextClass();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const channelData = audioBuffer.getChannelData(0);
+        const samples = 900;
+        const blockSize = Math.floor(channelData.length / samples);
+        const middle = height / 2;
+
+        if (cancelled) return;
+
+        context.clearRect(0, 0, width, height);
+        context.beginPath();
+        context.moveTo(0, middle);
+
+        for (let i = 0; i < samples; i += 1) {
+          const start = i * blockSize;
+          let sum = 0;
+
+          for (let j = 0; j < blockSize; j += 1) {
+            sum += Math.abs(channelData[start + j] || 0);
+          }
+
+          const average = sum / blockSize;
+          const x = (i / samples) * width;
+          const y = middle - average * middle * 2.4;
+          context.lineTo(x, y);
+        }
+
+        context.lineWidth = 2;
+        context.strokeStyle = "#f4f4f5";
+        context.stroke();
+        setStatus("Waveform ready");
+        audioContext.close();
+      } catch (error) {
+        if (!cancelled) setStatus("Waveform unavailable for this file");
+      }
+    }
+
+    drawWaveform();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  if (!src) return null;
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-zinc-100">{label}</p>
+        <p className="text-xs text-zinc-500">{status}</p>
+      </div>
+      <canvas ref={canvasRef} width="900" height="140" className="h-28 w-full rounded-xl border border-zinc-800 bg-black" />
     </div>
   );
 }
@@ -994,12 +1074,14 @@ function ReviewSetupPanel({
 
         <UploadBox fileName={draftFile} onFileChange={handleDraftFileChange} title="Upload Original AI Draft" description="Upload the raw AI-generated track before humanization." />
         <AudioPreview src={draftAudioUrl} label="Original AI Draft Preview" />
+        <WaveformPreview src={draftAudioUrl} label="Original AI Draft Waveform" />
         <AudioMetadata metadata={draftAudioMetadata} label="Original AI Draft Metadata" />
 
         {reviewMode === "compare" ? (
           <>
             <UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." />
             <AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" />
+            <WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" />
             <AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" />
           </>
         ) : null}
@@ -1034,7 +1116,7 @@ function ReviewSetupPanel({
         </Button>
 
         <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">
-          Prototype mode: simulated analysis. Audio preview and metadata: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
+          Prototype mode: simulated analysis. Audio preview, metadata, and waveform: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
         </div>
       </CardContent>
     </Card>
