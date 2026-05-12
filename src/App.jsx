@@ -420,6 +420,77 @@ function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
   return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
 }
 
+function parseDbValue(dbValue) {
+  if (typeof dbValue !== "string") return null;
+  if (dbValue.includes("∞")) return null;
+  const parsed = Number.parseFloat(dbValue.replace("dB", ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getRiskRank(risk) {
+  if (risk === "High") return 3;
+  if (risk === "Medium") return 2;
+  if (risk === "Low") return 1;
+  return 0;
+}
+
+function getDynamicsRank(dynamics) {
+  if (dynamics === "Wide") return 3;
+  if (dynamics === "Moderate") return 2;
+  if (dynamics === "Compressed") return 1;
+  return 0;
+}
+
+function getComparisonLabel(beforeValue, afterValue, lowerIsBetter = false) {
+  if (beforeValue === null || afterValue === null) return "Needs both files";
+  if (beforeValue === afterValue) return "No major change";
+  const improved = lowerIsBetter ? afterValue < beforeValue : afterValue > beforeValue;
+  return improved ? "Improved" : "Changed";
+}
+
+function buildBeforeAfterComparison(draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis) {
+  if (!draftMetadata || !humanizedMetadata || !draftAnalysis || !humanizedAnalysis) return [];
+  if (draftAnalysis.status !== "Ready" || humanizedAnalysis.status !== "Ready") return [];
+
+  const draftDuration = Number.isFinite(draftMetadata.duration) ? draftMetadata.duration : null;
+  const editDuration = Number.isFinite(humanizedMetadata.duration) ? humanizedMetadata.duration : null;
+  const durationChange = draftDuration !== null && editDuration !== null ? editDuration - draftDuration : null;
+  const draftPeak = parseDbValue(draftAnalysis.peakDb);
+  const editPeak = parseDbValue(humanizedAnalysis.peakDb);
+  const headroomChange = draftPeak !== null && editPeak !== null ? editPeak - draftPeak : null;
+
+  return [
+    {
+      label: "Duration Change",
+      before: draftDuration !== null ? formatDuration(draftDuration) : "Unknown",
+      after: editDuration !== null ? formatDuration(editDuration) : "Unknown",
+      change: durationChange !== null ? `${durationChange >= 0 ? "+" : ""}${durationChange.toFixed(1)} sec` : "Unknown",
+      verdict: Math.abs(durationChange || 0) <= 2 ? "Nearly matched" : "Changed",
+    },
+    {
+      label: "Peak / Headroom",
+      before: draftAnalysis.peakDb,
+      after: humanizedAnalysis.peakDb,
+      change: headroomChange !== null ? `${headroomChange >= 0 ? "+" : ""}${headroomChange.toFixed(1)} dB` : "Unknown",
+      verdict: getComparisonLabel(draftPeak, editPeak, true),
+    },
+    {
+      label: "Clipping Risk",
+      before: draftAnalysis.clippingRisk,
+      after: humanizedAnalysis.clippingRisk,
+      change: `${draftAnalysis.clippingRisk} → ${humanizedAnalysis.clippingRisk}`,
+      verdict: getComparisonLabel(getRiskRank(draftAnalysis.clippingRisk), getRiskRank(humanizedAnalysis.clippingRisk), true),
+    },
+    {
+      label: "Dynamics",
+      before: draftAnalysis.dynamics,
+      after: humanizedAnalysis.dynamics,
+      change: `${draftAnalysis.dynamics} → ${humanizedAnalysis.dynamics}`,
+      verdict: getComparisonLabel(getDynamicsRank(draftAnalysis.dynamics), getDynamicsRank(humanizedAnalysis.dynamics), false),
+    },
+  ];
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -572,7 +643,13 @@ export function runSoulFrameTests() {
     buildClientUpdate(draftReports.marcel).includes("79/100") &&
     buildClientUpdate(draftReports.marcel, "short").startsWith("Quick update") &&
     buildClientUpdate(beforeAfterReport, "detailed").includes("main issues") &&
-    buildAudioFactsSentence({ duration: 60, size: 1048576 }, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate" }, "draft").includes("peak level");
+    buildAudioFactsSentence({ duration: 60, size: 1048576 }, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate" }, "draft").includes("peak level") &&
+    buildBeforeAfterComparison(
+      { duration: 120, size: 1048576 },
+      { duration: 118, size: 1048576 },
+      { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" },
+      { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }
+    ).length === 4;
 
   const audioPreviewTestsPassed = typeof URL.createObjectURL === "function" || typeof window === "undefined";
   const waveformTestsPassed = typeof WaveformPreview === "function";
@@ -1030,6 +1107,61 @@ function RevisionTimeline({ reviewMode, selectedReport }) {
   );
 }
 
+function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis, reviewMode }) {
+  if (reviewMode !== "compare") return null;
+
+  const comparisonRows = buildBeforeAfterComparison(draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis);
+
+  if (comparisonRows.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-2xl font-semibold">Before / After Audio Comparison</h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            Upload both the original AI draft and the humanized edit to compare the real audio changes.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h2 className="text-2xl font-semibold">Before / After Audio Comparison</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          A real comparison between the uploaded AI draft and the humanized edit.
+        </p>
+
+        <div className="mt-5 space-y-3">
+          {comparisonRows.map((row) => (
+            <article key={row.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p>
+                  <h3 className="mt-2 text-lg font-semibold text-zinc-100">{row.change}</h3>
+                </div>
+                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{row.verdict}</span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+                  <p className="text-xs uppercase tracking-wide text-zinc-500">AI Draft</p>
+                  <p className="mt-2 text-sm font-semibold text-zinc-100">{row.before}</p>
+                </div>
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+                  <p className="text-xs uppercase tracking-wide text-zinc-500">Humanized Edit</p>
+                  <p className="mt-2 text-sm font-semibold text-zinc-100">{row.after}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AudioFactsSummary({ draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis, reviewMode }) {
   const draftRows = buildAudioFactRows(draftMetadata, draftAnalysis, "Draft");
   const editRows = reviewMode === "compare" ? buildAudioFactRows(humanizedMetadata, humanizedAnalysis, "Edit") : [];
@@ -1115,6 +1247,14 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       </Card>
 
       <AudioFactsSummary
+        draftMetadata={draftAudioMetadata}
+        humanizedMetadata={humanizedAudioMetadata}
+        draftAnalysis={draftAudioAnalysis}
+        humanizedAnalysis={humanizedAudioAnalysis}
+        reviewMode={reviewMode}
+      />
+
+      <BeforeAfterComparisonSummary
         draftMetadata={draftAudioMetadata}
         humanizedMetadata={humanizedAudioMetadata}
         draftAnalysis={draftAudioAnalysis}
