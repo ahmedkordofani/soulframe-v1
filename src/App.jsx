@@ -317,6 +317,40 @@ function getSessionValue(projectSession, key) {
   return defaultProjectSession[key];
 }
 
+function formatFileSize(bytes) {
+  if (!bytes) return "Unknown";
+  const megabytes = bytes / (1024 * 1024);
+  return `${megabytes.toFixed(2)} MB`;
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds)) return "Reading...";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function buildInitialAudioMetadata(file) {
+  return {
+    name: file.name,
+    type: file.type || "Unknown audio type",
+    size: file.size,
+    duration: null,
+  };
+}
+
+function loadAudioDuration(audioUrl, setMetadata) {
+  const audio = document.createElement("audio");
+  audio.preload = "metadata";
+  audio.onloadedmetadata = () => {
+    setMetadata((current) => (current ? { ...current, duration: audio.duration } : current));
+  };
+  audio.onerror = () => {
+    setMetadata((current) => (current ? { ...current, duration: Number.NaN } : current));
+  };
+  audio.src = audioUrl;
+}
+
 function buildHumanizationBrief(projectSession, report) {
   const projectName = getSessionValue(projectSession, "projectName");
   const clientName = getSessionValue(projectSession, "clientName");
@@ -513,6 +547,31 @@ function AudioPreview({ src, label }) {
     <div className="rounded-2xl border border-zinc-800 bg-black p-4">
       <p className="mb-3 text-sm font-semibold text-zinc-100">{label}</p>
       <audio controls src={src} className="w-full" />
+    </div>
+  );
+}
+
+function AudioMetadata({ metadata, label }) {
+  if (!metadata) return null;
+
+  const rows = [
+    { label: "Name", value: metadata.name },
+    { label: "Type", value: metadata.type },
+    { label: "Size", value: formatFileSize(metadata.size) },
+    { label: "Duration", value: formatDuration(metadata.duration) },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <p className="mb-4 text-sm font-semibold text-zinc-100">{label}</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={row.label} className="rounded-xl border border-zinc-800 bg-black p-3">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p>
+            <p className="mt-1 break-words text-sm text-zinc-200">{row.value}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -874,6 +933,8 @@ function ReviewSetupPanel({
   humanizedFile,
   draftAudioUrl,
   humanizedAudioUrl,
+  draftAudioMetadata,
+  humanizedAudioMetadata,
   handleDraftFileChange,
   handleHumanizedFileChange,
   selectedPreset,
@@ -913,11 +974,13 @@ function ReviewSetupPanel({
 
         <UploadBox fileName={draftFile} onFileChange={handleDraftFileChange} title="Upload Original AI Draft" description="Upload the raw AI-generated track before humanization." />
         <AudioPreview src={draftAudioUrl} label="Original AI Draft Preview" />
+        <AudioMetadata metadata={draftAudioMetadata} label="Original AI Draft Metadata" />
 
         {reviewMode === "compare" ? (
           <>
             <UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." />
             <AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" />
+            <AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" />
           </>
         ) : null}
 
@@ -966,6 +1029,8 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedFile, setHumanizedFile] = useState("");
   const [draftAudioUrl, setDraftAudioUrl] = useState("");
   const [humanizedAudioUrl, setHumanizedAudioUrl] = useState("");
+  const [draftAudioMetadata, setDraftAudioMetadata] = useState(null);
+  const [humanizedAudioMetadata, setHumanizedAudioMetadata] = useState(null);
   const [reviewMode, setReviewMode] = useState("draft");
   const [projectSession, setProjectSession] = useState(defaultProjectSession);
 
@@ -996,22 +1061,36 @@ export default function SoulFrameDraftReviewV2() {
 
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
+    const nextUrl = file ? URL.createObjectURL(file) : "";
+
     setDraftFile(file ? file.name : "");
+    setDraftAudioMetadata(file ? buildInitialAudioMetadata(file) : null);
 
     setDraftAudioUrl((currentUrl) => {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
-      return file ? URL.createObjectURL(file) : "";
+      return nextUrl;
     });
+
+    if (file && nextUrl) {
+      loadAudioDuration(nextUrl, setDraftAudioMetadata);
+    }
   }
 
   function handleHumanizedFileChange(event) {
     const file = event.target.files && event.target.files[0];
+    const nextUrl = file ? URL.createObjectURL(file) : "";
+
     setHumanizedFile(file ? file.name : "");
+    setHumanizedAudioMetadata(file ? buildInitialAudioMetadata(file) : null);
 
     setHumanizedAudioUrl((currentUrl) => {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
-      return file ? URL.createObjectURL(file) : "";
+      return nextUrl;
     });
+
+    if (file && nextUrl) {
+      loadAudioDuration(nextUrl, setHumanizedAudioMetadata);
+    }
   }
 
   const demoView = (
@@ -1026,6 +1105,8 @@ export default function SoulFrameDraftReviewV2() {
           humanizedFile={humanizedFile}
           draftAudioUrl={draftAudioUrl}
           humanizedAudioUrl={humanizedAudioUrl}
+          draftAudioMetadata={draftAudioMetadata}
+          humanizedAudioMetadata={humanizedAudioMetadata}
           handleDraftFileChange={handleDraftFileChange}
           handleHumanizedFileChange={handleHumanizedFileChange}
           selectedPreset={selectedPreset}
