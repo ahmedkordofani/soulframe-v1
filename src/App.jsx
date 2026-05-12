@@ -368,6 +368,36 @@ function getDynamicsLabel(dynamicRange) {
   return "Compressed";
 }
 
+function getAudioHealthRecommendation(analysis) {
+  if (!analysis || analysis.status !== "Ready") return "Upload an audio file to generate real audio health notes.";
+  if (analysis.clippingRisk === "High") return "The file is very close to clipping. Leave more headroom before the next humanization or mastering pass.";
+  if (analysis.clippingRisk === "Medium") return "The file has limited headroom. Check loud sections before exporting the client version.";
+  if (analysis.dynamics === "Compressed") return "The file may be dynamically tight. Check whether the track still breathes emotionally.";
+  if (analysis.dynamics === "Wide") return "The file has strong dynamic movement. Preserve this while cleaning AI artifacts.";
+  return "The file looks technically stable. Focus the next pass on realism, emotion, and arrangement polish.";
+}
+
+function buildAudioFactRows(metadata, analysis, label) {
+  if (!metadata && !analysis) return [];
+
+  const rows = [];
+
+  if (metadata) {
+    rows.push({ label: `${label} Duration`, value: formatDuration(metadata.duration) });
+    rows.push({ label: `${label} Size`, value: formatFileSize(metadata.size) });
+  }
+
+  if (analysis && analysis.status === "Ready") {
+    rows.push({ label: `${label} Peak`, value: analysis.peakDb });
+    rows.push({ label: `${label} Clipping Risk`, value: analysis.clippingRisk });
+    rows.push({ label: `${label} Dynamics`, value: analysis.dynamics });
+  } else if (analysis) {
+    rows.push({ label: `${label} Analysis`, value: analysis.status });
+  }
+
+  return rows;
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -527,7 +557,9 @@ export function runSoulFrameTests() {
     getClippingRisk(0.5) === "Low" &&
     getDynamicsLabel(0.25) === "Wide" &&
     getDynamicsLabel(0.15) === "Moderate" &&
-    getDynamicsLabel(0.05) === "Compressed";
+    getDynamicsLabel(0.05) === "Compressed" &&
+    getAudioHealthRecommendation({ status: "Ready", clippingRisk: "High", dynamics: "Moderate" }).includes("clipping") &&
+    buildAudioFactRows({ duration: 60, size: 1048576 }, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate" }, "Draft").length === 5;
 
   return (
     scoreTestsPassed &&
@@ -972,7 +1004,44 @@ function RevisionTimeline({ reviewMode, selectedReport }) {
   );
 }
 
-function ReportView({ report, reviewMode, projectSession }) {
+function AudioFactsSummary({ draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const draftRows = buildAudioFactRows(draftMetadata, draftAnalysis, "Draft");
+  const editRows = reviewMode === "compare" ? buildAudioFactRows(humanizedMetadata, humanizedAnalysis, "Edit") : [];
+  const allRows = [...draftRows, ...editRows];
+
+  if (allRows.length === 0) return null;
+
+  const recommendation = reviewMode === "compare"
+    ? getAudioHealthRecommendation(humanizedAnalysis || draftAnalysis)
+    : getAudioHealthRecommendation(draftAnalysis);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h2 className="text-2xl font-semibold">Real Audio Facts</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          SoulFrame is now connecting real uploaded-file data into the report.
+        </p>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {allRows.map((row) => (
+            <div key={`${row.label}-${row.value}`} className="rounded-2xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p>
+              <p className="mt-2 text-sm font-semibold text-zinc-100">{row.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Technical Note</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-300">{recommendation}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis }) {
   const scoreLabel = useMemo(() => getScoreLabel(report.score), [report.score]);
   const [clientUpdate, setClientUpdate] = useState(() => buildClientUpdate(report, "balanced", projectSession));
 
@@ -1008,6 +1077,14 @@ function ReportView({ report, reviewMode, projectSession }) {
           </div>
         </CardContent>
       </Card>
+
+      <AudioFactsSummary
+        draftMetadata={draftAudioMetadata}
+        humanizedMetadata={humanizedAudioMetadata}
+        draftAnalysis={draftAudioAnalysis}
+        humanizedAnalysis={humanizedAudioAnalysis}
+        reviewMode={reviewMode}
+      />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result.">
         <div className="space-y-3">
@@ -1346,7 +1423,15 @@ export default function SoulFrameDraftReviewV2() {
         {activeStep > 0 && activeStep < analysisSteps.length ? (
           <AnalysisProgress activeStep={activeStep} />
         ) : (
-          <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} />
+          <ReportView
+            report={selectedReport}
+            reviewMode={reviewMode}
+            projectSession={projectSession}
+            draftAudioMetadata={draftAudioMetadata}
+            humanizedAudioMetadata={humanizedAudioMetadata}
+            draftAudioAnalysis={draftAudioAnalysis}
+            humanizedAudioAnalysis={humanizedAudioAnalysis}
+          />
         )}
       </div>
       <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
