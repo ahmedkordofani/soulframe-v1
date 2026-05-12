@@ -351,6 +351,79 @@ function loadAudioDuration(audioUrl, setMetadata) {
   audio.src = audioUrl;
 }
 
+function amplitudeToDb(amplitude) {
+  if (!amplitude || amplitude <= 0) return "-∞ dB";
+  return `${(20 * Math.log10(amplitude)).toFixed(1)} dB`;
+}
+
+function getClippingRisk(peak) {
+  if (peak >= 0.999) return "High";
+  if (peak >= 0.97) return "Medium";
+  return "Low";
+}
+
+function getDynamicsLabel(dynamicRange) {
+  if (dynamicRange >= 0.22) return "Wide";
+  if (dynamicRange >= 0.12) return "Moderate";
+  return "Compressed";
+}
+
+async function loadAudioHealthCheck(audioUrl, setAnalysis) {
+  try {
+    setAnalysis({ status: "Analyzing audio..." });
+
+    const response = await fetch(audioUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const audioContext = new AudioContextClass();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const channelData = audioBuffer.getChannelData(0);
+
+    let peak = 0;
+    let sumSquares = 0;
+    const blockSize = Math.max(1, Math.floor(channelData.length / 120));
+    const blockRmsValues = [];
+
+    for (let i = 0; i < channelData.length; i += 1) {
+      const absoluteValue = Math.abs(channelData[i]);
+      if (absoluteValue > peak) peak = absoluteValue;
+      sumSquares += channelData[i] * channelData[i];
+    }
+
+    for (let start = 0; start < channelData.length; start += blockSize) {
+      let blockSum = 0;
+      let count = 0;
+
+      for (let index = start; index < Math.min(start + blockSize, channelData.length); index += 1) {
+        blockSum += channelData[index] * channelData[index];
+        count += 1;
+      }
+
+      blockRmsValues.push(Math.sqrt(blockSum / Math.max(1, count)));
+    }
+
+    const rms = Math.sqrt(sumSquares / channelData.length);
+    const loudestBlock = Math.max(...blockRmsValues);
+    const quietestBlock = Math.min(...blockRmsValues.filter((value) => value > 0.0001));
+    const dynamicRange = loudestBlock - (Number.isFinite(quietestBlock) ? quietestBlock : 0);
+
+    setAnalysis({
+      status: "Ready",
+      peak,
+      peakDb: amplitudeToDb(peak),
+      rms,
+      averageEnergyDb: amplitudeToDb(rms),
+      clippingRisk: getClippingRisk(peak),
+      dynamics: getDynamicsLabel(dynamicRange),
+      dynamicRange,
+    });
+
+    audioContext.close();
+  } catch (error) {
+    setAnalysis({ status: "Unavailable" });
+  }
+}
+
 function buildHumanizationBrief(projectSession, report) {
   const projectName = getSessionValue(projectSession, "projectName");
   const clientName = getSessionValue(projectSession, "clientName");
@@ -447,6 +520,14 @@ export function runSoulFrameTests() {
 
   const audioPreviewTestsPassed = typeof URL.createObjectURL === "function" || typeof window === "undefined";
   const waveformTestsPassed = typeof WaveformPreview === "function";
+  const healthCheckTestsPassed =
+    amplitudeToDb(1) === "0.0 dB" &&
+    getClippingRisk(1) === "High" &&
+    getClippingRisk(0.98) === "Medium" &&
+    getClippingRisk(0.5) === "Low" &&
+    getDynamicsLabel(0.25) === "Wide" &&
+    getDynamicsLabel(0.15) === "Moderate" &&
+    getDynamicsLabel(0.05) === "Compressed";
 
   return (
     scoreTestsPassed &&
@@ -455,7 +536,8 @@ export function runSoulFrameTests() {
     workflowTestsPassed &&
     clientUpdateTestsPassed &&
     audioPreviewTestsPassed &&
-    waveformTestsPassed
+    waveformTestsPassed &&
+    healthCheckTestsPassed
   );
 }
 
@@ -627,6 +709,33 @@ function WaveformPreview({ src, label }) {
         <p className="text-xs text-zinc-500">{status}</p>
       </div>
       <canvas ref={canvasRef} width="900" height="140" className="h-28 w-full rounded-xl border border-zinc-800 bg-black" />
+    </div>
+  );
+}
+
+function AudioHealthCheck({ analysis, label }) {
+  if (!analysis) return null;
+
+  const rows = analysis.status === "Ready"
+    ? [
+        { label: "Peak Level", value: analysis.peakDb },
+        { label: "Clipping Risk", value: analysis.clippingRisk },
+        { label: "Average Energy", value: analysis.averageEnergyDb },
+        { label: "Dynamics", value: analysis.dynamics },
+      ]
+    : [{ label: "Status", value: analysis.status }];
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <p className="mb-4 text-sm font-semibold text-zinc-100">{label}</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={row.label} className="rounded-xl border border-zinc-800 bg-black p-3">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p>
+            <p className="mt-1 text-sm text-zinc-200">{row.value}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1035,6 +1144,8 @@ function ReviewSetupPanel({
   humanizedAudioUrl,
   draftAudioMetadata,
   humanizedAudioMetadata,
+  draftAudioAnalysis,
+  humanizedAudioAnalysis,
   handleDraftFileChange,
   handleHumanizedFileChange,
   selectedPreset,
@@ -1075,6 +1186,7 @@ function ReviewSetupPanel({
         <UploadBox fileName={draftFile} onFileChange={handleDraftFileChange} title="Upload Original AI Draft" description="Upload the raw AI-generated track before humanization." />
         <AudioPreview src={draftAudioUrl} label="Original AI Draft Preview" />
         <WaveformPreview src={draftAudioUrl} label="Original AI Draft Waveform" />
+        <AudioHealthCheck analysis={draftAudioAnalysis} label="Original AI Draft Health Check" />
         <AudioMetadata metadata={draftAudioMetadata} label="Original AI Draft Metadata" />
 
         {reviewMode === "compare" ? (
@@ -1082,6 +1194,7 @@ function ReviewSetupPanel({
             <UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." />
             <AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" />
             <WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" />
+            <AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" />
             <AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" />
           </>
         ) : null}
@@ -1116,7 +1229,7 @@ function ReviewSetupPanel({
         </Button>
 
         <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">
-          Prototype mode: simulated analysis. Audio preview, metadata, and waveform: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
+          Prototype mode: simulated analysis. Audio preview, metadata, waveform, and health check: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
         </div>
       </CardContent>
     </Card>
@@ -1133,6 +1246,8 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedAudioUrl, setHumanizedAudioUrl] = useState("");
   const [draftAudioMetadata, setDraftAudioMetadata] = useState(null);
   const [humanizedAudioMetadata, setHumanizedAudioMetadata] = useState(null);
+  const [draftAudioAnalysis, setDraftAudioAnalysis] = useState(null);
+  const [humanizedAudioAnalysis, setHumanizedAudioAnalysis] = useState(null);
   const [reviewMode, setReviewMode] = useState("draft");
   const [projectSession, setProjectSession] = useState(defaultProjectSession);
 
@@ -1167,6 +1282,7 @@ export default function SoulFrameDraftReviewV2() {
 
     setDraftFile(file ? file.name : "");
     setDraftAudioMetadata(file ? buildInitialAudioMetadata(file) : null);
+    setDraftAudioAnalysis(file ? { status: "Queued" } : null);
 
     setDraftAudioUrl((currentUrl) => {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
@@ -1175,6 +1291,7 @@ export default function SoulFrameDraftReviewV2() {
 
     if (file && nextUrl) {
       loadAudioDuration(nextUrl, setDraftAudioMetadata);
+      loadAudioHealthCheck(nextUrl, setDraftAudioAnalysis);
     }
   }
 
@@ -1184,6 +1301,7 @@ export default function SoulFrameDraftReviewV2() {
 
     setHumanizedFile(file ? file.name : "");
     setHumanizedAudioMetadata(file ? buildInitialAudioMetadata(file) : null);
+    setHumanizedAudioAnalysis(file ? { status: "Queued" } : null);
 
     setHumanizedAudioUrl((currentUrl) => {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
@@ -1192,6 +1310,7 @@ export default function SoulFrameDraftReviewV2() {
 
     if (file && nextUrl) {
       loadAudioDuration(nextUrl, setHumanizedAudioMetadata);
+      loadAudioHealthCheck(nextUrl, setHumanizedAudioAnalysis);
     }
   }
 
@@ -1215,6 +1334,8 @@ export default function SoulFrameDraftReviewV2() {
           humanizedAudioUrl={humanizedAudioUrl}
           draftAudioMetadata={draftAudioMetadata}
           humanizedAudioMetadata={humanizedAudioMetadata}
+          draftAudioAnalysis={draftAudioAnalysis}
+          humanizedAudioAnalysis={humanizedAudioAnalysis}
           handleDraftFileChange={handleDraftFileChange}
           handleHumanizedFileChange={handleHumanizedFileChange}
           selectedPreset={selectedPreset}
