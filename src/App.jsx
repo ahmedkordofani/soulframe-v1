@@ -398,6 +398,28 @@ function buildAudioFactRows(metadata, analysis, label) {
   return rows;
 }
 
+function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
+  if (!metadata && (!analysis || analysis.status !== "Ready")) {
+    return "";
+  }
+
+  const facts = [];
+
+  if (metadata) {
+    facts.push(`duration is ${formatDuration(metadata.duration)}`);
+    facts.push(`file size is ${formatFileSize(metadata.size)}`);
+  }
+
+  if (analysis && analysis.status === "Ready") {
+    facts.push(`peak level is ${analysis.peakDb}`);
+    facts.push(`clipping risk is ${analysis.clippingRisk.toLowerCase()}`);
+    facts.push(`dynamics are ${analysis.dynamics.toLowerCase()}`);
+  }
+
+  if (facts.length === 0) return "";
+  return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -493,7 +515,7 @@ function buildRevisionTimeline(reviewMode, report) {
   ];
 }
 
-function buildClientUpdate(report, mode = "balanced", projectSession = defaultProjectSession) {
+function buildClientUpdate(report, mode = "balanced", projectSession = defaultProjectSession, audioContext = {}) {
   const score = clampScore(report.score);
   const projectName = getSessionValue(projectSession, "projectName");
   const clientName = getSessionValue(projectSession, "clientName");
@@ -503,18 +525,21 @@ function buildClientUpdate(report, mode = "balanced", projectSession = defaultPr
     .map((issue) => `${issue.time}: ${issue.title}`)
     .join("; ");
   const topPriorities = report.priorities.slice(0, 3).join(", ").toLowerCase();
+  const draftAudioSentence = buildAudioFactsSentence(audioContext.draftMetadata, audioContext.draftAnalysis, "draft");
+  const editAudioSentence = buildAudioFactsSentence(audioContext.humanizedMetadata, audioContext.humanizedAnalysis, "humanized edit");
+  const audioSentence = [draftAudioSentence, editAudioSentence].filter(Boolean).join(" ");
 
   if (mode === "short") {
     const mainPriorities = report.priorities.slice(0, 2).join(" and ").toLowerCase();
-    return `Quick update on ${projectName} for ${clientName} - I reviewed the AI draft and found the main areas that need attention. The biggest priorities are ${mainPriorities}. The track is currently scoring ${score}/100 for humanization, so the next pass will focus on targeted improvements rather than changing the whole direction.`;
+    return `Quick update on ${projectName} for ${clientName} - I reviewed the AI draft and found the main areas that need attention. The biggest priorities are ${mainPriorities}. The track is currently scoring ${score}/100 for humanization, so the next pass will focus on targeted improvements rather than changing the whole direction. ${audioSentence}`.trim();
   }
 
   if (mode === "detailed") {
     const allPriorities = report.priorities.join(", ").toLowerCase();
-    return `I went through ${projectName} in detail and identified the specific areas affecting realism and translation. The main concern going into the review was: ${mainConcern}. The main issues are: ${topIssues}. The next pass should focus on ${allPriorities}. This should help the track feel more natural and emotionally convincing while keeping the original creative direction intact.`;
+    return `I went through ${projectName} in detail and identified the specific areas affecting realism and translation. The main concern going into the review was: ${mainConcern}. The main issues are: ${topIssues}. The next pass should focus on ${allPriorities}. ${audioSentence} This should help the track feel more natural and emotionally convincing while keeping the original creative direction intact.`.trim();
   }
 
-  return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`;
+  return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
 }
 
 export function runSoulFrameTests() {
@@ -546,7 +571,8 @@ export function runSoulFrameTests() {
   const clientUpdateTestsPassed =
     buildClientUpdate(draftReports.marcel).includes("79/100") &&
     buildClientUpdate(draftReports.marcel, "short").startsWith("Quick update") &&
-    buildClientUpdate(beforeAfterReport, "detailed").includes("main issues");
+    buildClientUpdate(beforeAfterReport, "detailed").includes("main issues") &&
+    buildAudioFactsSentence({ duration: 60, size: 1048576 }, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate" }, "draft").includes("peak level");
 
   const audioPreviewTestsPassed = typeof URL.createObjectURL === "function" || typeof window === "undefined";
   const waveformTestsPassed = typeof WaveformPreview === "function";
@@ -1043,11 +1069,21 @@ function AudioFactsSummary({ draftMetadata, humanizedMetadata, draftAnalysis, hu
 
 function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis }) {
   const scoreLabel = useMemo(() => getScoreLabel(report.score), [report.score]);
-  const [clientUpdate, setClientUpdate] = useState(() => buildClientUpdate(report, "balanced", projectSession));
+  const audioContext = useMemo(
+    () => ({
+      draftMetadata: draftAudioMetadata,
+      humanizedMetadata: humanizedAudioMetadata,
+      draftAnalysis: draftAudioAnalysis,
+      humanizedAnalysis: humanizedAudioAnalysis,
+    }),
+    [draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis]
+  );
+
+  const [clientUpdate, setClientUpdate] = useState(() => buildClientUpdate(report, "balanced", projectSession, audioContext));
 
   useEffect(() => {
-    setClientUpdate(buildClientUpdate(report, "balanced", projectSession));
-  }, [report, projectSession]);
+    setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext));
+  }, [report, projectSession, audioContext]);
 
   return (
     <section className="space-y-6 lg:col-span-2">
@@ -1134,21 +1170,21 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
               <h2 className="text-2xl font-semibold">Generate Client Update</h2>
               <p className="mt-1 text-sm text-zinc-400">Turn the technical review into a clean message you can send to a client.</p>
             </div>
-            <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession))}>
+            <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}>
               Generate Update
             </Button>
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession))}>
+            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}>
               <span className="block font-semibold text-zinc-100">Balanced</span>
               <span className="mt-1 block text-xs text-zinc-500">Clear, professional, detailed.</span>
             </button>
-            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "short", projectSession))}>
+            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "short", projectSession, audioContext))}>
               <span className="block font-semibold text-zinc-100">Short Update</span>
               <span className="mt-1 block text-xs text-zinc-500">Useful for quick client check-ins.</span>
             </button>
-            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "detailed", projectSession))}>
+            <button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "detailed", projectSession, audioContext))}>
               <span className="block font-semibold text-zinc-100">Detailed</span>
               <span className="mt-1 block text-xs text-zinc-500">Best for technical progress updates.</span>
             </button>
