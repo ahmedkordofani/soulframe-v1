@@ -643,7 +643,7 @@ function ProjectIntake({ projectSession, setProjectSession, selectedReport }) {
   );
 }
 
-function ProjectSnapshot({ reviewMode, selectedReport, projectSession }) {
+function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudioMetadata, humanizedAudioMetadata }) {
   const items = [
     {
       label: "Project",
@@ -667,10 +667,30 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession }) {
     },
   ];
 
+  const audioItems = [];
+
+  if (draftAudioMetadata) {
+    audioItems.push({
+      label: "Draft Duration",
+      value: formatDuration(draftAudioMetadata.duration),
+      note: `${formatFileSize(draftAudioMetadata.size)} - ${draftAudioMetadata.type}`,
+    });
+  }
+
+  if (reviewMode === "compare" && humanizedAudioMetadata) {
+    audioItems.push({
+      label: "Edit Duration",
+      value: formatDuration(humanizedAudioMetadata.duration),
+      note: `${formatFileSize(humanizedAudioMetadata.size)} - ${humanizedAudioMetadata.type}`,
+    });
+  }
+
+  const snapshotItems = [...items, ...audioItems];
+
   return (
-    <Panel title="Project Snapshot" subtitle="A quick overview of this client session.">
+    <Panel title="Project Snapshot" subtitle="A quick overview of this client session, now connected to the uploaded audio file.">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {items.map((item) => (
+        {snapshotItems.map((item) => (
           <article key={item.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
             <p className="text-xs uppercase tracking-wide text-zinc-500">{item.label}</p>
             <h3 className="mt-3 text-lg font-semibold text-zinc-100">{item.value}</h3>
@@ -1014,7 +1034,7 @@ function ReviewSetupPanel({
         </Button>
 
         <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">
-          Prototype mode: simulated analysis. Audio preview: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
+          Prototype mode: simulated analysis. Audio preview and metadata: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.
         </div>
       </CardContent>
     </Card>
@@ -1096,7 +1116,13 @@ export default function SoulFrameDraftReviewV2() {
   const demoView = (
     <div className="space-y-6">
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} />
-      <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} />
+      <ProjectSnapshot
+        reviewMode={reviewMode}
+        selectedReport={selectedReport}
+        projectSession={projectSession}
+        draftAudioMetadata={draftAudioMetadata}
+        humanizedAudioMetadata={humanizedAudioMetadata}
+      />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel
           reviewMode={reviewMode}
