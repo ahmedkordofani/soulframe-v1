@@ -361,6 +361,34 @@ function buildClientUpdate(report, mode = "balanced", projectSession = defaultPr
   return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
 }
 
+function loadSavedSession() {
+  if (typeof window === "undefined") return defaultProjectSession;
+  try {
+    const saved = window.localStorage.getItem("soulframe-project-session");
+    return saved ? { ...defaultProjectSession, ...JSON.parse(saved) } : defaultProjectSession;
+  } catch (error) {
+    return defaultProjectSession;
+  }
+}
+
+function loadSavedSetting(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return window.localStorage.getItem(key) || fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function saveSetting(key, value) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    // Ignore local storage failures so the app keeps working.
+  }
+}
+
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate }) {
   const lines = [];
   lines.push("SOULFRAME HUMANIZATION REPORT");
@@ -403,7 +431,11 @@ function runSoulFrameTests() {
   const audioTestsPassed = amplitudeToDb(1) === "0.0 dB" && getClippingRisk(0.98) === "Medium" && getDynamicsLabel(0.15) === "Moderate";
   const comparisonTestsPassed = buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4;
   const copyReportTestsPassed = buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME HUMANIZATION REPORT");
-  return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed;
+  const storageTestsPassed =
+    typeof loadSavedSession === "function" &&
+    typeof loadSavedSetting === "function" &&
+    typeof saveSetting === "function";
+  return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && storageTestsPassed;
 }
 
 function Icon({ children }) {
@@ -581,7 +613,7 @@ function InfoGrid({ title, rows }) {
   );
 }
 
-function ProjectIntake({ projectSession, setProjectSession, selectedReport }) {
+function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
     { key: "clientName", label: "Client Name", placeholder: "Client" },
@@ -612,9 +644,12 @@ function ProjectIntake({ projectSession, setProjectSession, selectedReport }) {
           <textarea className="mt-3 h-28 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-zinc-500" value={projectSession.producerNotes} onChange={(event) => updateField("producerNotes", event.target.value)} placeholder="Private notes, references, client comments, creative direction..." />
         </label>
       </div>
-      <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Humanization Brief</p>
+      <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Humanization Brief</p>
         <p className="mt-2 text-sm leading-6 text-zinc-300">{buildHumanizationBrief(projectSession, selectedReport)}</p>
+        </div>
+        <Button className="shrink-0 border border-zinc-700 bg-black text-zinc-100 hover:bg-zinc-800" onClick={resetProjectSession}>Reset Session</Button>
       </div>
     </Panel>
   );
@@ -764,7 +799,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, and copy report: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, copy report, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -772,7 +807,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
 
 export default function SoulFrameDraftReviewV2() {
   const [view, setView] = useState("demo");
-  const [selectedPreset, setSelectedPreset] = useState("marcel");
+  const [selectedPreset, setSelectedPreset] = useState(() => loadSavedSetting("soulframe-selected-preset", "marcel"));
   const [activeStep, setActiveStep] = useState(0);
   const [draftFile, setDraftFile] = useState("");
   const [humanizedFile, setHumanizedFile] = useState("");
@@ -782,8 +817,8 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedAudioMetadata, setHumanizedAudioMetadata] = useState(null);
   const [draftAudioAnalysis, setDraftAudioAnalysis] = useState(null);
   const [humanizedAudioAnalysis, setHumanizedAudioAnalysis] = useState(null);
-  const [reviewMode, setReviewMode] = useState("draft");
-  const [projectSession, setProjectSession] = useState(defaultProjectSession);
+  const [reviewMode, setReviewMode] = useState(() => loadSavedSetting("soulframe-review-mode", "draft"));
+  const [projectSession, setProjectSession] = useState(() => loadSavedSession());
   const selectedReport = reviewMode === "compare" ? beforeAfterReport : draftReports[selectedPreset];
   const testsPassed = runSoulFrameTests();
 
@@ -795,7 +830,25 @@ export default function SoulFrameDraftReviewV2() {
 
   useEffect(() => () => { if (draftAudioUrl) URL.revokeObjectURL(draftAudioUrl); if (humanizedAudioUrl) URL.revokeObjectURL(humanizedAudioUrl); }, [draftAudioUrl, humanizedAudioUrl]);
 
+  useEffect(() => {
+    saveSetting("soulframe-project-session", JSON.stringify(projectSession));
+  }, [projectSession]);
+
+  useEffect(() => {
+    saveSetting("soulframe-selected-preset", selectedPreset);
+  }, [selectedPreset]);
+
+  useEffect(() => {
+    saveSetting("soulframe-review-mode", reviewMode);
+  }, [reviewMode]);
+
   function handleRunAnalysis() { setActiveStep(1); }
+
+  function resetProjectSession() {
+    setProjectSession(defaultProjectSession);
+    setSelectedPreset("marcel");
+    setReviewMode("draft");
+  }
 
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
@@ -819,7 +872,7 @@ export default function SoulFrameDraftReviewV2() {
 
   const demoView = (
     <div className="space-y-6">
-      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} />
+      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
