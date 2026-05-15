@@ -2,7 +2,7 @@
 
 **AI Music Humanization Review Tool**
 
-SoulFrame is a creative technology tool designed to help producers review AI-generated music drafts, identify synthetic artifacts, compare humanized edits, and prepare clearer client update notes.
+SoulFrame is a creative technology tool designed to help producers review AI-generated music drafts, inspect audio files, identify synthetic artifacts, compare humanized edits, and prepare clearer client update notes.
 
 The goal is simple:
 
@@ -27,7 +27,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 5. Map the main revision priorities
 6. Compare an original AI draft against a humanized edit
 7. Generate clear client-facing update notes
-8. Copy a structured full report for client or project use
+8. Export reports, checklists, and project records
 
 ---
 
@@ -45,19 +45,33 @@ SoulFrame is built around a practical AI-humanization workflow:
   - Clipping risk
   - Average energy
   - Dynamics estimate
+  - Sample rate
+  - Channel count
+- Technical format notes
+- Technical readiness score
 - Real audio facts inside reports
 - Real audio facts inside client updates
 - Before / After audio comparison summary
+- Before / After technical improvement score
+- Client delivery checklist
 - Project Snapshot
 - Project Workflow
 - Revision History
 - Next Revision Plan
 - Artifact Database
 - Client Update Generator
-- Copy Full Report button
+- Copy Full Report
+- Download Full Report as `.txt`
+- Copy Client Update
+- Download Client Update as `.txt`
+- Copy Delivery Checklist
+- Download Delivery Checklist as `.txt`
 - Local project session saving
+- Multiple saved project sessions
+- Searchable saved project history
+- Saved project backup export
+- Saved project backup import
 - Reset Session button
-- Simulated SoulFrame review reports
 - Internal self-tests for core logic
 
 ---
@@ -89,13 +103,11 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V2.0.0: Functional Audio Intake**
+**V2.1.0: Project Sessions, Export Tools, and Technical Review Workflow**
 
-SoulFrame V2 introduces real uploaded-audio interaction and basic technical analysis.
+SoulFrame V2.1 expands the functional audio intake system with export tools, saved project sessions, technical readiness scoring, project backup import/export, and client delivery checklists.
 
-This version can read and display real audio file information, generate waveform previews, estimate basic audio health, compare before/after files, and include real audio facts in client-facing reports.
-
-The deeper SoulFrame review logic is still partly simulated, but the tool now has a functional audio intake layer.
+The deeper SoulFrame review logic is still partly simulated, but the tool now provides a practical working workflow for reviewing, documenting, and preparing AI-generated music drafts for humanization.
 
 ---
 
@@ -123,6 +135,19 @@ The deeper SoulFrame review logic is still partly simulated, but the tool now ha
 - Added copy full report button
 - Added local project session saving
 
+### V2.1.0 — Project Sessions and Export Workflow
+
+- Added downloadable full reports
+- Added client update export
+- Added delivery checklist export
+- Added saved project sessions
+- Added searchable project history
+- Added project backup export/import
+- Added technical format notes
+- Added technical readiness score
+- Added before/after technical improvement score
+- Added delivery checklist inside report export
+
 ---
 
 ## Future Roadmap
@@ -132,11 +157,11 @@ The deeper SoulFrame review logic is still partly simulated, but the tool now ha
 - Spectral analysis
 - Vocal-specific artifact detection
 - Instrumental texture analysis
-- More detailed before/after improvement scoring
+- More detailed humanization scoring
 - Exportable PDF reports
-- Saved project history
-- Producer dashboard
+- Project dashboard improvements
 - Client-ready report templates
+- Cloud-based saved sessions
 
 ---
 
