@@ -248,6 +248,34 @@ function getAudioHealthRecommendation(analysis) {
   return "The file looks technically stable. Focus the next pass on realism, emotion, and arrangement polish.";
 }
 
+function getTechnicalFormatNotes(analysis) {
+  if (!analysis || analysis.status !== "Ready") return [];
+
+  const notes = [];
+
+  if (analysis.channels === 1) {
+    notes.push("Mono file detected. Check stereo width before final delivery if the track is meant to feel wide.");
+  }
+
+  if (analysis.channels && analysis.channels >= 2) {
+    notes.push("Stereo file detected. Check that the width feels intentional and does not smear the vocal or low end.");
+  }
+
+  if (analysis.sampleRate && analysis.sampleRate < 44100) {
+    notes.push("Sample rate is below 44.1 kHz. Consider exporting at 44.1 kHz or 48 kHz for cleaner delivery.");
+  }
+
+  if (analysis.sampleRate && analysis.sampleRate >= 44100) {
+    notes.push("Sample rate is suitable for normal music delivery workflows.");
+  }
+
+  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
+    notes.push("Headroom should be checked before sending this to a client or mastering stage.");
+  }
+
+  return notes;
+}
+
 function buildAudioFactRows(metadata, analysis, label) {
   const rows = [];
   if (metadata) {
@@ -554,7 +582,8 @@ function runSoulFrameTests() {
     amplitudeToDb(1) === "0.0 dB" &&
     getClippingRisk(0.98) === "Medium" &&
     getDynamicsLabel(0.15) === "Moderate" &&
-    buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate");
+    buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
+    getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2;
   const comparisonTestsPassed =
     buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4 &&
     getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
@@ -727,7 +756,26 @@ function AudioHealthCheck({ analysis, label }) {
         { label: "Channels", value: analysis.channels ? `${analysis.channels}` : "Unknown" },
       ]
     : [{ label: "Status", value: analysis.status }];
-  return <InfoGrid title={label} rows={rows} />;
+
+  const technicalNotes = getTechnicalFormatNotes(analysis);
+
+  return (
+    <div className="space-y-4">
+      <InfoGrid title={label} rows={rows} />
+      {technicalNotes.length ? (
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+          <p className="mb-3 text-sm font-semibold text-zinc-100">Technical Format Notes</p>
+          <div className="space-y-2">
+            {technicalNotes.map((note) => (
+              <div key={note} className="rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300">
+                {note}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function AudioMetadata({ metadata, label }) {
@@ -1059,7 +1107,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, channel/sample-rate info, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical format notes, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
