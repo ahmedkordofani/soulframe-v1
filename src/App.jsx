@@ -584,6 +584,20 @@ function buildSavedProjectRecord(projectSession, reviewMode, selectedPreset) {
   };
 }
 
+function buildSavedProjectsBackup(savedProjects) {
+  return JSON.stringify(
+    {
+      app: "SoulFrame",
+      type: "saved-projects-backup",
+      version: "2.x",
+      exportedAt: new Date().toISOString(),
+      projects: savedProjects,
+    },
+    null,
+    2
+  );
+}
+
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate }) {
   const lines = [];
   const newline = String.fromCharCode(10);
@@ -708,7 +722,8 @@ function runSoulFrameTests() {
     typeof saveSetting === "function" &&
     typeof loadSavedProjects === "function" &&
     typeof saveSavedProjects === "function" &&
-    buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft";
+    buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
+    buildSavedProjectsBackup([]).includes("saved-projects-backup");
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
 }
 
@@ -989,14 +1004,24 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
     return searchableText.includes(normalizedSearch);
   });
 
+  function handleDownloadProjectsBackup() {
+    const backupText = buildSavedProjectsBackup(savedProjects);
+    downloadTextFile("SoulFrame_Saved_Projects_Backup.json", backupText);
+  }
+
   return (
     <Panel
       title="Saved Project Sessions"
       subtitle="Load a previous SoulFrame setup without rebuilding the intake from scratch."
       action={
-        <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={clearSavedProjects}>
-          Clear All
-        </Button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadProjectsBackup}>
+            Download Backup
+          </Button>
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={clearSavedProjects}>
+            Clear All
+          </Button>
+        </div>
       }
     >
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -1279,7 +1304,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, saved-project backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
