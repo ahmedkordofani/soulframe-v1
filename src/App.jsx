@@ -794,6 +794,8 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   const [clientUpdate, setClientUpdate] = useState(() => buildClientUpdate(report, "balanced", projectSession, audioContext));
   const [copyStatus, setCopyStatus] = useState("Copy Full Report");
   const [downloadStatus, setDownloadStatus] = useState("Download Report");
+  const [clientCopyStatus, setClientCopyStatus] = useState("Copy Client Update");
+  const [clientDownloadStatus, setClientDownloadStatus] = useState("Download Client Update");
 
   useEffect(() => { setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext)); }, [report, projectSession, audioContext]);
 
@@ -818,6 +820,25 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
     window.setTimeout(() => setDownloadStatus("Download Report"), 1500);
   }
 
+  async function handleCopyClientUpdate() {
+    try {
+      await navigator.clipboard.writeText(clientUpdate);
+      setClientCopyStatus("Copied");
+      window.setTimeout(() => setClientCopyStatus("Copy Client Update"), 1500);
+    } catch (error) {
+      setClientCopyStatus("Copy failed");
+      window.setTimeout(() => setClientCopyStatus("Copy Client Update"), 1500);
+    }
+  }
+
+  function handleDownloadClientUpdate() {
+    const projectName = getSessionValue(projectSession, "projectName");
+    const fileName = `${makeSafeFileName(projectName)}_Client_Update.txt`;
+    const downloaded = downloadTextFile(fileName, clientUpdate);
+    setClientDownloadStatus(downloaded ? "Downloaded" : "Download failed");
+    window.setTimeout(() => setClientDownloadStatus("Download Client Update"), 1500);
+  }
+
   return (
     <section className="space-y-6 lg:col-span-2">
       <Card>
@@ -840,7 +861,11 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
       <Panel title={reviewMode === "compare" ? "Comparison Findings" : "Detected Issues"} subtitle="Timestamped notes showing what improved and what still needs work."><div className="space-y-4">{report.issues.map((issue) => <article key={issue.id} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-sm text-zinc-400">{issue.time} - {issue.category}</p><h3 className="mt-2 text-lg font-semibold text-zinc-100">{issue.title}</h3><p className="mt-2 text-sm text-zinc-400">{issue.note}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{issue.severity}</span></div><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Suggested Humanization</p><p className="mt-1 text-sm text-zinc-200">{issue.fix}</p></div></article>)}</div></Panel>
       <Card><CardContent className="p-6"><h2 className="text-2xl font-semibold">Client-Risk Summary</h2><p className="mt-3 text-sm text-zinc-300">{report.clientRisk}</p></CardContent></Card>
-      <Card><CardContent className="p-6"><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h2 className="text-2xl font-semibold">Generate Client Update</h2><p className="mt-1 text-sm text-zinc-400">Turn the technical review into a clean message you can send to a client.</p></div><Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}>Generate Update</Button></div><div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3"><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Balanced</span><span className="mt-1 block text-xs text-zinc-500">Clear, professional, detailed.</span></button><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "short", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Short Update</span><span className="mt-1 block text-xs text-zinc-500">Useful for quick client check-ins.</span></button><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "detailed", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Detailed</span><span className="mt-1 block text-xs text-zinc-500">Best for technical progress updates.</span></button></div><textarea className="min-h-40 w-full resize-none rounded-2xl border border-zinc-800 bg-black p-5 text-sm leading-6 text-zinc-300 outline-none focus:ring-2 focus:ring-zinc-500" value={clientUpdate} onChange={(event) => setClientUpdate(event.target.value)} /></CardContent></Card>
+      <Card><CardContent className="p-6"><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h2 className="text-2xl font-semibold">Generate Client Update</h2><p className="mt-1 text-sm text-zinc-400">Turn the technical review into a clean message you can send to a client.</p></div><Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}>Generate Update</Button></div><div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3"><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Balanced</span><span className="mt-1 block text-xs text-zinc-500">Clear, professional, detailed.</span></button><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "short", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Short Update</span><span className="mt-1 block text-xs text-zinc-500">Useful for quick client check-ins.</span></button><button type="button" className="rounded-2xl border border-zinc-800 bg-black p-4 text-left text-sm text-zinc-300 hover:bg-zinc-900" onClick={() => setClientUpdate(buildClientUpdate(report, "detailed", projectSession, audioContext))}><span className="block font-semibold text-zinc-100">Detailed</span><span className="mt-1 block text-xs text-zinc-500">Best for technical progress updates.</span></button></div><textarea className="min-h-40 w-full resize-none rounded-2xl border border-zinc-800 bg-black p-5 text-sm leading-6 text-zinc-300 outline-none focus:ring-2 focus:ring-zinc-500" value={clientUpdate} onChange={(event) => setClientUpdate(event.target.value)} />
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyClientUpdate}>{clientCopyStatus}</Button>
+          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadClientUpdate}>{clientDownloadStatus}</Button>
+        </div></CardContent></Card>
     </section>
   );
 }
@@ -867,7 +892,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, copy/download report, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
