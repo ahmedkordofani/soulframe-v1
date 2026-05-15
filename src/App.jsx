@@ -323,6 +323,37 @@ function buildBeforeAfterComparison(draftMetadata, humanizedMetadata, draftAnaly
   ];
 }
 
+function getBeforeAfterImprovementScore(draftAnalysis, humanizedAnalysis) {
+  if (!draftAnalysis || !humanizedAnalysis) return null;
+  if (draftAnalysis.status !== "Ready" || humanizedAnalysis.status !== "Ready") return null;
+
+  let score = 50;
+  const draftPeak = parseDbValue(draftAnalysis.peakDb);
+  const editPeak = parseDbValue(humanizedAnalysis.peakDb);
+  const clippingChange = getRiskRank(draftAnalysis.clippingRisk) - getRiskRank(humanizedAnalysis.clippingRisk);
+  const dynamicsChange = getDynamicsRank(humanizedAnalysis.dynamics) - getDynamicsRank(draftAnalysis.dynamics);
+
+  score += clippingChange * 15;
+  score += dynamicsChange * 12;
+
+  if (draftPeak !== null && editPeak !== null) {
+    const extraHeadroom = draftPeak - editPeak;
+    if (extraHeadroom >= 1) score += 12;
+    else if (extraHeadroom >= 0.3) score += 6;
+    else if (extraHeadroom <= -1) score -= 10;
+  }
+
+  return clampScore(score);
+}
+
+function getBeforeAfterImprovementLabel(score) {
+  if (score === null) return "Waiting for both files";
+  if (score >= 80) return "Strong Technical Improvement";
+  if (score >= 65) return "Clear Technical Improvement";
+  if (score >= 50) return "Subtle Technical Improvement";
+  return "Needs Another Pass";
+}
+
 function buildHumanizationBrief(projectSession, report) {
   return `${getSessionValue(projectSession, "projectName")} for ${getSessionValue(projectSession, "clientName")} is a ${getSessionValue(projectSession, "trackType")} at the ${getSessionValue(projectSession, "currentStage")} stage. AI tool: ${getSessionValue(projectSession, "aiTool")}. Main concern: ${getSessionValue(projectSession, "mainConcern")}. Client goal: ${getSessionValue(projectSession, "clientGoal")} Current SoulFrame focus: ${report.priorities[0]}.`;
 }
@@ -514,7 +545,10 @@ function runSoulFrameTests() {
   const labelTestsPassed = getScoreLabel(90) === "Highly Humanized" && getScoreLabel(75) === "Mostly Human" && getScoreLabel(39) === "Heavy AI Artifacting";
   const reportTestsPassed = Object.values(draftReports).every((report) => report.issues.length > 0 && report.priorities.length > 0 && report.scores.length > 0);
   const audioTestsPassed = amplitudeToDb(1) === "0.0 dB" && getClippingRisk(0.98) === "Medium" && getDynamicsLabel(0.15) === "Moderate";
-  const comparisonTestsPassed = buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4;
+  const comparisonTestsPassed =
+    buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4 &&
+    getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
+    getBeforeAfterImprovementLabel(82) === "Strong Technical Improvement";
   const copyReportTestsPassed = buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME HUMANIZATION REPORT");
   const exportReportTestsPassed =
     makeSafeFileName("Client Project 01") === "Client_Project_01" &&
@@ -865,12 +899,26 @@ function RevisionTimeline({ reviewMode, selectedReport }) {
 function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis, reviewMode }) {
   if (reviewMode !== "compare") return null;
   const comparisonRows = buildBeforeAfterComparison(draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis);
+  const improvementScore = getBeforeAfterImprovementScore(draftAnalysis, humanizedAnalysis);
+  const improvementLabel = getBeforeAfterImprovementLabel(improvementScore);
   if (!comparisonRows.length) return <Card><CardContent className="p-6"><h2 className="text-2xl font-semibold">Before / After Audio Comparison</h2><p className="mt-2 text-sm text-zinc-400">Upload both the original AI draft and the humanized edit to compare the real audio changes.</p></CardContent></Card>;
   return (
     <Card>
       <CardContent className="p-6">
         <h2 className="text-2xl font-semibold">Before / After Audio Comparison</h2>
         <p className="mt-1 text-sm text-zinc-400">A real comparison between the uploaded AI draft and the humanized edit.</p>
+        <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-900 p-5">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Technical Improvement Score</p>
+          <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-4xl font-bold text-zinc-100">{improvementScore}/100</p>
+              <p className="mt-2 text-sm text-zinc-300">{improvementLabel}</p>
+            </div>
+            <p className="max-w-xl text-sm leading-6 text-zinc-400">
+              This score is based only on measurable technical changes: headroom, clipping risk, and dynamics. It does not replace your human ear.
+            </p>
+          </div>
+        </div>
         <div className="mt-5 space-y-3">{comparisonRows.map((row) => <article key={row.label} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p><h3 className="mt-2 text-lg font-semibold text-zinc-100">{row.change}</h3></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{row.verdict}</span></div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">AI Draft</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.before}</p></div><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Humanized Edit</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.after}</p></div></div></article>)}</div>
       </CardContent>
     </Card>
@@ -999,7 +1047,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
