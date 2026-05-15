@@ -769,26 +769,68 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudi
   );
 }
 
-function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject }) {
+function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects }) {
+  const [searchTerm, setSearchTerm] = useState("");
+
   if (!savedProjects.length) return null;
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredProjects = savedProjects.filter((project) => {
+    const searchableText = `${project.title} ${project.client} ${project.stage} ${project.reviewMode}`.toLowerCase();
+    return searchableText.includes(normalizedSearch);
+  });
+
   return (
-    <Panel title="Saved Project Sessions" subtitle="Load a previous SoulFrame setup without rebuilding the intake from scratch.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {savedProjects.map((project) => (
-          <article key={project.id} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">{project.reviewMode === "compare" ? "Before / After" : "Draft Review"}</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{project.title}</h3>
-            <p className="mt-2 text-sm text-zinc-400">Client: {project.client}</p>
-            <p className="mt-1 text-sm text-zinc-500">Stage: {project.stage}</p>
-            <p className="mt-3 text-xs text-zinc-600">Saved: {new Date(project.savedAt).toLocaleString()}</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => loadSavedProjectSnapshot(project.id)}>Load</Button>
-              <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => deleteSavedProject(project.id)}>Delete</Button>
-            </div>
-          </article>
-        ))}
+    <Panel
+      title="Saved Project Sessions"
+      subtitle="Load a previous SoulFrame setup without rebuilding the intake from scratch."
+      action={
+        <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={clearSavedProjects}>
+          Clear All
+        </Button>
+      }
+    >
+      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Saved Sessions</p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-100">{savedProjects.length}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">Visible Results</p>
+          <p className="mt-2 text-2xl font-semibold text-zinc-100">{filteredProjects.length}</p>
+        </div>
+        <label className="rounded-2xl border border-zinc-800 bg-black p-4">
+          <span className="text-xs uppercase tracking-wide text-zinc-500">Search Projects</span>
+          <input
+            className="mt-3 w-full rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-zinc-500"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search project, client, stage..."
+          />
+        </label>
       </div>
+
+      {filteredProjects.length ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredProjects.map((project) => (
+            <article key={project.id} className="rounded-3xl border border-zinc-800 bg-black p-5">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">{project.reviewMode === "compare" ? "Before / After" : "Draft Review"}</p>
+              <h3 className="mt-3 text-lg font-semibold text-zinc-100">{project.title}</h3>
+              <p className="mt-2 text-sm text-zinc-400">Client: {project.client}</p>
+              <p className="mt-1 text-sm text-zinc-500">Stage: {project.stage}</p>
+              <p className="mt-3 text-xs text-zinc-600">Saved: {new Date(project.savedAt).toLocaleString()}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => loadSavedProjectSnapshot(project.id)}>Load</Button>
+                <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => deleteSavedProject(project.id)}>Delete</Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-zinc-800 bg-black p-6 text-sm text-zinc-400">
+          No saved projects match that search.
+        </div>
+      )}
     </Panel>
   );
 }
@@ -957,7 +999,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -1030,6 +1072,10 @@ export default function SoulFrameDraftReviewV2() {
     setSavedProjects((current) => current.filter((project) => project.id !== projectId));
   }
 
+  function clearSavedProjects() {
+    setSavedProjects([]);
+  }
+
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
     const nextUrl = file ? URL.createObjectURL(file) : "";
@@ -1054,7 +1100,7 @@ export default function SoulFrameDraftReviewV2() {
     <div className="space-y-6">
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
-      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} />
+      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
         {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} />}
