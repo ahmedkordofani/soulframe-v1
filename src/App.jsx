@@ -389,6 +389,40 @@ function saveSetting(key, value) {
   }
 }
 
+function loadSavedProjects() {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = window.localStorage.getItem("soulframe-saved-projects");
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveSavedProjects(projects) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem("soulframe-saved-projects", JSON.stringify(projects));
+  } catch (error) {
+    // Ignore local storage failures so the app keeps working.
+  }
+}
+
+function buildSavedProjectRecord(projectSession, reviewMode, selectedPreset) {
+  const now = new Date().toISOString();
+  return {
+    id: `soulframe-${Date.now()}`,
+    projectSession,
+    reviewMode,
+    selectedPreset,
+    savedAt: now,
+    title: getSessionValue(projectSession, "projectName"),
+    client: getSessionValue(projectSession, "clientName"),
+    stage: getSessionValue(projectSession, "currentStage"),
+  };
+}
+
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate }) {
   const lines = [];
   const newline = String.fromCharCode(10);
@@ -489,7 +523,10 @@ function runSoulFrameTests() {
   const storageTestsPassed =
     typeof loadSavedSession === "function" &&
     typeof loadSavedSetting === "function" &&
-    typeof saveSetting === "function";
+    typeof saveSetting === "function" &&
+    typeof loadSavedProjects === "function" &&
+    typeof saveSavedProjects === "function" &&
+    buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft";
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
 }
 
@@ -668,7 +705,7 @@ function InfoGrid({ title, rows }) {
   );
 }
 
-function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession }) {
+function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
     { key: "clientName", label: "Client Name", placeholder: "Client" },
@@ -704,7 +741,11 @@ function ProjectIntake({ projectSession, setProjectSession, selectedReport, rese
           <p className="text-xs uppercase tracking-wide text-zinc-500">Humanization Brief</p>
         <p className="mt-2 text-sm leading-6 text-zinc-300">{buildHumanizationBrief(projectSession, selectedReport)}</p>
         </div>
-        <Button className="shrink-0 border border-zinc-700 bg-black text-zinc-100 hover:bg-zinc-800" onClick={resetProjectSession}>Reset Session</Button>
+        <div className="flex shrink-0 flex-col gap-2">
+          <Button className="border border-zinc-700 bg-black text-zinc-100 hover:bg-zinc-800" onClick={saveProjectSnapshot}>Save Project</Button>
+          <Button className="border border-zinc-700 bg-black text-zinc-100 hover:bg-zinc-800" onClick={resetProjectSession}>Reset Session</Button>
+          <p className="text-center text-xs text-zinc-500">Saved: {savedProjectsCount}</p>
+        </div>
       </div>
     </Panel>
   );
@@ -723,6 +764,30 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudi
     <Panel title="Project Snapshot" subtitle="A quick overview of this client session, now connected to the uploaded audio file.">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => <article key={item.label} className="rounded-3xl border border-zinc-800 bg-black p-5"><p className="text-xs uppercase tracking-wide text-zinc-500">{item.label}</p><h3 className="mt-3 text-lg font-semibold text-zinc-100">{item.value}</h3><p className="mt-2 text-sm text-zinc-400">{item.note}</p></article>)}
+      </div>
+    </Panel>
+  );
+}
+
+function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject }) {
+  if (!savedProjects.length) return null;
+
+  return (
+    <Panel title="Saved Project Sessions" subtitle="Load a previous SoulFrame setup without rebuilding the intake from scratch.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {savedProjects.map((project) => (
+          <article key={project.id} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-wide text-zinc-500">{project.reviewMode === "compare" ? "Before / After" : "Draft Review"}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{project.title}</h3>
+            <p className="mt-2 text-sm text-zinc-400">Client: {project.client}</p>
+            <p className="mt-1 text-sm text-zinc-500">Stage: {project.stage}</p>
+            <p className="mt-3 text-xs text-zinc-600">Saved: {new Date(project.savedAt).toLocaleString()}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => loadSavedProjectSnapshot(project.id)}>Load</Button>
+              <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => deleteSavedProject(project.id)}>Delete</Button>
+            </div>
+          </article>
+        ))}
       </div>
     </Panel>
   );
@@ -892,7 +957,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, report export, client update export, saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -912,6 +977,7 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedAudioAnalysis, setHumanizedAudioAnalysis] = useState(null);
   const [reviewMode, setReviewMode] = useState(() => loadSavedSetting("soulframe-review-mode", "draft"));
   const [projectSession, setProjectSession] = useState(() => loadSavedSession());
+  const [savedProjects, setSavedProjects] = useState(() => loadSavedProjects());
   const selectedReport = reviewMode === "compare" ? beforeAfterReport : draftReports[selectedPreset];
   const testsPassed = runSoulFrameTests();
 
@@ -935,12 +1001,33 @@ export default function SoulFrameDraftReviewV2() {
     saveSetting("soulframe-review-mode", reviewMode);
   }, [reviewMode]);
 
+  useEffect(() => {
+    saveSavedProjects(savedProjects);
+  }, [savedProjects]);
+
   function handleRunAnalysis() { setActiveStep(1); }
 
   function resetProjectSession() {
     setProjectSession(defaultProjectSession);
     setSelectedPreset("marcel");
     setReviewMode("draft");
+  }
+
+  function saveProjectSnapshot() {
+    const record = buildSavedProjectRecord(projectSession, reviewMode, selectedPreset);
+    setSavedProjects((current) => [record, ...current].slice(0, 12));
+  }
+
+  function loadSavedProjectSnapshot(projectId) {
+    const savedProject = savedProjects.find((project) => project.id === projectId);
+    if (!savedProject) return;
+    setProjectSession({ ...defaultProjectSession, ...savedProject.projectSession });
+    setReviewMode(savedProject.reviewMode || "draft");
+    setSelectedPreset(savedProject.selectedPreset || "marcel");
+  }
+
+  function deleteSavedProject(projectId) {
+    setSavedProjects((current) => current.filter((project) => project.id !== projectId));
   }
 
   function handleDraftFileChange(event) {
@@ -965,8 +1052,9 @@ export default function SoulFrameDraftReviewV2() {
 
   const demoView = (
     <div className="space-y-6">
-      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} />
+      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
+      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
         {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} />}
