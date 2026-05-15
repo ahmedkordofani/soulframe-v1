@@ -276,6 +276,36 @@ function getTechnicalFormatNotes(analysis) {
   return notes;
 }
 
+function getTechnicalReadinessScore(analysis) {
+  if (!analysis || analysis.status !== "Ready") return null;
+
+  let score = 75;
+
+  if (analysis.clippingRisk === "High") score -= 30;
+  if (analysis.clippingRisk === "Medium") score -= 15;
+  if (analysis.clippingRisk === "Low") score += 5;
+
+  if (analysis.dynamics === "Compressed") score -= 12;
+  if (analysis.dynamics === "Moderate") score += 5;
+  if (analysis.dynamics === "Wide") score += 8;
+
+  if (analysis.sampleRate && analysis.sampleRate < 44100) score -= 10;
+  if (analysis.sampleRate && analysis.sampleRate >= 44100) score += 5;
+
+  if (analysis.channels === 1) score -= 5;
+  if (analysis.channels && analysis.channels >= 2) score += 5;
+
+  return clampScore(score);
+}
+
+function getTechnicalReadinessLabel(score) {
+  if (score === null) return "Waiting for audio";
+  if (score >= 85) return "Client-Ready Technically";
+  if (score >= 70) return "Mostly Stable";
+  if (score >= 55) return "Needs Technical Check";
+  return "Needs Repair Before Delivery";
+}
+
 function buildAudioFactRows(metadata, analysis, label) {
   const rows = [];
   if (metadata) {
@@ -288,6 +318,7 @@ function buildAudioFactRows(metadata, analysis, label) {
     rows.push({ label: `${label} Dynamics`, value: analysis.dynamics });
     if (analysis.sampleRate) rows.push({ label: `${label} Sample Rate`, value: `${analysis.sampleRate} Hz` });
     if (analysis.channels) rows.push({ label: `${label} Channels`, value: `${analysis.channels}` });
+    rows.push({ label: `${label} Technical Readiness`, value: `${getTechnicalReadinessScore(analysis)}/100` });
   } else if (analysis) {
     rows.push({ label: `${label} Analysis`, value: analysis.status });
   }
@@ -306,6 +337,7 @@ function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
     facts.push(`dynamics are ${analysis.dynamics.toLowerCase()}`);
     if (analysis.sampleRate) facts.push(`sample rate is ${analysis.sampleRate} Hz`);
     if (analysis.channels) facts.push(`channels detected: ${analysis.channels}`);
+    facts.push(`technical readiness is ${getTechnicalReadinessScore(analysis)}/100`);
   }
   if (!facts.length) return "";
   return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
@@ -583,7 +615,9 @@ function runSoulFrameTests() {
     getClippingRisk(0.98) === "Medium" &&
     getDynamicsLabel(0.15) === "Moderate" &&
     buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
-    getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2;
+    getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
+    getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
+    getTechnicalReadinessLabel(85) === "Client-Ready Technically";
   const comparisonTestsPassed =
     buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4 &&
     getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
@@ -754,6 +788,7 @@ function AudioHealthCheck({ analysis, label }) {
         { label: "Dynamics", value: analysis.dynamics },
         { label: "Sample Rate", value: analysis.sampleRate ? `${analysis.sampleRate} Hz` : "Unknown" },
         { label: "Channels", value: analysis.channels ? `${analysis.channels}` : "Unknown" },
+        { label: "Technical Readiness", value: `${getTechnicalReadinessScore(analysis)}/100` },
       ]
     : [{ label: "Status", value: analysis.status }];
 
@@ -764,7 +799,12 @@ function AudioHealthCheck({ analysis, label }) {
       <InfoGrid title={label} rows={rows} />
       {technicalNotes.length ? (
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="mb-3 text-sm font-semibold text-zinc-100">Technical Format Notes</p>
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm font-semibold text-zinc-100">Technical Format Notes</p>
+            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+              {getTechnicalReadinessLabel(getTechnicalReadinessScore(analysis))}
+            </span>
+          </div>
           <div className="space-y-2">
             {technicalNotes.map((note) => (
               <div key={note} className="rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300">
@@ -1107,7 +1147,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical format notes, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
