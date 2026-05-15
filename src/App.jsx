@@ -598,6 +598,18 @@ function buildSavedProjectsBackup(savedProjects) {
   );
 }
 
+function parseSavedProjectsBackup(text) {
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || parsed.type !== "saved-projects-backup" || !Array.isArray(parsed.projects)) {
+      return [];
+    }
+    return parsed.projects;
+  } catch (error) {
+    return [];
+  }
+}
+
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate }) {
   const lines = [];
   const newline = String.fromCharCode(10);
@@ -723,7 +735,8 @@ function runSoulFrameTests() {
     typeof loadSavedProjects === "function" &&
     typeof saveSavedProjects === "function" &&
     buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
-    buildSavedProjectsBackup([]).includes("saved-projects-backup");
+    buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
+    parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
 }
 
@@ -993,7 +1006,7 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudi
   );
 }
 
-function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects }) {
+function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects, importSavedProjectsBackup }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   if (!savedProjects.length) return null;
@@ -1009,6 +1022,18 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
     downloadTextFile("SoulFrame_Saved_Projects_Backup.json", backupText);
   }
 
+  function handleImportProjectsBackup(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      importSavedProjectsBackup(String(reader.result || ""));
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <Panel
       title="Saved Project Sessions"
@@ -1018,6 +1043,10 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
           <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadProjectsBackup}>
             Download Backup
           </Button>
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-800">
+            Import Backup
+            <input type="file" accept="application/json,.json" className="sr-only" onChange={handleImportProjectsBackup} />
+          </label>
           <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={clearSavedProjects}>
             Clear All
           </Button>
@@ -1304,7 +1333,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, saved-project backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -1381,6 +1410,16 @@ export default function SoulFrameDraftReviewV2() {
     setSavedProjects([]);
   }
 
+  function importSavedProjectsBackup(backupText) {
+    const importedProjects = parseSavedProjectsBackup(backupText);
+    if (!importedProjects.length) return;
+    setSavedProjects((current) => {
+      const existingIds = new Set(current.map((project) => project.id));
+      const freshImports = importedProjects.filter((project) => project && project.id && !existingIds.has(project.id));
+      return [...freshImports, ...current].slice(0, 24);
+    });
+  }
+
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
     const nextUrl = file ? URL.createObjectURL(file) : "";
@@ -1405,7 +1444,7 @@ export default function SoulFrameDraftReviewV2() {
     <div className="space-y-6">
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
-      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} />
+      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
         {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} />}
