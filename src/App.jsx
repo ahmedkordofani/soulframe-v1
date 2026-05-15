@@ -223,6 +223,8 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
 
     setAnalysis({
       status: "Ready",
+      sampleRate: audioBuffer.sampleRate,
+      channels: audioBuffer.numberOfChannels,
       peak,
       peakDb: amplitudeToDb(peak),
       rms,
@@ -256,6 +258,8 @@ function buildAudioFactRows(metadata, analysis, label) {
     rows.push({ label: `${label} Peak`, value: analysis.peakDb });
     rows.push({ label: `${label} Clipping Risk`, value: analysis.clippingRisk });
     rows.push({ label: `${label} Dynamics`, value: analysis.dynamics });
+    if (analysis.sampleRate) rows.push({ label: `${label} Sample Rate`, value: `${analysis.sampleRate} Hz` });
+    if (analysis.channels) rows.push({ label: `${label} Channels`, value: `${analysis.channels}` });
   } else if (analysis) {
     rows.push({ label: `${label} Analysis`, value: analysis.status });
   }
@@ -272,6 +276,8 @@ function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
     facts.push(`peak level is ${analysis.peakDb}`);
     facts.push(`clipping risk is ${analysis.clippingRisk.toLowerCase()}`);
     facts.push(`dynamics are ${analysis.dynamics.toLowerCase()}`);
+    if (analysis.sampleRate) facts.push(`sample rate is ${analysis.sampleRate} Hz`);
+    if (analysis.channels) facts.push(`channels detected: ${analysis.channels}`);
   }
   if (!facts.length) return "";
   return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
@@ -544,7 +550,11 @@ function runSoulFrameTests() {
   const scoreTestsPassed = clampScore(79) === 79 && clampScore(-12) === 0 && clampScore(140) === 100;
   const labelTestsPassed = getScoreLabel(90) === "Highly Humanized" && getScoreLabel(75) === "Mostly Human" && getScoreLabel(39) === "Heavy AI Artifacting";
   const reportTestsPassed = Object.values(draftReports).every((report) => report.issues.length > 0 && report.priorities.length > 0 && report.scores.length > 0);
-  const audioTestsPassed = amplitudeToDb(1) === "0.0 dB" && getClippingRisk(0.98) === "Medium" && getDynamicsLabel(0.15) === "Moderate";
+  const audioTestsPassed =
+    amplitudeToDb(1) === "0.0 dB" &&
+    getClippingRisk(0.98) === "Medium" &&
+    getDynamicsLabel(0.15) === "Moderate" &&
+    buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate");
   const comparisonTestsPassed =
     buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4 &&
     getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
@@ -713,6 +723,8 @@ function AudioHealthCheck({ analysis, label }) {
         { label: "Clipping Risk", value: analysis.clippingRisk },
         { label: "Average Energy", value: analysis.averageEnergyDb },
         { label: "Dynamics", value: analysis.dynamics },
+        { label: "Sample Rate", value: analysis.sampleRate ? `${analysis.sampleRate} Hz` : "Unknown" },
+        { label: "Channels", value: analysis.channels ? `${analysis.channels}` : "Unknown" },
       ]
     : [{ label: "Status", value: analysis.status }];
   return <InfoGrid title={label} rows={rows} />;
@@ -1047,7 +1059,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, channel/sample-rate info, improvement score, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
