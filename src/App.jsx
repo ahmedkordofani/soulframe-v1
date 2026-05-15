@@ -353,6 +353,23 @@ function buildDeliveryChecklist(analysis, reviewMode = "draft") {
   return [...technicalItems, ...baseItems];
 }
 
+function buildDeliveryChecklistText(projectSession, checklist) {
+  const newline = String.fromCharCode(10);
+  const lines = [];
+
+  lines.push("SOULFRAME CLIENT DELIVERY CHECKLIST");
+  lines.push("");
+  lines.push(`Project: ${getSessionValue(projectSession, "projectName")}`);
+  lines.push(`Client: ${getSessionValue(projectSession, "clientName")}`);
+  lines.push("");
+
+  checklist.forEach((item, index) => {
+    lines.push(`${index + 1}. ${item.label} [${item.status}]`);
+  });
+
+  return lines.join(newline);
+}
+
 function buildAudioFactRows(metadata, analysis, label) {
   const rows = [];
   if (metadata) {
@@ -672,7 +689,8 @@ function runSoulFrameTests() {
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
     getTechnicalReadinessLabel(85) === "Client-Ready Technically" &&
-    buildDeliveryChecklist({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "draft").length >= 6;
+    buildDeliveryChecklist({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "draft").length >= 6 &&
+    buildDeliveryChecklistText(defaultProjectSession, buildDeliveryChecklist(null)).includes("SOULFRAME CLIENT DELIVERY CHECKLIST");
   const comparisonTestsPassed =
     buildBeforeAfterComparison({ duration: 120, size: 1 }, { duration: 118, size: 1 }, { status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }).length === 4 &&
     getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
@@ -1100,15 +1118,46 @@ function AudioFactsSummary({ draftMetadata, humanizedMetadata, draftAnalysis, hu
   );
 }
 
-function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
+  const [copyStatus, setCopyStatus] = useState("Copy Checklist");
+  const [downloadStatus, setDownloadStatus] = useState("Download Checklist");
+
+  async function handleCopyChecklist() {
+    const checklistText = buildDeliveryChecklistText(projectSession, checklist);
+    try {
+      await navigator.clipboard.writeText(checklistText);
+      setCopyStatus("Copied");
+      window.setTimeout(() => setCopyStatus("Copy Checklist"), 1500);
+    } catch (error) {
+      setCopyStatus("Copy failed");
+      window.setTimeout(() => setCopyStatus("Copy Checklist"), 1500);
+    }
+  }
+
+  function handleDownloadChecklist() {
+    const checklistText = buildDeliveryChecklistText(projectSession, checklist);
+    const projectName = getSessionValue(projectSession, "projectName");
+    const fileName = `${makeSafeFileName(projectName)}_Delivery_Checklist.txt`;
+    const downloaded = downloadTextFile(fileName, checklistText);
+    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
+    window.setTimeout(() => setDownloadStatus("Download Checklist"), 1500);
+  }
 
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="text-2xl font-semibold">Client Delivery Checklist</h2>
-        <p className="mt-1 text-sm text-zinc-400">A practical final-pass checklist before sending the track or report to a client.</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Client Delivery Checklist</h2>
+            <p className="mt-1 text-sm text-zinc-400">A practical final-pass checklist before sending the track or report to a client.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyChecklist}>{copyStatus}</Button>
+            <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadChecklist}>{downloadStatus}</Button>
+          </div>
+        </div>
         <div className="mt-5 space-y-3">
           {checklist.map((item, index) => (
             <div key={`${item.label}-${index}`} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4">
@@ -1194,7 +1243,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
 
       <AudioFactsSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <BeforeAfterComparisonSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
-      <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
       <Panel title={reviewMode === "compare" ? "Comparison Findings" : "Detected Issues"} subtitle="Timestamped notes showing what improved and what still needs work."><div className="space-y-4">{report.issues.map((issue) => <article key={issue.id} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="flex items-start justify-between gap-4"><div><p className="text-sm text-zinc-400">{issue.time} - {issue.category}</p><h3 className="mt-2 text-lg font-semibold text-zinc-100">{issue.title}</h3><p className="mt-2 text-sm text-zinc-400">{issue.note}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{issue.severity}</span></div><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Suggested Humanization</p><p className="mt-1 text-sm text-zinc-200">{issue.fix}</p></div></article>)}</div></Panel>
@@ -1230,7 +1279,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, delivery checklist, report export with checklist, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
