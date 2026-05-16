@@ -22,12 +22,14 @@ SoulFrame is built around a practical AI-humanization workflow:
 
 1. Upload an AI-generated music draft
 2. Preview and inspect the audio
-3. Review real file metadata, waveform, and basic audio health
+3. Review real file metadata, waveform, and audio health
 4. Identify synthetic or unnatural-sounding elements
-5. Map the main revision priorities
-6. Compare an original AI draft against a humanized edit
-7. Generate clear client-facing update notes
-8. Export reports, checklists, and project records
+5. Generate early artifact clues from browser-based proxy analysis
+6. Map the main revision priorities
+7. Compare an original AI draft against a humanized edit
+8. Generate clear client-facing update notes
+9. Export reports, checklists, and project records
+10. Save, search, import, and export local project sessions
 
 ---
 
@@ -47,10 +49,38 @@ SoulFrame is built around a practical AI-humanization workflow:
   - Dynamics estimate
   - Sample rate
   - Channel count
+- Spectral texture proxy analysis
+- Brightness profile detection
+  - Dark / Warm
+  - Balanced
+  - Bright / Potentially Harsh
+- Texture stability detection
+  - Stable
+  - Moderate Movement
+  - Unstable / Busy
+- Early artifact clues
+  - Possible harsh AI shimmer
+  - Possible generated texture movement
+  - Possible flat emotional movement
+  - Headroom may affect perception
+- Producer Listening Focus
+- Humanization Priority Score
+- Priority labels
+  - Low Priority
+  - Medium Priority
+  - High Priority
+- Section-by-section review notes
+  - Intro
+  - Verse
+  - Chorus
+  - Bridge / Breakdown
+  - Outro
 - Technical format notes
 - Technical readiness score
 - Real audio facts inside reports
 - Real audio facts inside client updates
+- Artifact clues inside client updates
+- Artifact clues inside exported reports
 - Before / After audio comparison summary
 - Before / After technical improvement score
 - Client delivery checklist
@@ -103,11 +133,51 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V2.1.0: Project Sessions, Export Tools, and Technical Review Workflow**
+**V3.0.0: Deeper Listening and Humanization Intelligence**
 
-SoulFrame V2.1 expands the functional audio intake system with export tools, saved project sessions, technical readiness scoring, project backup import/export, and client delivery checklists.
+SoulFrame V3 expands beyond basic audio intake and project reporting into early humanization intelligence.
 
-The deeper SoulFrame review logic is still partly simulated, but the tool now provides a practical working workflow for reviewing, documenting, and preparing AI-generated music drafts for humanization.
+This version introduces spectral texture proxies, early artifact clues, producer listening focus, humanization priority scoring, and section-by-section review prompts.
+
+The goal of V3 is to help producers answer a deeper question:
+
+> What exactly is making this AI-generated track feel less human?
+
+SoulFrame still uses lightweight browser-based analysis and producer-guided logic, but V3 marks the beginning of the tool becoming more useful as a second set of ears during AI music humanization work.
+
+---
+
+## V3 Features
+
+- Spectral texture proxy analysis
+- Brightness profile detection
+  - Dark / Warm
+  - Balanced
+  - Bright / Potentially Harsh
+- Texture stability detection
+  - Stable
+  - Moderate Movement
+  - Unstable / Busy
+- Early artifact clues
+  - Possible harsh AI shimmer
+  - Possible generated texture movement
+  - Possible flat emotional movement
+  - Headroom may affect perception
+- Artifact clues included in client updates
+- Artifact clues included in exported reports
+- Producer Listening Focus
+- Humanization Priority Score
+- Priority labels
+  - Low Priority
+  - Medium Priority
+  - High Priority
+- Section-by-section review notes
+  - Intro
+  - Verse
+  - Chorus
+  - Bridge / Breakdown
+  - Outro
+- Producer-focused prompts for emotional realism, arrangement movement, and sonic intention
 
 ---
 
@@ -147,6 +217,21 @@ The deeper SoulFrame review logic is still partly simulated, but the tool now pr
 - Added technical readiness score
 - Added before/after technical improvement score
 - Added delivery checklist inside report export
+
+### V3.0.0 — Deeper Listening and Humanization Intelligence
+
+- Added spectral texture proxy analysis
+- Added brightness profile detection
+- Added texture stability detection
+- Added early artifact clues
+- Added artifact clue sentences inside client updates
+- Added artifact clues to exported full reports
+- Added producer listening focus
+- Added humanization priority score
+- Added priority labels and producer notes
+- Added section-by-section review notes
+- Added section notes to full report exports
+- Expanded SoulFrame from technical review into early humanization intelligence
 
 ---
 
