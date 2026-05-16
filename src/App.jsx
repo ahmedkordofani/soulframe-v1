@@ -282,6 +282,56 @@ function getAudioHealthRecommendation(analysis) {
   return "The file looks technically stable. Focus the next pass on realism, emotion, and arrangement polish.";
 }
 
+function buildArtifactClues(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [{ title: "Waiting for audio", level: "Waiting", note: "Upload audio to generate early artifact clues." }];
+  }
+
+  const clues = [];
+
+  if (analysis.brightness === "Bright / Potentially Harsh") {
+    clues.push({
+      title: "Possible harsh AI shimmer",
+      level: "Review",
+      note: "The brightness profile suggests the top-end may need checking for metallic vocal edges, brittle cymbals, or synthetic gloss.",
+    });
+  }
+
+  if (analysis.textureStability === "Unstable / Busy") {
+    clues.push({
+      title: "Possible generated texture movement",
+      level: "Review",
+      note: "The texture movement is busy, so check whether the track feels emotionally intentional or artificially restless.",
+    });
+  }
+
+  if (analysis.dynamics === "Compressed") {
+    clues.push({
+      title: "Possible flat emotional movement",
+      level: "Review",
+      note: "The dynamics look tight. Listen for sections that feel loud but emotionally static.",
+    });
+  }
+
+  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
+    clues.push({
+      title: "Headroom may affect perception",
+      level: "Technical",
+      note: "Limited headroom can make AI harshness feel worse. Check gain staging before deeper humanization work.",
+    });
+  }
+
+  if (!clues.length) {
+    clues.push({
+      title: "No obvious technical artifact clue",
+      level: "Stable",
+      note: "The basic proxy scan looks stable. Focus the next listen on performance, arrangement, and emotional delivery.",
+    });
+  }
+
+  return clues;
+}
+
 function getTechnicalFormatNotes(analysis) {
   if (!analysis || analysis.status !== "Ready") return [];
 
@@ -751,6 +801,7 @@ function runSoulFrameTests() {
     getDynamicsLabel(0.15) === "Moderate" &&
     getBrightnessLabel(0.5) === "Bright / Potentially Harsh" &&
     getTextureStabilityLabel(0.4) === "Unstable / Busy" &&
+    buildArtifactClues({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).some((clue) => clue.title.includes("shimmer")) &&
     buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
@@ -1214,6 +1265,33 @@ function AudioFactsSummary({ draftMetadata, humanizedMetadata, draftAnalysis, hu
   );
 }
 
+function ArtifactCluePanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const clues = buildArtifactClues(activeAnalysis);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h2 className="text-2xl font-semibold">Early Artifact Clues</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          A first-pass guide based on technical proxies. These clues should support your ears, not replace them.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {clues.map((clue) => (
+            <article key={clue.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
+              <div className="flex items-start justify-between gap-4">
+                <h3 className="font-semibold text-zinc-100">{clue.title}</h3>
+                <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{clue.level}</span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">{clue.note}</p>
+            </article>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
@@ -1339,6 +1417,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
 
       <AudioFactsSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <BeforeAfterComparisonSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <ArtifactCluePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
@@ -1375,7 +1454,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
