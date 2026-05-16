@@ -495,6 +495,14 @@ function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
   return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
 }
 
+function buildArtifactClueSentence(analysis) {
+  if (!analysis || analysis.status !== "Ready") return "";
+  const clues = buildArtifactClues(analysis).filter((clue) => clue.level !== "Stable" && clue.level !== "Waiting");
+  if (!clues.length) return "The early artifact clue scan did not flag any obvious technical warning signs.";
+  const clueTitles = clues.slice(0, 3).map((clue) => clue.title.toLowerCase()).join(", ");
+  return `The early artifact clue scan suggests checking for ${clueTitles}.`;
+}
+
 function parseDbValue(dbValue) {
   if (typeof dbValue !== "string" || dbValue.includes("∞")) return null;
   const parsed = Number.parseFloat(dbValue.replace("dB", ""));
@@ -596,18 +604,21 @@ function buildClientUpdate(report, mode = "balanced", projectSession = defaultPr
     buildAudioFactsSentence(audioContext.draftMetadata, audioContext.draftAnalysis, "draft"),
     buildAudioFactsSentence(audioContext.humanizedMetadata, audioContext.humanizedAnalysis, "humanized edit"),
   ].filter(Boolean).join(" ");
+  const activeAudioAnalysis = audioContext.humanizedAnalysis || audioContext.draftAnalysis;
+  const artifactClueSentence = buildArtifactClueSentence(activeAudioAnalysis);
+  const audioAndClueSentence = [audioSentence, artifactClueSentence].filter(Boolean).join(" ");
 
   if (mode === "short") {
     const mainPriorities = report.priorities.slice(0, 2).join(" and ").toLowerCase();
-    return `Quick update on ${projectName} for ${clientName} - I reviewed the AI draft and found the main areas that need attention. The biggest priorities are ${mainPriorities}. The track is currently scoring ${score}/100 for humanization, so the next pass will focus on targeted improvements rather than changing the whole direction. ${audioSentence}`.trim();
+    return `Quick update on ${projectName} for ${clientName} - I reviewed the AI draft and found the main areas that need attention. The biggest priorities are ${mainPriorities}. The track is currently scoring ${score}/100 for humanization, so the next pass will focus on targeted improvements rather than changing the whole direction. ${audioAndClueSentence}`.trim();
   }
 
   if (mode === "detailed") {
     const allPriorities = report.priorities.join(", ").toLowerCase();
-    return `I went through ${projectName} in detail and identified the specific areas affecting realism and translation. The main concern going into the review was: ${mainConcern}. The main issues are: ${topIssues}. The next pass should focus on ${allPriorities}. ${audioSentence} This should help the track feel more natural and emotionally convincing while keeping the original creative direction intact.`.trim();
+    return `I went through ${projectName} in detail and identified the specific areas affecting realism and translation. The main concern going into the review was: ${mainConcern}. The main issues are: ${topIssues}. The next pass should focus on ${allPriorities}. ${audioAndClueSentence} This should help the track feel more natural and emotionally convincing while keeping the original creative direction intact.`.trim();
   }
 
-  return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
+  return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioAndClueSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
 }
 
 function loadSavedSession() {
@@ -737,8 +748,15 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
     lines.push("");
   }
 
-  lines.push("CLIENT DELIVERY CHECKLIST");
   const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
+
+  lines.push("EARLY ARTIFACT CLUES");
+  buildArtifactClues(activeAnalysis).forEach((clue, index) => {
+    lines.push(`${index + 1}. ${clue.title} [${clue.level}] - ${clue.note}`);
+  });
+  lines.push("");
+
+  lines.push("CLIENT DELIVERY CHECKLIST");
   buildDeliveryChecklist(activeAnalysis, reviewMode).forEach((item, index) => {
     lines.push(`${index + 1}. ${item.label} [${item.status}]`);
   });
@@ -803,6 +821,7 @@ function runSoulFrameTests() {
     getTextureStabilityLabel(0.4) === "Unstable / Busy" &&
     buildArtifactClues({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).some((clue) => clue.title.includes("shimmer")) &&
     buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
+    buildArtifactClueSentence({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("artifact clue") &&
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
     getTechnicalReadinessLabel(85) === "Client-Ready Technically" &&
@@ -1454,7 +1473,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues in reports/updates, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
