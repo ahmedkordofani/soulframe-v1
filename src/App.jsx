@@ -407,6 +407,56 @@ function getHumanizationPriorityNote(analysis) {
   return "Upload audio to generate a humanization priority score.";
 }
 
+function buildSectionReviewNotes(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { section: "Intro", note: "Upload audio to generate section-by-section review notes." },
+      { section: "Verse", note: "Waiting for audio analysis." },
+      { section: "Chorus", note: "Waiting for audio analysis." },
+      { section: "Bridge", note: "Waiting for audio analysis." },
+      { section: "Outro", note: "Waiting for audio analysis." },
+    ];
+  }
+
+  const bright = analysis.brightness === "Bright / Potentially Harsh";
+  const busy = analysis.textureStability === "Unstable / Busy";
+  const compressed = analysis.dynamics === "Compressed";
+  const headroomRisk = analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium";
+
+  return [
+    {
+      section: "Intro",
+      note: busy
+        ? "Check whether the opening texture feels intentional or immediately too busy/generated. Simplify the first impression if needed."
+        : "Check whether the intro creates a clear emotional doorway into the track rather than simply starting the loop.",
+    },
+    {
+      section: "Verse",
+      note: bright
+        ? "Listen for metallic vocal edges, sharp sibilance, or brittle upper harmonics in the main storytelling section."
+        : "Focus on vocal realism, phrasing, groove pocket, and whether the verse feels performed rather than generated.",
+    },
+    {
+      section: "Chorus",
+      note: compressed
+        ? "Check whether the chorus lifts emotionally or stays flat because the dynamics are too tight. Add contrast if needed."
+        : "Make sure the chorus has a natural lift, emotional arrival, and enough width without losing the song's core feeling.",
+    },
+    {
+      section: "Bridge / Breakdown",
+      note: busy
+        ? "Use this section to reset the ear. Reduce unnecessary movement if the texture feels artificially restless."
+        : "Check whether the bridge gives the listener a meaningful change in emotion, space, or arrangement tension.",
+    },
+    {
+      section: "Outro",
+      note: headroomRisk
+        ? "Check the final loud moments for clipping, harshness, or over-limited decay before export."
+        : "Make sure the ending feels intentional, musical, and emotionally resolved rather than abruptly generated.",
+    },
+  ];
+}
+
 function getTechnicalFormatNotes(analysis) {
   if (!analysis || analysis.status !== "Ready") return [];
 
@@ -836,6 +886,12 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push(getHumanizationPriorityNote(activeAnalysis));
   lines.push("");
 
+  lines.push("SECTION-BY-SECTION REVIEW NOTES");
+  buildSectionReviewNotes(activeAnalysis).forEach((item) => {
+    lines.push(`${item.section}: ${item.note}`);
+  });
+  lines.push("");
+
   lines.push("PRODUCER LISTENING FOCUS");
   buildListeningFocusItems(activeAnalysis).forEach((item, index) => {
     lines.push(`${index + 1}. ${item}`);
@@ -910,6 +966,7 @@ function runSoulFrameTests() {
     buildArtifactClueSentence({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("artifact clue") &&
     buildListeningFocusItems({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length > 0 &&
     getHumanizationPriorityScore({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }) > 0 &&
+    buildSectionReviewNotes({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length === 5 &&
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
     getTechnicalReadinessLabel(85) === "Client-Ready Technically" &&
@@ -1454,6 +1511,30 @@ function HumanizationPriorityPanel({ draftAnalysis, humanizedAnalysis, reviewMod
   );
 }
 
+function SectionReviewNotesPanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const sectionNotes = buildSectionReviewNotes(activeAnalysis);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <h2 className="text-2xl font-semibold">Section-by-Section Review Notes</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Producer prompts for checking the track as a song, not just as an audio file.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {sectionNotes.map((item) => (
+            <article key={item.section} className="rounded-3xl border border-zinc-800 bg-black p-5">
+              <h3 className="font-semibold text-zinc-100">{item.section}</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+            </article>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
@@ -1582,6 +1663,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       <ArtifactCluePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ListeningFocusPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <HumanizationPriorityPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <SectionReviewNotesPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
@@ -1618,7 +1700,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
