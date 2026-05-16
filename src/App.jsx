@@ -362,6 +362,51 @@ function buildListeningFocusItems(analysis) {
   return focusItems.slice(0, 4);
 }
 
+function getHumanizationPriorityScore(analysis) {
+  if (!analysis || analysis.status !== "Ready") return 0;
+
+  let score = 25;
+
+  if (analysis.brightness === "Bright / Potentially Harsh") score += 22;
+  if (analysis.textureStability === "Unstable / Busy") score += 22;
+  if (analysis.textureStability === "Moderate Movement") score += 10;
+  if (analysis.dynamics === "Compressed") score += 18;
+  if (analysis.clippingRisk === "High") score += 18;
+  if (analysis.clippingRisk === "Medium") score += 10;
+
+  const readinessScore = getTechnicalReadinessScore(analysis);
+  if (readinessScore < 70) score += 12;
+  if (readinessScore >= 90) score -= 8;
+
+  return clampScore(score);
+}
+
+function getHumanizationPriorityLabel(score) {
+  if (score >= 75) return "High Priority";
+  if (score >= 50) return "Medium Priority";
+  if (score > 0) return "Low Priority";
+  return "Waiting for Audio";
+}
+
+function getHumanizationPriorityNote(analysis) {
+  const score = getHumanizationPriorityScore(analysis);
+  const label = getHumanizationPriorityLabel(score);
+
+  if (label === "High Priority") {
+    return "This file should receive a focused humanization pass before client delivery. Prioritize realism, headroom, harshness control, and emotional movement.";
+  }
+
+  if (label === "Medium Priority") {
+    return "This file has some areas worth checking by ear. Focus on the sections that feel synthetic, overly bright, or emotionally flat.";
+  }
+
+  if (label === "Low Priority") {
+    return "This file looks technically stable from the current proxy scan. The next pass can focus more on taste, emotion, and final polish.";
+  }
+
+  return "Upload audio to generate a humanization priority score.";
+}
+
 function getTechnicalFormatNotes(analysis) {
   if (!analysis || analysis.status !== "Ready") return [];
 
@@ -786,6 +831,11 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   });
   lines.push("");
 
+  lines.push("HUMANIZATION PRIORITY SCORE");
+  lines.push(`${getHumanizationPriorityScore(activeAnalysis)}/100 - ${getHumanizationPriorityLabel(getHumanizationPriorityScore(activeAnalysis))}`);
+  lines.push(getHumanizationPriorityNote(activeAnalysis));
+  lines.push("");
+
   lines.push("PRODUCER LISTENING FOCUS");
   buildListeningFocusItems(activeAnalysis).forEach((item, index) => {
     lines.push(`${index + 1}. ${item}`);
@@ -859,6 +909,7 @@ function runSoulFrameTests() {
     buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
     buildArtifactClueSentence({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("artifact clue") &&
     buildListeningFocusItems({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length > 0 &&
+    getHumanizationPriorityScore({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }) > 0 &&
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
     getTechnicalReadinessLabel(85) === "Client-Ready Technically" &&
@@ -1374,6 +1425,35 @@ function ListeningFocusPanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
   );
 }
 
+function HumanizationPriorityPanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const priorityScore = getHumanizationPriorityScore(activeAnalysis);
+  const priorityLabel = getHumanizationPriorityLabel(priorityScore);
+  const priorityNote = getHumanizationPriorityNote(activeAnalysis);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Humanization Priority Score</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              A producer-focused estimate of how urgently the track needs human attention.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-black px-5 py-4 text-right">
+            <p className="text-3xl font-bold text-zinc-100">{priorityScore}/100</p>
+            <p className="text-sm text-zinc-400">{priorityLabel}</p>
+          </div>
+        </div>
+        <p className="mt-5 rounded-3xl border border-zinc-800 bg-black p-5 text-sm leading-6 text-zinc-300">
+          {priorityNote}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
@@ -1501,6 +1581,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       <BeforeAfterComparisonSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ArtifactCluePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ListeningFocusPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <HumanizationPriorityPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
@@ -1537,7 +1618,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
