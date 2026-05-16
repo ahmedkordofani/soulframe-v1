@@ -184,6 +184,20 @@ function getDynamicsLabel(dynamicRange) {
   return "Compressed";
 }
 
+function getBrightnessLabel(brightnessScore) {
+  if (!Number.isFinite(brightnessScore)) return "Unknown";
+  if (brightnessScore >= 0.42) return "Bright / Potentially Harsh";
+  if (brightnessScore >= 0.25) return "Balanced";
+  return "Dark / Warm";
+}
+
+function getTextureStabilityLabel(textureMovement) {
+  if (!Number.isFinite(textureMovement)) return "Unknown";
+  if (textureMovement >= 0.38) return "Unstable / Busy";
+  if (textureMovement >= 0.18) return "Moderate Movement";
+  return "Stable";
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -196,13 +210,21 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
 
     let peak = 0;
     let sumSquares = 0;
+    let sumAbsolute = 0;
+    let sumDelta = 0;
+    let zeroCrossings = 0;
     const blockSize = Math.max(1, Math.floor(channelData.length / 120));
     const blockRmsValues = [];
 
     for (let i = 0; i < channelData.length; i += 1) {
-      const absoluteValue = Math.abs(channelData[i]);
+      const currentSample = channelData[i];
+      const previousSample = i > 0 ? channelData[i - 1] : currentSample;
+      const absoluteValue = Math.abs(currentSample);
       peak = Math.max(peak, absoluteValue);
-      sumSquares += channelData[i] * channelData[i];
+      sumSquares += currentSample * currentSample;
+      sumAbsolute += absoluteValue;
+      sumDelta += Math.abs(currentSample - previousSample);
+      if (i > 0 && Math.sign(currentSample) !== Math.sign(previousSample)) zeroCrossings += 1;
     }
 
     for (let start = 0; start < channelData.length; start += blockSize) {
@@ -220,6 +242,11 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
     const quietBlocks = blockRmsValues.filter((value) => value > 0.0001);
     const quietestBlock = quietBlocks.length ? Math.min(...quietBlocks) : 0;
     const dynamicRange = loudestBlock - quietestBlock;
+    const averageAbs = sumAbsolute / Math.max(1, channelData.length);
+    const averageDelta = sumDelta / Math.max(1, channelData.length);
+    const brightnessScore = averageAbs > 0 ? Math.min(1, averageDelta / Math.max(averageAbs * 4, 0.0001)) : 0;
+    const zeroCrossingRate = zeroCrossings / Math.max(1, channelData.length);
+    const textureMovement = Math.min(1, zeroCrossingRate * 20 + dynamicRange);
 
     setAnalysis({
       status: "Ready",
@@ -232,6 +259,11 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
       clippingRisk: getClippingRisk(peak),
       dynamics: getDynamicsLabel(dynamicRange),
       dynamicRange,
+      brightnessScore,
+      brightness: getBrightnessLabel(brightnessScore),
+      zeroCrossingRate,
+      textureMovement,
+      textureStability: getTextureStabilityLabel(textureMovement),
     });
     audioContext.close();
   } catch (error) {
@@ -243,6 +275,8 @@ function getAudioHealthRecommendation(analysis) {
   if (!analysis || analysis.status !== "Ready") return "Upload an audio file to generate real audio health notes.";
   if (analysis.clippingRisk === "High") return "The file is very close to clipping. Leave more headroom before the next humanization or mastering pass.";
   if (analysis.clippingRisk === "Medium") return "The file has limited headroom. Check loud sections before exporting the client version.";
+  if (analysis.brightness === "Bright / Potentially Harsh") return "The file has a bright texture profile. Check for harsh AI shimmer, metallic vocal edges, or brittle top-end.";
+  if (analysis.textureStability === "Unstable / Busy") return "The texture movement is busy. Check whether the track feels emotionally intentional or overly generated.";
   if (analysis.dynamics === "Compressed") return "The file may be dynamically tight. Check whether the track still breathes emotionally.";
   if (analysis.dynamics === "Wide") return "The file has strong dynamic movement. Preserve this while cleaning AI artifacts.";
   return "The file looks technically stable. Focus the next pass on realism, emotion, and arrangement polish.";
@@ -383,6 +417,8 @@ function buildAudioFactRows(metadata, analysis, label) {
     if (analysis.sampleRate) rows.push({ label: `${label} Sample Rate`, value: `${analysis.sampleRate} Hz` });
     if (analysis.channels) rows.push({ label: `${label} Channels`, value: `${analysis.channels}` });
     rows.push({ label: `${label} Technical Readiness`, value: `${getTechnicalReadinessScore(analysis)}/100` });
+    if (analysis.brightness) rows.push({ label: `${label} Brightness`, value: analysis.brightness });
+    if (analysis.textureStability) rows.push({ label: `${label} Texture Stability`, value: analysis.textureStability });
   } else if (analysis) {
     rows.push({ label: `${label} Analysis`, value: analysis.status });
   }
@@ -402,6 +438,8 @@ function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
     if (analysis.sampleRate) facts.push(`sample rate is ${analysis.sampleRate} Hz`);
     if (analysis.channels) facts.push(`channels detected: ${analysis.channels}`);
     facts.push(`technical readiness is ${getTechnicalReadinessScore(analysis)}/100`);
+    if (analysis.brightness) facts.push(`brightness profile is ${analysis.brightness.toLowerCase()}`);
+    if (analysis.textureStability) facts.push(`texture stability is ${analysis.textureStability.toLowerCase()}`);
   }
   if (!facts.length) return "";
   return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
@@ -711,6 +749,8 @@ function runSoulFrameTests() {
     amplitudeToDb(1) === "0.0 dB" &&
     getClippingRisk(0.98) === "Medium" &&
     getDynamicsLabel(0.15) === "Moderate" &&
+    getBrightnessLabel(0.5) === "Bright / Potentially Harsh" &&
+    getTextureStabilityLabel(0.4) === "Unstable / Busy" &&
     buildAudioFactRows(null, { status: "Ready", peakDb: "-1.0 dB", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }, "Draft").some((row) => row.label === "Draft Sample Rate") &&
     getTechnicalFormatNotes({ status: "Ready", sampleRate: 44100, channels: 2, clippingRisk: "Low" }).length >= 2 &&
     getTechnicalReadinessScore({ status: "Ready", clippingRisk: "Low", dynamics: "Moderate", sampleRate: 44100, channels: 2 }) >= 85 &&
@@ -892,6 +932,8 @@ function AudioHealthCheck({ analysis, label }) {
         { label: "Sample Rate", value: analysis.sampleRate ? `${analysis.sampleRate} Hz` : "Unknown" },
         { label: "Channels", value: analysis.channels ? `${analysis.channels}` : "Unknown" },
         { label: "Technical Readiness", value: `${getTechnicalReadinessScore(analysis)}/100` },
+        { label: "Brightness", value: analysis.brightness || "Unknown" },
+        { label: "Texture Stability", value: analysis.textureStability || "Unknown" },
       ]
     : [{ label: "Status", value: analysis.status }];
 
@@ -1333,7 +1375,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, technical readiness score, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
