@@ -986,11 +986,12 @@ function parseSavedProjectsBackup(text) {
   }
 }
 
-function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate }) {
+function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate, reportTone = "producer" }) {
   const lines = [];
   const newline = String.fromCharCode(10);
+  const isClientReport = reportTone === "client";
 
-  lines.push("SOULFRAME HUMANIZATION REPORT");
+  lines.push(isClientReport ? "SOULFRAME CLIENT-FRIENDLY HUMANIZATION REPORT" : "SOULFRAME PRODUCER HUMANIZATION REPORT");
   lines.push("");
   lines.push(`Project: ${getSessionValue(projectSession, "projectName")}`);
   lines.push(`Client: ${getSessionValue(projectSession, "clientName")}`);
@@ -1027,11 +1028,19 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
 
   const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
 
-  lines.push("EARLY ARTIFACT CLUES");
-  buildArtifactClues(activeAnalysis).forEach((clue, index) => {
-    lines.push(`${index + 1}. ${clue.title} [${clue.level}] - ${clue.note}`);
-  });
-  lines.push("");
+  if (isClientReport) {
+    lines.push("CLIENT-FRIENDLY FOCUS AREAS");
+    buildActionPlanForTone(activeAnalysis, "client").forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.action} - ${item.detail}`);
+    });
+    lines.push("");
+  } else {
+    lines.push("EARLY ARTIFACT CLUES");
+    buildArtifactClues(activeAnalysis).forEach((clue, index) => {
+      lines.push(`${index + 1}. ${clue.title} [${clue.level}] - ${clue.note}`);
+    });
+    lines.push("");
+  }
 
   lines.push("SESSION SUMMARY");
   lines.push(`Project: ${projectSession.projectName || "Untitled Project"}`);
@@ -1054,8 +1063,8 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
     lines.push("");
   }
 
-  lines.push("HUMANIZATION ACTION PLAN");
-  buildHumanizationActionPlan(activeAnalysis).forEach((item, index) => {
+  lines.push(isClientReport ? "CLIENT-SAFE ACTION PLAN" : "HUMANIZATION ACTION PLAN");
+  buildActionPlanForTone(activeAnalysis, isClientReport ? "client" : "producer").forEach((item, index) => {
     lines.push(`${index + 1}. [${item.priority}] ${item.action} - ${item.detail}`);
   });
   lines.push("");
@@ -1084,11 +1093,13 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   });
   lines.push("");
 
-  lines.push("DETECTED ISSUES");
-  report.issues.forEach((issue) => {
-    lines.push(`- ${issue.time} | ${issue.title}: ${issue.note} Fix: ${issue.fix}`);
-  });
-  lines.push("");
+  if (!isClientReport) {
+    lines.push("DETECTED ISSUES");
+    report.issues.forEach((issue) => {
+      lines.push(`- ${issue.time} | ${issue.title}: ${issue.note} Fix: ${issue.fix}`);
+    });
+    lines.push("");
+  }
 
   lines.push("CLIENT UPDATE");
   lines.push(clientUpdate || "");
@@ -1158,7 +1169,8 @@ function runSoulFrameTests() {
     getBeforeAfterImprovementScore({ status: "Ready", peakDb: "-0.2 dB", clippingRisk: "Medium", dynamics: "Compressed" }, { status: "Ready", peakDb: "-1.5 dB", clippingRisk: "Low", dynamics: "Moderate" }) > 70 &&
     getBeforeAfterImprovementLabel(82) === "Strong Technical Improvement";
   const copyReportTestsPassed =
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME HUMANIZATION REPORT") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME PRODUCER HUMANIZATION REPORT") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test", reportTone: "client" }).includes("CLIENT-SAFE ACTION PLAN") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST");
   const exportReportTestsPassed =
     makeSafeFileName("Client Project 01") === "Client_Project_01" &&
@@ -1946,11 +1958,12 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   const [downloadStatus, setDownloadStatus] = useState("Download Report");
   const [clientCopyStatus, setClientCopyStatus] = useState("Copy Client Update");
   const [clientDownloadStatus, setClientDownloadStatus] = useState("Download Client Update");
+  const [reportTone, setReportTone] = useState("producer");
 
   useEffect(() => { setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext)); }, [report, projectSession, audioContext]);
 
   async function handleCopyFullReport() {
-    const reportText = buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate });
+    const reportText = buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate, reportTone });
     try {
       await navigator.clipboard.writeText(reportText);
       setCopyStatus("Copied");
@@ -1962,7 +1975,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   }
 
   function handleDownloadFullReport() {
-    const reportText = buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate });
+    const reportText = buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate, reportTone });
     const projectName = getSessionValue(projectSession, "projectName");
     const fileName = `${makeSafeFileName(projectName)}_SoulFrame_Report.txt`;
     const downloaded = downloadTextFile(fileName, reportText);
@@ -1996,6 +2009,18 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div><h2 className="text-2xl font-semibold">{reviewMode === "compare" ? "Before / After Report" : "Draft Review Report"}</h2><p className="mt-1 text-zinc-400">{report.project}</p><p className="mt-3 max-w-3xl text-sm text-zinc-400">{report.summary}</p></div>
             <div className="flex flex-col gap-3"><div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm"><p className="text-zinc-400">Verdict</p><p className="mt-1 font-semibold text-zinc-100">{report.verdict}</p></div><div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-800 bg-black p-1">
+                    {["producer", "client"].map((tone) => (
+                      <button
+                        key={tone}
+                        type="button"
+                        onClick={() => setReportTone(tone)}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${reportTone === tone ? "bg-zinc-100 text-black" : "text-zinc-400 hover:text-zinc-100"}`}
+                      >
+                        {tone === "client" ? "Client Report" : "Producer Report"}
+                      </button>
+                    ))}
+                  </div>
                   <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyFullReport}>{copyStatus}</Button>
                   <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadFullReport}>{downloadStatus}</Button>
                 </div></div>
@@ -2050,7 +2075,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, error boundary protection, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, error boundary protection, producer/client report export modes, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
