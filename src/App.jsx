@@ -118,6 +118,69 @@ const defaultProjectSession = {
   producerNotes: "",
 };
 
+const demoPresets = {
+  vocalDraft: {
+    label: "AI Vocal Draft",
+    reviewMode: "draft",
+    selectedPreset: "vocal",
+    projectSession: {
+      projectName: "AI Vocal Humanization Demo",
+      clientName: "Demo Client",
+      trackType: "AI-generated vocal song",
+      aiTool: "Suno / Udio style draft",
+      currentStage: "Raw AI Draft",
+      mainConcern: "Metallic vocal tone and flat emotional delivery",
+      clientGoal: "Make the vocal feel more believable, expressive, and release-ready.",
+      producerNotes: "Demo preset focused on vocal realism, high-frequency harshness, and emotional phrasing.",
+    },
+  },
+  instrumentalDraft: {
+    label: "AI Instrumental Draft",
+    reviewMode: "draft",
+    selectedPreset: "instrumental",
+    projectSession: {
+      projectName: "AI Instrumental Texture Demo",
+      clientName: "Demo Client",
+      trackType: "AI-generated instrumental",
+      aiTool: "AI music generator",
+      currentStage: "Texture cleanup pass",
+      mainConcern: "Artificial shimmer, repetition, and busy generated movement",
+      clientGoal: "Make the instrumental feel warmer, more intentional, and less synthetic.",
+      producerNotes: "Demo preset focused on instrumental texture, arrangement movement, and high-end smoothing.",
+    },
+  },
+  clientReady: {
+    label: "Client-Ready Review",
+    reviewMode: "draft",
+    selectedPreset: "marcel",
+    projectSession: {
+      projectName: "Client Delivery Review Demo",
+      clientName: "Marcel-style Client",
+      trackType: "Commercial AI-assisted track",
+      aiTool: "AI draft with human production edits",
+      currentStage: "Final polish before delivery",
+      mainConcern: "Remaining AI edge, chorus impact, and playback translation",
+      clientGoal: "Prepare a clean, professional update and final-pass checklist for client delivery.",
+      producerNotes: "Demo preset focused on client communication, delivery readiness, and final polish.",
+    },
+  },
+  beforeAfter: {
+    label: "Before / After Humanized Edit",
+    reviewMode: "compare",
+    selectedPreset: "marcel",
+    projectSession: {
+      projectName: "Before After Humanization Demo",
+      clientName: "Demo Client",
+      trackType: "AI draft compared with humanized edit",
+      aiTool: "AI-generated draft + producer edit",
+      currentStage: "Before / After Review",
+      mainConcern: "Confirm what improved and what still needs a final human pass",
+      clientGoal: "Show the improvement clearly while identifying the final polish priorities.",
+      producerNotes: "Demo preset focused on before/after delta, client-safe reporting, and session summary.",
+    },
+  },
+};
+
 function clampScore(value) {
   return Math.min(100, Math.max(0, Number(value) || 0));
 }
@@ -1184,6 +1247,7 @@ function runSoulFrameTests() {
     typeof loadSavedProjects === "function" &&
     typeof saveSavedProjects === "function" &&
     buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
+    demoPresets.beforeAfter.reviewMode === "compare" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -1439,7 +1503,7 @@ function InfoGrid({ title, rows }) {
   );
 }
 
-function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount }) {
+function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
     { key: "clientName", label: "Client Name", placeholder: "Client" },
@@ -1470,6 +1534,18 @@ function ProjectIntake({ projectSession, setProjectSession, selectedReport, rese
           <textarea className="mt-3 h-28 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-zinc-500" value={projectSession.producerNotes} onChange={(event) => updateField("producerNotes", event.target.value)} placeholder="Private notes, references, client comments, creative direction..." />
         </label>
       </div>
+      <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+        <p className="text-xs uppercase tracking-wide text-zinc-500">Demo Mode Presets</p>
+        <p className="mt-2 text-sm text-zinc-400">Load a ready-made SoulFrame scenario for demos, screenshots, or quick testing.</p>
+        <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {Object.entries(demoPresets).map(([key, preset]) => (
+            <Button key={key} className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyDemoPreset(key)}>
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Humanization Brief</p>
@@ -2117,7 +2193,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -2173,6 +2249,15 @@ export default function SoulFrameDraftReviewV2() {
     setReviewMode("draft");
   }
 
+  function applyDemoPreset(presetKey) {
+    const preset = demoPresets[presetKey];
+    if (!preset) return;
+    setProjectSession({ ...defaultProjectSession, ...preset.projectSession });
+    setSelectedPreset(preset.selectedPreset || "marcel");
+    setReviewMode(preset.reviewMode || "draft");
+    setActiveStep(0);
+  }
+
   function saveProjectSnapshot() {
     const record = buildSavedProjectRecord(projectSession, reviewMode, selectedPreset);
     setSavedProjects((current) => [record, ...current].slice(0, 12));
@@ -2226,7 +2311,7 @@ export default function SoulFrameDraftReviewV2() {
 
   const demoView = (
     <div className="space-y-6">
-      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} />
+      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
       <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
