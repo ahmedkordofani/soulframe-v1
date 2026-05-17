@@ -28,14 +28,20 @@ SoulFrame is built around a practical AI-humanization workflow:
 6. Map the main revision priorities
 7. Compare an original AI draft against a humanized edit
 8. Generate clear client-facing update notes
-9. Export reports, checklists, and project records
+9. Export producer/client reports, checklists, and project records
 10. Save, search, import, and export local project sessions
+11. Load demo presets for quick testing, screenshots, and walkthroughs
 
 ---
 
 ## Current Features
 
 - Project Intake system
+- Demo Mode Presets
+  - AI Vocal Draft
+  - AI Instrumental Draft
+  - Client-Ready Review
+  - Before / After Humanized Edit
 - Draft Review mode
 - Before / After Review mode
 - Audio upload and playback
@@ -79,6 +85,10 @@ SoulFrame is built around a practical AI-humanization workflow:
 - Producer Notes / Client-Safe Notes toggle
 - Before / After Humanization Delta
 - Session Summary Card
+- Copy Session Summary
+- Error Boundary / blank screen protection
+- Producer Report / Client Report export modes
+- Client-friendly report wording
 - Technical format notes
 - Technical readiness score
 - Real audio facts inside reports
@@ -137,19 +147,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.1.0: Humanization Guidance and Session Intelligence**
+**V3.2.0: Polish, Reliability, and Demo Readiness**
 
-SoulFrame V3.1 builds on the deeper listening layer introduced in V3.0.0.
+SoulFrame V3.2 improves the reliability, presentation, and demo-readiness of the app.
 
-This version adds practical humanization guidance, before/after humanization deltas, client-safe note handling, and a clean session summary card for producer workflow, screenshots, documentation, and exported reports.
+This version adds blank screen protection, producer/client report export modes, copyable session summaries, and demo mode presets for quickly loading realistic SoulFrame review scenarios.
 
-The goal of V3.1 is to move SoulFrame from:
-
-> What is making this AI-generated track feel less human?
-
-toward:
-
-> What should the producer do next?
+The goal of V3.2 is to make SoulFrame easier to present, safer to test, and more useful during real demos and client workflow preparation.
 
 ---
 
@@ -196,6 +200,22 @@ toward:
 - Client-safe action plan wording
 - Session Summary Card
 - Session summary included in full report exports
+
+---
+
+## V3.2 Features
+
+- Error Boundary / blank screen protection
+- Recovery fallback if a review panel crashes
+- Producer Report / Client Report export modes
+- Client-friendly report wording
+- Copy Session Summary
+- Demo Mode Presets
+- Preset scenarios for:
+  - AI Vocal Draft
+  - AI Instrumental Draft
+  - Client-Ready Review
+  - Before / After Humanized Edit
 
 ---
 
@@ -263,6 +283,17 @@ toward:
 - Added session summary to full report exports
 - Improved SoulFrame’s workflow from analysis-only into analysis plus guided production decisions
 
+### V3.2.0 — Polish, Reliability, and Demo Readiness
+
+- Added Error Boundary / blank screen protection
+- Added recovery fallback if a review panel crashes
+- Added Producer Report / Client Report export modes
+- Added client-friendly report wording
+- Added Copy Session Summary
+- Added Demo Mode Presets
+- Added preset scenarios for AI Vocal Draft, AI Instrumental Draft, Client-Ready Review, and Before / After Humanized Edit
+- Improved product stability, demo flow, and presentation readiness
+
 ---
 
 ## Future Roadmap
@@ -286,4 +317,4 @@ Built by **Ahmed Kordofani**, a London-based music producer, mixing engineer, an
 
 Website: https://chordofannie.com  
 GitHub: https://github.com/ahmedkordofani  
-LinkedIn: https://www.linkedin.com/in/ahmedkordofani
+LinkedIn: https://linkedin.com/in/ahmedkordofani
