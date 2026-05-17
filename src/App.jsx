@@ -1176,6 +1176,52 @@ function runSoulFrameTests() {
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, errorMessage: "" };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, errorMessage: error && error.message ? error.message : "Unknown error" };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Keep the app visible even if one review panel fails.
+    console.error("SoulFrame panel error", error, errorInfo);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, errorMessage: "" });
+  };
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-2xl font-semibold">SoulFrame recovered from a panel error</h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">
+            Something went wrong in this review panel, but the app stayed open instead of showing a blank screen.
+          </p>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-black p-4 text-sm text-zinc-400">
+            {this.state.errorMessage}
+          </div>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={this.handleReset}>
+              Try Again
+            </Button>
+            <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => window.location.reload()}>
+              Refresh App
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+}
+
 function Icon({ children }) {
   return <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-base leading-none" aria-hidden="true">{children}</span>;
 }
@@ -2004,7 +2050,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, error boundary protection, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -2142,7 +2188,9 @@ export default function SoulFrameDraftReviewV2() {
             </div>
           </div>
         </header>
-        {view === "database" ? <ArtifactDatabase /> : demoView}
+        <ErrorBoundary>
+          {view === "database" ? <ArtifactDatabase /> : demoView}
+        </ErrorBoundary>
       </div>
     </main>
   );
