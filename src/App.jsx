@@ -688,6 +688,38 @@ function buildClientActionPlanText(projectSession, analysis) {
   return lines.join(newline);
 }
 
+function buildClientSafeReportSummaryText(projectSession, report, analysis, reviewMode) {
+  const newline = String.fromCharCode(10);
+  const actionPlan = buildActionPlanForTone(analysis, "client").slice(0, 3);
+  const priorityScore = getHumanizationPriorityScore(analysis);
+  const priorityLabel = getHumanizationPriorityLabel(priorityScore);
+  const readinessScore = getTechnicalReadinessScore(analysis);
+  const lines = [];
+
+  lines.push("SOULFRAME CLIENT-SAFE REPORT SUMMARY");
+  lines.push("");
+  lines.push(`Project: ${getSessionValue(projectSession, "projectName")}`);
+  lines.push(`Client: ${getSessionValue(projectSession, "clientName")}`);
+  lines.push(`Review Mode: ${reviewMode === "compare" ? "Before / After Review" : "Draft Review"}`);
+  lines.push("");
+  lines.push("Summary:");
+  lines.push(`I reviewed the track and mapped out the main areas that will help it feel more natural, polished, and emotionally convincing. The current review focus is ${report.priorities.slice(0, 2).join(" and ").toLowerCase()}.`);
+  lines.push("");
+  lines.push("Current Status:");
+  lines.push(`- Humanization priority: ${analysis && analysis.status === "Ready" ? `${priorityLabel} (${priorityScore}/100)` : "Waiting for uploaded audio"}`);
+  lines.push(`- Technical readiness: ${analysis && analysis.status === "Ready" ? `${readinessScore}/100` : "Waiting for uploaded audio"}`);
+  lines.push("");
+  lines.push("Client-friendly next steps:");
+  actionPlan.forEach((item, index) => {
+    lines.push(`${index + 1}. ${item.action} - ${item.detail}`);
+  });
+  lines.push("");
+  lines.push("Next step:");
+  lines.push("I will use these points to guide the next pass while keeping the original creative direction intact.");
+
+  return lines.join(newline);
+}
+
 function getActionPlanToneLabel(tone) {
   return tone === "client" ? "Client-Safe Notes" : "Producer Notes";
 }
@@ -1238,6 +1270,7 @@ function runSoulFrameTests() {
     buildHumanizationActionPlan({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).some((item) => item.action.includes("top-end")) &&
     buildActionPlanForTone({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "client").some((item) => item.action.includes("high-frequency")) &&
     buildClientActionPlanText(defaultProjectSession, { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME CLIENT ACTION PLAN") &&
+    buildClientSafeReportSummaryText(defaultProjectSession, beforeAfterReport, { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "draft").includes("SOULFRAME CLIENT-SAFE REPORT SUMMARY") &&
     getHumanizationPriorityLabel(60) === "Medium Priority" &&
     getHumanizationDelta(
       { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" },
@@ -2126,6 +2159,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   const [downloadStatus, setDownloadStatus] = useState("Download Report");
   const [clientCopyStatus, setClientCopyStatus] = useState("Copy Client Update");
   const [clientDownloadStatus, setClientDownloadStatus] = useState("Download Client Update");
+  const [clientSummaryStatus, setClientSummaryStatus] = useState("Copy Client-Safe Summary");
   const [reportTone, setReportTone] = useState("producer");
 
   useEffect(() => { setClientUpdate(buildClientUpdate(report, "balanced", projectSession, audioContext)); }, [report, projectSession, audioContext]);
@@ -2170,6 +2204,19 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
     window.setTimeout(() => setClientDownloadStatus("Download Client Update"), 1500);
   }
 
+  async function handleCopyClientSafeSummary() {
+    const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
+    const summaryText = buildClientSafeReportSummaryText(projectSession, report, activeAnalysis, reviewMode);
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      setClientSummaryStatus("Copied");
+      window.setTimeout(() => setClientSummaryStatus("Copy Client-Safe Summary"), 1500);
+    } catch (error) {
+      setClientSummaryStatus("Copy failed");
+      window.setTimeout(() => setClientSummaryStatus("Copy Client-Safe Summary"), 1500);
+    }
+  }
+
   return (
     <section className="space-y-6 lg:col-span-2">
       <Card>
@@ -2191,6 +2238,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
                   </div>
                   <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyFullReport}>{copyStatus}</Button>
                   <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadFullReport}>{downloadStatus}</Button>
+                  <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyClientSafeSummary}>{clientSummaryStatus}</Button>
                 </div></div>
           </div>
           <div className="mb-6 rounded-3xl border border-zinc-800 bg-black p-5"><p className="text-sm text-zinc-400">{scoreLabel}</p><p className="mt-1 text-4xl font-bold text-zinc-100">{clampScore(report.score)}/100</p></div>
@@ -2243,7 +2291,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
