@@ -218,6 +218,18 @@ The goal of V3.3 is to make SoulFrame more useful after analysis:
   - AI Instrumental Draft
   - Client-Ready Review
   - Before / After Humanized Edit
+ 
+## V3.3 Features
+
+- Export Client Action Plan
+- Copy Client Plan
+- Download Client Plan
+- Copy Client-Safe Report Summary
+- Revision Checklist Generator
+- Copy Revision Checklist
+- Download Revision Checklist
+- Save Demo Preset as Project
+- Client workflow support for review output, revision planning, and client communication
 
 ---
 
