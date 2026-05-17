@@ -147,13 +147,15 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.2.0: Polish, Reliability, and Demo Readiness**
+**V3.3.0: Client Workflow Power-Up**
 
-SoulFrame V3.2 improves the reliability, presentation, and demo-readiness of the app.
+SoulFrame V3.3 strengthens the client workflow side of the app.
 
-This version adds blank screen protection, producer/client report export modes, copyable session summaries, and demo mode presets for quickly loading realistic SoulFrame review scenarios.
+This version adds dedicated client action plan exports, client-safe report summaries, revision checklist generation, and the ability to save demo presets directly as project sessions.
 
-The goal of V3.2 is to make SoulFrame easier to present, safer to test, and more useful during real demos and client workflow preparation.
+The goal of V3.3 is to make SoulFrame more useful after analysis:
+
+> Review → Decide → Export → Send → Revise
 
 ---
 
@@ -293,6 +295,16 @@ The goal of V3.2 is to make SoulFrame easier to present, safer to test, and more
 - Added Demo Mode Presets
 - Added preset scenarios for AI Vocal Draft, AI Instrumental Draft, Client-Ready Review, and Before / After Humanized Edit
 - Improved product stability, demo flow, and presentation readiness
+
+### V3.3.0 — Client Workflow Power-Up
+
+- Added Export Client Action Plan
+- Added Copy Client Plan and Download Client Plan
+- Added Copy Client-Safe Report Summary
+- Added Revision Checklist Generator
+- Added Copy Revision Checklist and Download Revision Checklist
+- Added Save Demo Preset as Project
+- Improved client workflow from review output to revision planning and client communication
 
 ---
 
