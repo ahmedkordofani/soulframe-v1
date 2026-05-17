@@ -565,6 +565,50 @@ function getHumanizationDelta(draftAnalysis, humanizedAnalysis) {
   return deltaItems.slice(0, 6);
 }
 
+function makeClientSafeAction(actionItem) {
+  const clientSafeMap = {
+    "Smooth harsh top-end": {
+      action: "Refine high-frequency detail",
+      detail: "I will smooth the brighter details so the track feels more natural, balanced, and comfortable to listen to.",
+    },
+    "Stabilize generated texture": {
+      action: "Tighten the arrangement texture",
+      detail: "I will make the background movement feel more intentional so the track supports the song rather than feeling overcrowded.",
+    },
+    "Restore emotional movement": {
+      action: "Improve section contrast",
+      detail: "I will help the track breathe more naturally by improving the rise, fall, and emotional lift between sections.",
+    },
+    "Create safer headroom": {
+      action: "Prepare a cleaner export balance",
+      detail: "I will create a safer mix balance so the track has enough space for a cleaner and more polished final export.",
+    },
+    "Focus on musical realism": {
+      action: "Refine musical realism",
+      detail: "I will focus on phrasing, transitions, groove, and emotional delivery so the final version feels more alive and intentional.",
+    },
+  };
+
+  const safeVersion = clientSafeMap[actionItem.action];
+  if (!safeVersion) return actionItem;
+
+  return {
+    ...actionItem,
+    action: safeVersion.action,
+    detail: safeVersion.detail,
+  };
+}
+
+function buildActionPlanForTone(analysis, tone = "producer") {
+  const actionPlan = buildHumanizationActionPlan(analysis);
+  if (tone !== "client") return actionPlan;
+  return actionPlan.map(makeClientSafeAction);
+}
+
+function getActionPlanToneLabel(tone) {
+  return tone === "client" ? "Client-Safe Notes" : "Producer Notes";
+}
+
 function getTechnicalFormatNotes(analysis) {
   if (!analysis || analysis.status !== "Ready") return [];
 
@@ -1090,6 +1134,7 @@ function runSoulFrameTests() {
     getHumanizationPriorityScore({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }) > 0 &&
     buildSectionReviewNotes({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length === 5 &&
     buildHumanizationActionPlan({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).some((item) => item.action.includes("top-end")) &&
+    buildActionPlanForTone({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "client").some((item) => item.action.includes("high-frequency")) &&
     getHumanizationDelta(
       { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" },
       { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }
@@ -1663,16 +1708,34 @@ function SectionReviewNotesPanel({ draftAnalysis, humanizedAnalysis, reviewMode 
 }
 
 function HumanizationActionPlanPanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const [noteTone, setNoteTone] = useState("producer");
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const actions = buildHumanizationActionPlan(activeAnalysis);
+  const actions = buildActionPlanForTone(activeAnalysis, noteTone);
 
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="text-2xl font-semibold">Humanization Action Plan</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          Practical production moves based on the current SoulFrame review.
-        </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Humanization Action Plan</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Practical production moves based on the current SoulFrame review.
+            </p>
+          </div>
+          <div className="flex rounded-2xl border border-zinc-800 bg-black p-1">
+            {["producer", "client"].map((tone) => (
+              <button
+                key={tone}
+                type="button"
+                onClick={() => setNoteTone(tone)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${noteTone === tone ? "bg-zinc-100 text-black" : "text-zinc-400 hover:text-zinc-100"}`}
+              >
+                {getActionPlanToneLabel(tone)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="mt-4 text-xs uppercase tracking-[0.25em] text-zinc-500">Viewing: {getActionPlanToneLabel(noteTone)}</p>
         <div className="mt-5 space-y-3">
           {actions.map((item) => (
             <article key={`${item.priority}-${item.action}`} className="rounded-3xl border border-zinc-800 bg-black p-5">
@@ -1884,7 +1947,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, before/after humanization delta, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
