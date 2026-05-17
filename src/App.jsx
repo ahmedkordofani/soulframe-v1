@@ -1033,6 +1033,14 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   });
   lines.push("");
 
+  lines.push("SESSION SUMMARY");
+  lines.push(`Project: ${projectSession.projectName || "Untitled Project"}`);
+  lines.push(`Client: ${projectSession.clientName || "Not specified"}`);
+  lines.push(`Mode: ${reviewMode === "compare" ? "Before / After Review" : "Draft Review"}`);
+  lines.push(`Technical Readiness: ${activeAnalysis && activeAnalysis.status === "Ready" ? `${getTechnicalReadinessScore(activeAnalysis)}/100` : "Waiting"}`);
+  lines.push(`Humanization Priority: ${activeAnalysis && activeAnalysis.status === "Ready" ? `${getHumanizationPriorityLabel(getHumanizationPriorityScore(activeAnalysis))} (${getHumanizationPriorityScore(activeAnalysis)}/100)` : "Waiting"}`);
+  lines.push("");
+
   lines.push("HUMANIZATION PRIORITY SCORE");
   lines.push(`${getHumanizationPriorityScore(activeAnalysis)}/100 - ${getHumanizationPriorityLabel(getHumanizationPriorityScore(activeAnalysis))}`);
   lines.push(getHumanizationPriorityNote(activeAnalysis));
@@ -1135,6 +1143,7 @@ function runSoulFrameTests() {
     buildSectionReviewNotes({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length === 5 &&
     buildHumanizationActionPlan({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).some((item) => item.action.includes("top-end")) &&
     buildActionPlanForTone({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "client").some((item) => item.action.includes("high-frequency")) &&
+    getHumanizationPriorityLabel(60) === "Medium Priority" &&
     getHumanizationDelta(
       { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" },
       { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }
@@ -1780,6 +1789,53 @@ function HumanizationDeltaPanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   );
 }
 
+function SessionSummaryCard({ projectSession, draftAnalysis, humanizedAnalysis, reviewMode, selectedPreset }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const readinessScore = getTechnicalReadinessScore(activeAnalysis);
+  const priorityScore = getHumanizationPriorityScore(activeAnalysis);
+  const priorityLabel = getHumanizationPriorityLabel(priorityScore);
+  const actionPlan = buildHumanizationActionPlan(activeAnalysis);
+  const mainFocus = actionPlan.map((item) => item.action).slice(0, 3).join(", ");
+  const exportStatus = activeAnalysis && activeAnalysis.status === "Ready" ? "Ready for report/export" : "Waiting for audio";
+
+  const summaryRows = [
+    { label: "Project", value: projectSession.projectName || "Untitled Project" },
+    { label: "Client", value: projectSession.clientName || "Not specified" },
+    { label: "Mode", value: reviewMode === "compare" ? "Before / After Review" : "Draft Review" },
+    { label: "Review Preset", value: selectedPreset || "Standard" },
+    { label: "Technical Readiness", value: activeAnalysis && activeAnalysis.status === "Ready" ? `${readinessScore}/100` : "Waiting" },
+    { label: "Humanization Priority", value: activeAnalysis && activeAnalysis.status === "Ready" ? `${priorityLabel} (${priorityScore}/100)` : "Waiting" },
+    { label: "Main Focus", value: mainFocus || "Upload audio to generate focus" },
+    { label: "Export Status", value: exportStatus },
+  ];
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Session Summary Card</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              A clean snapshot of the current review session for screenshots, handoff, or final checks.
+            </p>
+          </div>
+          <span className="w-fit rounded-full border border-zinc-700 px-4 py-2 text-xs uppercase tracking-[0.25em] text-zinc-400">
+            SoulFrame Summary
+          </span>
+        </div>
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {summaryRows.map((row) => (
+            <div key={row.label} className="rounded-3xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{row.label}</p>
+              <p className="mt-2 text-sm font-semibold text-zinc-100">{row.value}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
@@ -1836,7 +1892,7 @@ function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, proje
   );
 }
 
-function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis }) {
+function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, selectedPreset }) {
   const scoreLabel = useMemo(() => getScoreLabel(report.score), [report.score]);
   const audioContext = useMemo(() => ({ draftMetadata: draftAudioMetadata, humanizedMetadata: humanizedAudioMetadata, draftAnalysis: draftAudioAnalysis, humanizedAnalysis: humanizedAudioAnalysis }), [draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis]);
   const [clientUpdate, setClientUpdate] = useState(() => buildClientUpdate(report, "balanced", projectSession, audioContext));
@@ -1911,6 +1967,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       <SectionReviewNotesPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <HumanizationActionPlanPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <HumanizationDeltaPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <SessionSummaryCard projectSession={projectSession} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} selectedPreset={selectedPreset} />
       <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
@@ -1947,7 +2004,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, producer/client-safe note toggle, before/after humanization delta, session summary card, exportable delivery checklist, report export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -2061,7 +2118,7 @@ export default function SoulFrameDraftReviewV2() {
       <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
-        {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} />}
+        {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} selectedPreset={selectedPreset} />}
       </div>
       <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
       <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
