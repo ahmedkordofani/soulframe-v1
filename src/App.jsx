@@ -720,6 +720,61 @@ function buildClientSafeReportSummaryText(projectSession, report, analysis, revi
   return lines.join(newline);
 }
 
+function buildRevisionChecklistItems(report, analysis, reviewMode) {
+  const items = [];
+
+  items.push({ label: "Confirm the client goal before making the next pass", status: "Creative Direction" });
+  items.push({ label: `Focus first on ${report.priorities[0] || "the highest-impact humanization issue"}`, status: "Main Priority" });
+
+  if (analysis && analysis.status === "Ready") {
+    if (analysis.brightness === "Bright / Potentially Harsh") {
+      items.push({ label: "Check harsh top-end, sibilance, cymbals, and brittle synth layers", status: "Tone Check" });
+    }
+
+    if (analysis.textureStability === "Unstable / Busy") {
+      items.push({ label: "Simplify any generated movement that feels too restless or random", status: "Texture Check" });
+    }
+
+    if (analysis.dynamics === "Compressed") {
+      items.push({ label: "Add more breath and contrast between sections", status: "Dynamics Check" });
+    }
+
+    if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
+      items.push({ label: "Create safer headroom before judging final loudness", status: "Headroom Check" });
+    }
+  } else {
+    items.push({ label: "Upload audio before finalizing technical revision decisions", status: "Waiting" });
+  }
+
+  if (reviewMode === "compare") {
+    items.push({ label: "A/B the humanized edit against the original AI draft", status: "Before / After" });
+    items.push({ label: "Confirm the edit improves the track without losing the original emotional direction", status: "Creative Check" });
+  }
+
+  items.push({ label: "Listen on headphones, phone speaker, and laptop speaker", status: "Playback Check" });
+  items.push({ label: "Prepare a clear client-safe update before sending the next version", status: "Client Update" });
+
+  return items.slice(0, 9);
+}
+
+function buildRevisionChecklistText(projectSession, report, analysis, reviewMode) {
+  const newline = String.fromCharCode(10);
+  const lines = [];
+
+  lines.push("SOULFRAME REVISION CHECKLIST");
+  lines.push("");
+  lines.push(`Project: ${getSessionValue(projectSession, "projectName")}`);
+  lines.push(`Client: ${getSessionValue(projectSession, "clientName")}`);
+  lines.push(`Mode: ${reviewMode === "compare" ? "Before / After Review" : "Draft Review"}`);
+  lines.push("");
+
+  buildRevisionChecklistItems(report, analysis, reviewMode).forEach((item, index) => {
+    lines.push(`${index + 1}. ${item.label} [${item.status}]`);
+  });
+
+  return lines.join(newline);
+}
+
 function getActionPlanToneLabel(tone) {
   return tone === "client" ? "Client-Safe Notes" : "Producer Notes";
 }
@@ -1271,6 +1326,7 @@ function runSoulFrameTests() {
     buildActionPlanForTone({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "client").some((item) => item.action.includes("high-frequency")) &&
     buildClientActionPlanText(defaultProjectSession, { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME CLIENT ACTION PLAN") &&
     buildClientSafeReportSummaryText(defaultProjectSession, beforeAfterReport, { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "draft").includes("SOULFRAME CLIENT-SAFE REPORT SUMMARY") &&
+    buildRevisionChecklistText(defaultProjectSession, beforeAfterReport, { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, "draft").includes("SOULFRAME REVISION CHECKLIST") &&
     getHumanizationPriorityLabel(60) === "Medium Priority" &&
     getHumanizationDelta(
       { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" },
@@ -2095,6 +2151,60 @@ function SessionSummaryCard({ projectSession, draftAnalysis, humanizedAnalysis, 
   );
 }
 
+function RevisionChecklistPanel({ projectSession, report, draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const [copyStatus, setCopyStatus] = useState("Copy Revision Checklist");
+  const [downloadStatus, setDownloadStatus] = useState("Download Revision Checklist");
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const checklistItems = buildRevisionChecklistItems(report, activeAnalysis, reviewMode);
+
+  async function handleCopyRevisionChecklist() {
+    try {
+      await navigator.clipboard.writeText(buildRevisionChecklistText(projectSession, report, activeAnalysis, reviewMode));
+      setCopyStatus("Copied");
+      window.setTimeout(() => setCopyStatus("Copy Revision Checklist"), 1500);
+    } catch (error) {
+      setCopyStatus("Copy failed");
+      window.setTimeout(() => setCopyStatus("Copy Revision Checklist"), 1500);
+    }
+  }
+
+  function handleDownloadRevisionChecklist() {
+    const projectName = getSessionValue(projectSession, "projectName");
+    const fileName = `${makeSafeFileName(projectName)}_Revision_Checklist.txt`;
+    const downloaded = downloadTextFile(fileName, buildRevisionChecklistText(projectSession, report, activeAnalysis, reviewMode));
+    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
+    window.setTimeout(() => setDownloadStatus("Download Revision Checklist"), 1500);
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Revision Checklist Generator</h2>
+            <p className="mt-1 text-sm text-zinc-400">A focused checklist for the next humanization pass.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyRevisionChecklist}>{copyStatus}</Button>
+            <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadRevisionChecklist}>{downloadStatus}</Button>
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          {checklistItems.map((item, index) => (
+            <div key={`${item.label}-${index}`} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-zinc-200">{item.label}</p>
+                <p className="mt-1 text-xs text-zinc-500">{item.status}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeliveryChecklist({ draftAnalysis, humanizedAnalysis, reviewMode, projectSession }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const checklist = buildDeliveryChecklist(activeAnalysis, reviewMode);
@@ -2255,6 +2365,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       <HumanizationActionPlanPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
       <HumanizationDeltaPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <SessionSummaryCard projectSession={projectSession} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} selectedPreset={selectedPreset} />
+      <RevisionChecklistPanel projectSession={projectSession} report={report} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <DeliveryChecklist draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} projectSession={projectSession} />
 
       <Panel title={reviewMode === "compare" ? "Next Pass Priorities" : "Fix Priorities"} subtitle="The recommended order of work for a more human result."><div className="space-y-3">{report.priorities.map((priority, index) => <div key={priority} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><p className="text-sm text-zinc-200">{priority}</p></div>)}</div></Panel>
@@ -2291,7 +2402,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
