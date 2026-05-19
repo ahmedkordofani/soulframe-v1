@@ -31,6 +31,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 9. Export producer/client reports, checklists, and project records
 10. Save, search, import, and export local project sessions
 11. Load demo presets for quick testing, screenshots, and walkthroughs
+12. Explain the product through About, Walkthrough, and How It Works views
 
 ---
 
@@ -42,6 +43,11 @@ SoulFrame is built around a practical AI-humanization workflow:
   - AI Instrumental Draft
   - Client-Ready Review
   - Before / After Humanized Edit
+- About / Product Story panel
+- Demo Walkthrough mode
+- How SoulFrame Works section
+- Copy Product Summary
+- Download Product Summary
 - Draft Review mode
 - Before / After Review mode
 - Audio upload and playback
@@ -147,15 +153,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.3.0: Client Workflow Power-Up**
+**V3.4.0: Demo, Presentation, and Productization**
 
-SoulFrame V3.3 strengthens the client workflow side of the app.
+SoulFrame V3.4 improves the product presentation layer of the app.
 
-This version adds dedicated client action plan exports, client-safe report summaries, revision checklist generation, and the ability to save demo presets directly as project sessions.
+This version adds an About panel, a Demo Walkthrough mode, product summary export, and a How SoulFrame Works section to make the tool easier to explain, present, document, and demonstrate.
 
-The goal of V3.3 is to make SoulFrame more useful after analysis:
-
-> Review → Decide → Export → Send → Revise
+The goal of V3.4 is to make SoulFrame easier to understand as a product, not just as a prototype.
 
 ---
 
@@ -218,7 +222,9 @@ The goal of V3.3 is to make SoulFrame more useful after analysis:
   - AI Instrumental Draft
   - Client-Ready Review
   - Before / After Humanized Edit
- 
+
+---
+
 ## V3.3 Features
 
 - Export Client Action Plan
@@ -230,6 +236,19 @@ The goal of V3.3 is to make SoulFrame more useful after analysis:
 - Download Revision Checklist
 - Save Demo Preset as Project
 - Client workflow support for review output, revision planning, and client communication
+
+---
+
+## V3.4 Features
+
+- About / Product Story panel
+- Demo Walkthrough mode
+- Export Product Summary
+- Copy Product Summary
+- Download Product Summary
+- How SoulFrame Works section
+- Clearer in-app explanation of the SoulFrame workflow
+- Improved product presentation, demo readiness, and project storytelling
 
 ---
 
@@ -318,6 +337,15 @@ The goal of V3.3 is to make SoulFrame more useful after analysis:
 - Added Save Demo Preset as Project
 - Improved client workflow from review output to revision planning and client communication
 
+### V3.4.0 — Demo, Presentation, and Productization
+
+- Added About / Product Story panel
+- Added Demo Walkthrough mode
+- Added Export Product Summary
+- Added How SoulFrame Works section
+- Added clearer in-app explanation of the SoulFrame workflow
+- Improved product presentation, demo readiness, and project storytelling
+
 ---
 
 ## Future Roadmap
@@ -329,6 +357,8 @@ The goal of V3.3 is to make SoulFrame more useful after analysis:
 - Instrumental texture analysis
 - More detailed humanization scoring
 - Exportable PDF reports
+- Backend API integration for deeper analysis
+- Stem separation and section-level analysis
 - Project dashboard improvements
 - Client-ready report templates
 - Cloud-based saved sessions
