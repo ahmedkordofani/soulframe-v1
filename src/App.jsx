@@ -2389,6 +2389,65 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   );
 }
 
+function AboutSoulFramePanel() {
+  const pillars = [
+    {
+      title: "Listen",
+      note: "Upload AI-generated drafts and inspect real audio facts like waveform, duration, headroom, dynamics, brightness, and texture movement.",
+    },
+    {
+      title: "Detect",
+      note: "Use lightweight browser-based analysis to surface early artifact clues, humanization priority, and section-by-section review prompts.",
+    },
+    {
+      title: "Guide",
+      note: "Turn review results into producer-focused action plans, client-safe notes, revision checklists, and next-pass priorities.",
+    },
+    {
+      title: "Export",
+      note: "Copy or download producer reports, client reports, client action plans, summaries, checklists, and saved project sessions.",
+    },
+  ];
+
+  return (
+    <Panel title="About SoulFrame" subtitle="A second set of ears for humanizing AI-generated music.">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <article className="rounded-3xl border border-zinc-800 bg-black p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Mission</p>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">Humanize sound. Bring soul back into music.</h3>
+          <p className="mt-4 text-sm leading-7 text-zinc-400">
+            SoulFrame is built to support producers working with AI-generated music. It does not replace taste, emotion, or human judgement. It helps organize the listening process so synthetic drafts can be shaped into something more intentional, musical, and alive.
+          </p>
+        </article>
+        <article className="rounded-3xl border border-zinc-800 bg-black p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.3 client workflow prototype</h3>
+          <p className="mt-4 text-sm leading-7 text-zinc-400">
+            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, and demo presets.
+          </p>
+        </article>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {pillars.map((pillar) => (
+          <article key={pillar.title} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <h3 className="text-lg font-semibold text-zinc-100">{pillar.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{pillar.note}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-black p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Arc</p>
+        <p className="mt-3 text-2xl font-semibold text-zinc-100">Review → Decide → Export → Send → Revise</p>
+        <p className="mt-3 text-sm leading-7 text-zinc-400">
+          This is the practical workflow SoulFrame is moving toward: help the producer review the draft, decide what matters, export the right version of the notes, communicate clearly with the client, and guide the next revision pass.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
 function ArtifactDatabase() {
   return <Panel title="Artifact Database" subtitle="The early SoulFrame knowledge base of common AI music artifacts."><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{artifactDatabase.map((artifact) => <article key={artifact.name} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="mb-3 flex items-start justify-between gap-3"><div><h3 className="font-semibold text-zinc-100">{artifact.name}</h3><p className="mt-1 text-xs text-zinc-500">{artifact.category}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{artifact.severity}</span></div><p className="text-sm text-zinc-400">{artifact.description}</p><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Common Fix</p><p className="text-sm text-zinc-200">{artifact.fix}</p></div></article>)}</div></Panel>;
 }
@@ -2563,11 +2622,12 @@ export default function SoulFrameDraftReviewV2() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button className={view === "demo" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("demo")}>Review Demo</Button>
               <Button className={view === "database" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("database")}>Artifact Database</Button>
+              <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : demoView}
         </ErrorBoundary>
       </div>
     </main>
