@@ -181,6 +181,14 @@ const demoPresets = {
   },
 };
 
+const demoWalkthroughSteps = [
+  { title: "Start with Project Intake", note: "Load or enter the client context so the review stays grounded in the actual creative goal." },
+  { title: "Upload or preview the draft", note: "Use the audio intake panel to inspect waveform, metadata, health, brightness, and texture movement." },
+  { title: "Review the listening layer", note: "Check Real Audio Facts, Early Artifact Clues, Humanization Priority, and Producer Listening Focus." },
+  { title: "Turn analysis into decisions", note: "Use the Humanization Action Plan, section notes, and revision checklist to plan the next pass." },
+  { title: "Export the right message", note: "Choose producer or client-safe outputs, then copy summaries, reports, action plans, or checklists." },
+];
+
 function clampScore(value) {
   return Math.min(100, Math.max(0, Number(value) || 0));
 }
@@ -1358,6 +1366,7 @@ function runSoulFrameTests() {
     typeof saveSavedProjects === "function" &&
     buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
     demoPresets.beforeAfter.reviewMode === "compare" &&
+    demoWalkthroughSteps.length === 5 &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
@@ -2448,6 +2457,28 @@ function AboutSoulFramePanel() {
   );
 }
 
+function DemoWalkthroughPanel() {
+  return (
+    <Panel title="Demo Walkthrough" subtitle="A guided product story for screenshots, live demos, and explaining SoulFrame quickly.">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {demoWalkthroughSteps.map((step, index) => (
+          <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
+            <h3 className="mt-4 font-semibold text-zinc-100">{step.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{step.note}</p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Suggested demo line</p>
+        <p className="mt-3 text-lg leading-8 text-zinc-200">
+          SoulFrame helps a producer move from an AI-generated draft to a clearer humanization plan, then export the right notes for their own workflow or for client communication.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
 function ArtifactDatabase() {
   return <Panel title="Artifact Database" subtitle="The early SoulFrame knowledge base of common AI music artifacts."><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{artifactDatabase.map((artifact) => <article key={artifact.name} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="mb-3 flex items-start justify-between gap-3"><div><h3 className="font-semibold text-zinc-100">{artifact.name}</h3><p className="mt-1 text-xs text-zinc-500">{artifact.category}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{artifact.severity}</span></div><p className="text-sm text-zinc-400">{artifact.description}</p><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Common Fix</p><p className="text-sm text-zinc-200">{artifact.fix}</p></div></article>)}</div></Panel>;
 }
@@ -2623,11 +2654,12 @@ export default function SoulFrameDraftReviewV2() {
               <Button className={view === "demo" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("demo")}>Review Demo</Button>
               <Button className={view === "database" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("database")}>Artifact Database</Button>
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
+              <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : demoView}
         </ErrorBoundary>
       </div>
     </main>
