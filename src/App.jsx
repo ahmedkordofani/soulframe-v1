@@ -1367,7 +1367,9 @@ function runSoulFrameTests() {
     buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
     demoPresets.beforeAfter.reviewMode === "compare" &&
     demoWalkthroughSteps.length === 5 &&
+    typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
+    typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
@@ -2511,6 +2513,72 @@ function AboutSoulFramePanel() {
   );
 }
 
+function DemoWalkthroughPanel() {
+  return (
+    <Panel title="Demo Walkthrough" subtitle="A guided product story for screenshots, live demos, and explaining SoulFrame quickly.">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {demoWalkthroughSteps.map((step, index) => (
+          <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
+            <h3 className="mt-4 font-semibold text-zinc-100">{step.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{step.note}</p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Suggested demo line</p>
+        <p className="mt-3 text-lg leading-8 text-zinc-200">
+          SoulFrame helps a producer move from an AI-generated draft to a clearer humanization plan, then export the right notes for their own workflow or for client communication.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
+function HowSoulFrameWorksPanel() {
+  const workflow = [
+    {
+      title: "1. Intake the project",
+      note: "Capture the project name, client, track type, AI tool, current stage, main concern, client goal, and private producer notes.",
+    },
+    {
+      title: "2. Inspect the audio",
+      note: "Upload the draft and optionally the humanized edit. SoulFrame reads browser-based audio facts such as duration, waveform, peak, clipping risk, dynamics, brightness, and texture movement.",
+    },
+    {
+      title: "3. Surface humanization clues",
+      note: "The app converts measurable audio proxies into early artifact clues, listening focus points, priority scores, section notes, and before/after deltas.",
+    },
+    {
+      title: "4. Turn clues into actions",
+      note: "SoulFrame generates producer action plans, client-safe wording, revision checklists, delivery checks, and session summaries.",
+    },
+    {
+      title: "5. Export and communicate",
+      note: "Copy or download reports, client action plans, client-safe summaries, revision checklists, delivery checklists, saved projects, and product summaries.",
+    },
+  ];
+
+  return (
+    <Panel title="How SoulFrame Works" subtitle="The full product logic from AI draft to client-ready revision planning.">
+      <div className="space-y-4">
+        {workflow.map((step) => (
+          <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-6">
+            <h3 className="text-xl font-semibold text-zinc-100">{step.title}</h3>
+            <p className="mt-3 text-sm leading-7 text-zinc-400">{step.note}</p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Important note</p>
+        <p className="mt-3 text-sm leading-7 text-zinc-400">
+          SoulFrame does not claim to replace the producer's ear. The current version uses browser-based audio analysis and producer-guided logic to support decisions, structure the review, and make the client workflow clearer.
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
 function ArtifactDatabase() {
   return <Panel title="Artifact Database" subtitle="The early SoulFrame knowledge base of common AI music artifacts."><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{artifactDatabase.map((artifact) => <article key={artifact.name} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="mb-3 flex items-start justify-between gap-3"><div><h3 className="font-semibold text-zinc-100">{artifact.name}</h3><p className="mt-1 text-xs text-zinc-500">{artifact.category}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{artifact.severity}</span></div><p className="text-sm text-zinc-400">{artifact.description}</p><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Common Fix</p><p className="text-sm text-zinc-200">{artifact.fix}</p></div></article>)}</div></Panel>;
 }
@@ -2687,11 +2755,12 @@ export default function SoulFrameDraftReviewV2() {
               <Button className={view === "database" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("database")}>Artifact Database</Button>
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
               <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
+              <Button className={view === "how" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("how")}>How It Works</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : demoView}
         </ErrorBoundary>
       </div>
     </main>
