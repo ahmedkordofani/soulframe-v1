@@ -1666,8 +1666,8 @@ function SoulFrameFooter({ setView }) {
 function QuickStartGuide({ applyDemoPreset, setView }) {
   const steps = [
     {
-      title: "1. Try a demo preset",
-      note: "Load a ready-made scenario so visitors can understand SoulFrame without uploading audio first.",
+      title: "1. Choose a demo scenario",
+      note: "Start with a vocal, instrumental, client-ready, or before/after preset so the app makes sense immediately.",
     },
     {
       title: "2. Review the generated report",
@@ -1684,9 +1684,11 @@ function QuickStartGuide({ applyDemoPreset, setView }) {
       title="Quick Start"
       subtitle="A simple first-time path for anyone opening the public SoulFrame demo."
       action={
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyDemoPreset("vocalDraft")}>Load Vocal Demo</Button>
-          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => setView("walkthrough")}>View Walkthrough</Button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyDemoPreset("vocalDraft")}>Vocal Demo</Button>
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => applyDemoPreset("instrumentalDraft")}>Instrumental Demo</Button>
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => applyDemoPreset("beforeAfter")}>Before / After</Button>
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => setView("walkthrough")}>Walkthrough</Button>
         </div>
       }
     >
@@ -2702,7 +2704,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, public footer links, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, public footer links, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
