@@ -32,12 +32,31 @@ SoulFrame is built around a practical AI-humanization workflow:
 10. Save, search, import, and export local project sessions
 11. Load demo presets for quick testing, screenshots, and walkthroughs
 12. Explain the product through About, Walkthrough, and How It Works views
+13. Guide first-time visitors with a Quick Start path
+14. Launch different demo scenarios without manual setup
+15. Show public demo status and local-session privacy notes
+16. Provide footer links to the live demo, GitHub, and ChordOfAnnie
 
 ---
 
 ## Current Features
 
 - Project Intake system
+- Quick Start Guide
+- Demo Launcher Presets
+  - Vocal Demo
+  - Instrumental Demo
+  - Before / After Demo
+  - Walkthrough
+- Demo Readiness Banner
+- Public Footer Links
+  - Live Demo
+  - GitHub
+  - ChordOfAnnie
+  - About SoulFrame
+- Improved saved project empty state
+- Import backup available before saving projects
+- Disabled Clear All state when no projects are saved
 - Demo Mode Presets
   - AI Vocal Draft
   - AI Instrumental Draft
@@ -153,13 +172,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.4.0: Demo, Presentation, and Productization**
+**V3.5.0: Public Demo Polish**
 
-SoulFrame V3.4 improves the product presentation layer of the app.
+SoulFrame V3.5 improves the public-facing demo experience of the app.
 
-This version adds an About panel, a Demo Walkthrough mode, product summary export, and a How SoulFrame Works section to make the tool easier to explain, present, document, and demonstrate.
+This version adds a Quick Start Guide, demo launcher presets, a demo readiness banner, improved saved project empty states, import backup access before saving projects, and public footer links.
 
-The goal of V3.4 is to make SoulFrame easier to understand as a product, not just as a prototype.
+The goal of V3.5 is to make SoulFrame easier for a first-time visitor to understand, test, navigate, and trust without needing a separate explanation.
 
 ---
 
@@ -249,6 +268,28 @@ The goal of V3.4 is to make SoulFrame easier to understand as a product, not jus
 - How SoulFrame Works section
 - Clearer in-app explanation of the SoulFrame workflow
 - Improved product presentation, demo readiness, and project storytelling
+
+---
+
+## V3.5 Features
+
+- Quick Start Guide for first-time visitors
+- Demo Launcher Presets
+  - Vocal Demo
+  - Instrumental Demo
+  - Before / After Demo
+  - Walkthrough
+- Demo Readiness Banner
+- Public Footer Links
+  - Live Demo
+  - GitHub
+  - ChordOfAnnie
+  - About SoulFrame
+- Saved Project Sessions visible even when no projects are saved
+- Import Backup available before any project has been saved
+- Disabled Clear All button when there are no saved projects
+- Improved empty-state guidance for public demo visitors
+- Improved public demo polish, navigation, and first-time user experience
 
 ---
 
@@ -345,6 +386,17 @@ The goal of V3.4 is to make SoulFrame easier to understand as a product, not jus
 - Added How SoulFrame Works section
 - Added clearer in-app explanation of the SoulFrame workflow
 - Improved product presentation, demo readiness, and project storytelling
+
+### V3.5.0 — Public Demo Polish
+
+- Added Quick Start Guide for first-time visitors
+- Added Demo Launcher Presets for vocal, instrumental, before/after, and walkthrough paths
+- Added Demo Readiness Banner
+- Added Public Footer Links for Live Demo, GitHub, ChordOfAnnie, and About SoulFrame
+- Improved Saved Project Sessions empty state
+- Made Import Backup available before saving any projects
+- Disabled Clear All when there are no saved projects
+- Improved public demo navigation, onboarding, and first-time visitor clarity
 
 ---
 
