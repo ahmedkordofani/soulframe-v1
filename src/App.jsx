@@ -1713,8 +1713,6 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudi
 function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects, importSavedProjectsBackup }) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  if (!savedProjects.length) return null;
-
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredProjects = savedProjects.filter((project) => {
     const searchableText = `${project.title} ${project.client} ${project.stage} ${project.reviewMode}`.toLowerCase();
