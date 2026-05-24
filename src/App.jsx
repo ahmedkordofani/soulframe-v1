@@ -1370,8 +1370,9 @@ function runSoulFrameTests() {
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
     typeof DemoWalkthroughPanel === "function" &&
-    typeof QuickStartGuide === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
+    typeof QuickStartGuide === "function" &&
+    typeof SoulFrameFooter === "function" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -1627,6 +1628,41 @@ function InfoGrid({ title, rows }) {
   );
 }
 
+function SoulFrameFooter({ setView }) {
+  const links = [
+    { label: "Live Demo", href: "https://soulframe-v1.vercel.app" },
+    { label: "GitHub", href: "https://github.com/ahmedkordofani/soulframe-v1" },
+    { label: "ChordOfAnnie", href: "https://chordofannie.com" },
+  ];
+
+  return (
+    <footer className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+            Built by ChordOfAnnie to support producers humanizing AI-generated music without replacing the human ear.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          {links.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl border border-zinc-800 bg-black px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+            >
+              {link.label}
+            </a>
+          ))}
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={() => setView("about")}>About SoulFrame</Button>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 function QuickStartGuide({ applyDemoPreset, setView }) {
   const steps = [
     {
@@ -1752,10 +1788,11 @@ function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudi
 
 function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects, importSavedProjectsBackup }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [importStatus, setImportStatus] = useState("Import Backup");
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredProjects = savedProjects.filter((project) => {
-    const searchableText = `${project.title} ${project.client} ${project.stage} ${project.reviewMode}`.toLowerCase();
+    const searchableText = `${project.title || ""} ${project.client || ""} ${project.stage || ""} ${project.reviewMode || ""}`.toLowerCase();
     return searchableText.includes(normalizedSearch);
   });
 
@@ -1769,27 +1806,46 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onload = () => {
+      const importedProjects = parseSavedProjectsBackup(String(reader.result || ""));
+
+      if (!importedProjects.length) {
+        setImportStatus("Import failed");
+        window.setTimeout(() => setImportStatus("Import Backup"), 1500);
+        event.target.value = "";
+        return;
+      }
+
       importSavedProjectsBackup(String(reader.result || ""));
+      setImportStatus("Imported");
+      window.setTimeout(() => setImportStatus("Import Backup"), 1500);
       event.target.value = "";
     };
+
+    reader.onerror = () => {
+      setImportStatus("Import failed");
+      window.setTimeout(() => setImportStatus("Import Backup"), 1500);
+      event.target.value = "";
+    };
+
     reader.readAsText(file);
   }
 
   return (
     <Panel
       title="Saved Project Sessions"
-      subtitle="Load a previous SoulFrame setup without rebuilding the intake from scratch."
+      subtitle="Load previous SoulFrame setups, export a local backup, or import a backup before any new projects are saved."
       action={
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadProjectsBackup}>
             Download Backup
           </Button>
           <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3 text-sm font-semibold text-zinc-100 hover:bg-zinc-800">
-            Import Backup
+            {importStatus}
             <input type="file" accept="application/json,.json" className="sr-only" onChange={handleImportProjectsBackup} />
           </label>
-          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={clearSavedProjects}>
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40" onClick={clearSavedProjects} disabled={!savedProjects.length}>
             Clear All
           </Button>
         </div>
@@ -1815,7 +1871,14 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
         </label>
       </div>
 
-      {filteredProjects.length ? (
+      {!savedProjects.length ? (
+        <div className="rounded-3xl border border-zinc-800 bg-black p-6">
+          <p className="text-lg font-semibold text-zinc-100">No saved project sessions yet.</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">
+            Save a project from the intake panel, save one of the demo presets as a project, or import a previous SoulFrame backup to restore earlier work.
+          </p>
+        </div>
+      ) : filteredProjects.length ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProjects.map((project) => (
             <article key={project.id} className="rounded-3xl border border-zinc-800 bg-black p-5">
@@ -1833,7 +1896,7 @@ function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSa
         </div>
       ) : (
         <div className="rounded-3xl border border-zinc-800 bg-black p-6 text-sm text-zinc-400">
-          No saved projects match that search.
+          No saved projects match that search. Try a client name, project title, stage, or review mode.
         </div>
       )}
     </Panel>
@@ -2639,7 +2702,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, public footer links, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -2801,6 +2864,7 @@ export default function SoulFrameDraftReviewV2() {
         <ErrorBoundary>
           {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : demoView}
         </ErrorBoundary>
+        <SoulFrameFooter setView={setView} />
       </div>
     </main>
   );
