@@ -1149,7 +1149,7 @@ function buildSavedProjectsBackup(savedProjects) {
     {
       app: "SoulFrame",
       type: "saved-projects-backup",
-      version: "2.x",
+      version: "3.5",
       exportedAt: new Date().toISOString(),
       projects: savedProjects,
     },
@@ -1375,6 +1375,7 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
+    buildProductSummaryText().includes("V3.5 public demo polish") &&
     typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
@@ -2695,7 +2696,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V3.4 presentation and productization prototype with browser-based audio analysis and producer-guided review logic.",
+    "V3.5 public demo polish prototype with browser-based audio analysis, producer-guided review logic, demo onboarding, share links, and local project sessions.",
   ].join(newline);
 }
 
@@ -2816,9 +2817,9 @@ function AboutSoulFramePanel() {
         </article>
         <article className="rounded-3xl border border-zinc-800 bg-black p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.4 presentation prototype</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.5 public demo prototype</h3>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
-            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, and walkthrough views.
+            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, walkthrough views, share links, and public demo readiness panels.
           </p>
         </article>
       </div>
