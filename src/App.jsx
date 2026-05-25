@@ -189,6 +189,12 @@ const demoWalkthroughSteps = [
   { title: "Export the right message", note: "Choose producer or client-safe outputs, then copy summaries, reports, action plans, or checklists." },
 ];
 
+const publicShareLinks = [
+  { label: "Live Demo", href: "https://soulframe-v1.vercel.app" },
+  { label: "GitHub Repository", href: "https://github.com/ahmedkordofani/soulframe-v1" },
+  { label: "ChordOfAnnie", href: "https://chordofannie.com" },
+];
+
 function clampScore(value) {
   return Math.min(100, Math.max(0, Number(value) || 0));
 }
@@ -1375,6 +1381,8 @@ function runSoulFrameTests() {
     typeof SoulFrameFooter === "function" &&
     typeof DemoReadinessBanner === "function" &&
     typeof PublicDemoNotice === "function" &&
+    typeof ShareSoulFramePanel === "function" &&
+    buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -2548,6 +2556,17 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   );
 }
 
+function buildShareLinksText() {
+  const newline = String.fromCharCode(10);
+  return [
+    "SOULFRAME PUBLIC LINKS",
+    "",
+    ...publicShareLinks.map((link) => `${link.label}: ${link.href}`),
+    "",
+    "SoulFrame is an AI music humanization review tool built to support producers working with AI-generated music.",
+  ].join(newline);
+}
+
 function buildProductSummaryText() {
   const newline = String.fromCharCode(10);
   return [
@@ -2571,6 +2590,63 @@ function buildProductSummaryText() {
     "Current stage:",
     "V3.4 presentation and productization prototype with browser-based audio analysis and producer-guided review logic.",
   ].join(newline);
+}
+
+function ShareSoulFramePanel() {
+  const [copyStatus, setCopyStatus] = useState("Copy Links");
+  const [downloadStatus, setDownloadStatus] = useState("Download Links");
+
+  async function handleCopyLinks() {
+    try {
+      await navigator.clipboard.writeText(buildShareLinksText());
+      setCopyStatus("Copied");
+      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
+    } catch (error) {
+      setCopyStatus("Copy failed");
+      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
+    }
+  }
+
+  function handleDownloadLinks() {
+    const downloaded = downloadTextFile("SoulFrame_Public_Links.txt", buildShareLinksText());
+    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
+    window.setTimeout(() => setDownloadStatus("Download Links"), 1500);
+  }
+
+  return (
+    <Panel
+      title="Share SoulFrame"
+      subtitle="A clean public link kit for sharing the live demo, repository, and ChordOfAnnie home base."
+      action={
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyLinks}>{copyStatus}</Button>
+          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadLinks}>{downloadStatus}</Button>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {publicShareLinks.map((link) => (
+          <a
+            key={link.label}
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-3xl border border-zinc-800 bg-black p-5 transition hover:bg-zinc-900"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Link</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{link.label}</h3>
+            <p className="mt-3 break-words text-sm leading-6 text-zinc-400">{link.href}</p>
+          </a>
+        ))}
+      </div>
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Share line</p>
+        <p className="mt-3 text-sm leading-7 text-zinc-300">
+          SoulFrame is a browser-based AI music humanization review tool built to help producers inspect AI-generated drafts, identify artifact clues, and turn analysis into clearer revision plans and client-ready updates.
+        </p>
+      </div>
+    </Panel>
+  );
 }
 
 function AboutSoulFramePanel() {
@@ -2748,7 +2824,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, share links panel, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -2906,11 +2982,12 @@ export default function SoulFrameDraftReviewV2() {
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
               <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
               <Button className={view === "how" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("how")}>How It Works</Button>
+              <Button className={view === "share" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("share")}>Share</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
         </ErrorBoundary>
         <SoulFrameFooter setView={setView} />
       </div>
