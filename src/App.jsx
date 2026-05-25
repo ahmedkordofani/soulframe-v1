@@ -1386,6 +1386,7 @@ function runSoulFrameTests() {
     typeof PublicLaunchChecklist === "function" &&
     typeof PublicDemoStats === "function" &&
     typeof ReleaseNotesPanel === "function" &&
+    typeof PublicRoadmapPreview === "function" &&
     typeof ShareSoulFramePanel === "function" &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
@@ -1858,6 +1859,29 @@ function ReleaseNotesPanel() {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
             <p className="text-sm leading-6 text-zinc-300">{note}</p>
           </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function PublicRoadmapPreview() {
+  const roadmap = [
+    { version: "V4.0", title: "Deeper Audio Intelligence", note: "More detailed frequency, texture, harshness, and humanization scoring." },
+    { version: "V4.1", title: "Backend/API Prototype", note: "Move beyond local-only analysis toward a more scalable product structure." },
+    { version: "V4.2", title: "Smarter Reports", note: "Genre-aware recommendations, clearer client language, and better edit priorities." },
+    { version: "V5.0", title: "Public Beta Direction", note: "Shareable reports, stronger branding, saved cloud sessions, and beta-ready polish." },
+  ];
+
+  return (
+    <Panel title="Roadmap Preview" subtitle="A transparent look at where SoulFrame can grow after the current public demo release.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {roadmap.map((item) => (
+          <article key={item.version} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.version}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{item.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+          </article>
         ))}
       </div>
     </Panel>
@@ -2932,7 +2956,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, demo use cases panel, public launch checklist, public demo stats, release notes panel, header version badge, share links panel, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, demo use cases panel, public launch checklist, public demo stats, release notes panel, roadmap preview, header version badge, share links panel, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -3065,6 +3089,7 @@ export default function SoulFrameDraftReviewV2() {
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
       <ReleaseNotesPanel />
+      <PublicRoadmapPreview />
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
       <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
