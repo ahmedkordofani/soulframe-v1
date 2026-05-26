@@ -28,14 +28,14 @@ SoulFrame is built around a practical AI-humanization workflow:
 6. Map the main revision priorities
 7. Compare an original AI draft against a humanized edit
 8. Generate clear client-facing update notes
-9. Export producer/client reports, checklists, and project records
+9. Export producer/client reports, checklists, product summaries, and project records
 10. Save, search, import, and export local project sessions
 11. Load demo presets for quick testing, screenshots, and walkthroughs
 12. Explain the product through About, Walkthrough, and How It Works views
 13. Guide first-time visitors with a Quick Start path
 14. Launch different demo scenarios without manual setup
-15. Show public demo status and local-session privacy notes
-16. Provide footer links to the live demo, GitHub, and ChordOfAnnie
+15. Show public demo status, use cases, release notes, roadmap direction, and local-session privacy notes
+16. Provide share links and footer links to the live demo, GitHub, and ChordOfAnnie
 
 ---
 
@@ -49,11 +49,25 @@ SoulFrame is built around a practical AI-humanization workflow:
   - Before / After Demo
   - Walkthrough
 - Demo Readiness Banner
+- Public Demo Notice
+- Demo Use Cases panel
+- Public Launch Checklist
+- Public Demo Stats
+- V3.5 Release Notes panel
+- Roadmap Preview panel
+- Share SoulFrame panel
+  - Live Demo
+  - GitHub Repository
+  - ChordOfAnnie
+- Copy public share links
+- Download public share links as `.txt`
+- Header version badge
 - Public Footer Links
   - Live Demo
   - GitHub
   - ChordOfAnnie
   - About SoulFrame
+- Neutral public demo naming
 - Improved saved project empty state
 - Import backup available before saving projects
 - Disabled Clear All state when no projects are saved
@@ -172,13 +186,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.5.0: Public Demo Polish**
+**V3.5.1: Public Demo Stability Cleanup**
 
-SoulFrame V3.5 improves the public-facing demo experience of the app.
+SoulFrame V3.5.1 refines the public demo experience after the V3.5 launch.
 
-This version adds a Quick Start Guide, demo launcher presets, a demo readiness banner, improved saved project empty states, import backup access before saving projects, and public footer links.
+This version keeps the public prototype focused, easier to understand, and safer to share by improving the in-app demo explanation, public-facing copy, release notes, roadmap preview, share links, and neutral demo naming.
 
-The goal of V3.5 is to make SoulFrame easier for a first-time visitor to understand, test, navigate, and trust without needing a separate explanation.
+The goal of V3.5.1 is to make SoulFrame feel clearer, more stable, and more intentional for first-time visitors, portfolio viewers, press contacts, and anyone reviewing the public GitHub repository.
 
 ---
 
@@ -293,6 +307,37 @@ The goal of V3.5 is to make SoulFrame easier for a first-time visitor to underst
 
 ---
 
+## V3.5.1 Features
+
+- Public Demo Notice explaining that SoulFrame is a prototype and human-led workflow
+- Demo Use Cases panel
+  - Freelance producer workflow
+  - AI vocal humanization
+  - Instrumental texture cleanup
+  - Before / after review
+- Public Launch Checklist
+- Public Demo Stats
+- V3.5 Release Notes inside the app
+- Roadmap Preview panel
+  - V4.0 Deeper Audio Intelligence
+  - V4.1 Backend/API Prototype
+  - V4.2 Smarter Reports
+  - V5.0 Public Beta Direction
+- Share SoulFrame panel
+  - Live Demo
+  - GitHub Repository
+  - ChordOfAnnie
+- Copy public share links
+- Download public share links as `.txt`
+- Header version badge
+- Updated product summary wording from V3.4 to V3.5 public demo polish
+- Updated saved backup version metadata to V3.5
+- Neutralized public demo/client naming
+- Preserved existing public footer structure
+- Improved public demo clarity without adding unnecessary layout bloat
+
+---
+
 ## Version History
 
 ### V1.0.0 — Workflow Prototype
@@ -398,28 +443,86 @@ The goal of V3.5 is to make SoulFrame easier for a first-time visitor to underst
 - Disabled Clear All when there are no saved projects
 - Improved public demo navigation, onboarding, and first-time visitor clarity
 
+### V3.5.1 — Public Demo Stability Cleanup
+
+- Added Public Demo Notice
+- Added Demo Use Cases panel
+- Added Public Launch Checklist
+- Added Public Demo Stats
+- Added V3.5 Release Notes inside the app
+- Added Roadmap Preview panel
+- Added Share SoulFrame panel with public links
+- Added copy/download support for public share links
+- Added header version badge
+- Updated outdated V3.4 product copy to V3.5 public demo wording
+- Updated saved backup version metadata
+- Neutralized demo/client naming for public repository safety
+- Preserved the existing public footer and avoided duplicate footer changes
+- Improved public demo clarity, stability, and share-readiness
+
 ---
 
 ## Future Roadmap
 
+### V4.0 — Deeper Audio Intelligence
+
 - Deeper audio feature extraction
-- More advanced AI artifact detection
-- Spectral analysis
+- More advanced spectral analysis
+- Better harshness and resonance detection
 - Vocal-specific artifact detection
 - Instrumental texture analysis
 - More detailed humanization scoring
-- Exportable PDF reports
+- Section-level analysis improvements
+
+### V4.1 — Backend/API Prototype
+
 - Backend API integration for deeper analysis
-- Stem separation and section-level analysis
-- Project dashboard improvements
-- Client-ready report templates
+- More scalable project structure
+- Stored analysis results
+- Optional AI-assisted report logic
+- Improved file-processing pipeline
+
+### V4.2 — Smarter Humanization Reports
+
+- Genre-aware recommendations
+- Vocal vs instrumental report paths
+- Client tone selector
+- Suggested edit order
+- Revision difficulty estimates
+- Clearer before/after explanation
+
+### V5.0 — Public Beta Direction
+
+- Shareable report links
+- Exportable PDF reports
+- User accounts
 - Cloud-based saved sessions
+- Upload history
+- Stronger branding polish
+- Pricing or waitlist direction
+- Case studies and public examples
+
+---
+
+## Public Demo Notes
+
+SoulFrame is currently a public prototype.
+
+- Audio inspection runs in the browser
+- Saved project sessions use LocalStorage
+- Demo presets are included for quick testing
+- No private client audio is included in the public repository
+- The tool supports producer judgement rather than replacing it
+
+SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
 ---
 
 ## About the Creator
 
 Built by **Ahmed Kordofani**, a London-based music producer, mixing engineer, and creative technologist working at the intersection of music, AI, and human creativity.
+
+Ahmed creates under the name **ChordOfAnnie**, with a focus on music production, mixing, AI music humanization, and preserving soul in the creative process.
 
 Website: https://chordofannie.com  
 GitHub: https://github.com/ahmedkordofani  
