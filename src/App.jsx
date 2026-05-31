@@ -569,6 +569,46 @@ function buildV4HumanizationConfidenceText(analysis) {
   ].join(newline);
 }
 
+
+function buildV4ClientSafeSummary(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      "Upload audio or load a demo preset to create a client-safe V4 summary.",
+      "SoulFrame will translate the V4 audio intelligence layer into clearer next-step language.",
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const topPriorities = getV4RiskFocusStack(analysis).slice(0, 2);
+  const topMoves = buildV4RevisionMoves(analysis).slice(0, 2);
+
+  const summary = [
+    `The draft has been reviewed for tonal balance, texture movement, and humanization readiness. Current confidence is ${confidenceScore}/100 (${confidenceLabel}).`,
+  ];
+
+  if (topPriorities.length) {
+    summary.push(`The first listening focus should be ${topPriorities.map((item) => item.title.toLowerCase()).join(" and ")}.`);
+  }
+
+  if (topMoves.length) {
+    summary.push(`The next production pass should focus on ${topMoves.map((item) => item.move.toLowerCase()).join("; ")}.`);
+  }
+
+  if (profile.harshnessRisk < 55 && profile.mudRisk < 55 && profile.thinnessRisk < 55 && profile.aiTextureRisk < 55) {
+    summary.push("No single technical risk is dominating the review, so the next stage can focus more on emotion, arrangement, and final musical judgement.");
+  } else {
+    summary.push("The goal of the next pass is not only to make the track cleaner, but to make it feel more controlled, intentional, and emotionally believable.");
+  }
+
+  return summary;
+}
+
+function buildV4ClientSafeSummaryText(analysis) {
+  return buildV4ClientSafeSummary(analysis).map((line) => `- ${line}`).join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1521,6 +1561,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 HUMANIZATION CONFIDENCE");
   lines.push(buildV4HumanizationConfidenceText(activeAnalysis));
   lines.push("");
+  lines.push("V4 CLIENT-SAFE SUMMARY");
+  lines.push(buildV4ClientSafeSummaryText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1680,7 +1723,9 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 LISTENING PRIORITY STACK") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVISION MOVE SUGGESTIONS") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMANIZATION CONFIDENCE") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT-SAFE SUMMARY") &&
     getV4HumanizationConfidenceScore({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }) > 0 &&
+    buildV4ClientSafeSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("draft") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2345,6 +2390,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const humanizationConfidenceScore = getV4HumanizationConfidenceScore(activeAnalysis);
   const humanizationConfidenceLabel = getV4HumanizationConfidenceLabel(humanizationConfidenceScore);
   const humanizationConfidenceReasons = buildV4HumanizationConfidenceReasons(activeAnalysis);
+  const v4ClientSafeSummary = buildV4ClientSafeSummary(activeAnalysis);
 
   return (
     <Card>
@@ -2358,7 +2404,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.4 Baseline
+            V4.0.5 Baseline
           </span>
         </div>
 
@@ -2430,6 +2476,22 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             {humanizationConfidenceReasons.map((reason) => (
               <div key={reason} className="rounded-2xl border border-zinc-800 bg-black p-4">
                 <p className="text-sm leading-6 text-zinc-300">{reason}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Client-Safe Summary</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Clear update language without overloading the client</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This translates the V4 audio intelligence layer into client-friendly language that explains the next pass without exposing too much technical detail.
+          </p>
+          <div className="mt-5 space-y-3">
+            {v4ClientSafeSummary.map((line) => (
+              <div key={line} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-sm leading-6 text-zinc-300">{line}</p>
               </div>
             ))}
           </div>
