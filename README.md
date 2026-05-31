@@ -36,6 +36,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 14. Launch different demo scenarios without manual setup
 15. Show public demo status, use cases, release notes, roadmap direction, and local-session privacy notes
 16. Provide share links and footer links to the live demo, GitHub, and ChordOfAnnie
+17. Use V4 audio intelligence to turn browser-based analysis into producer priorities, humanization confidence, revision moves, client-safe summaries, and final recommendations
 
 ---
 
@@ -156,6 +157,28 @@ SoulFrame is built around a practical AI-humanization workflow:
 - Saved project backup import
 - Reset Session button
 - Internal self-tests for core logic
+- V4 Audio Intelligence Baseline
+- Frequency Balance Insight
+- Low / Mid / High energy estimate
+- Harshness Risk
+- Mud Risk
+- Thinness Risk
+- AI Texture Risk
+- Producer Interpretation Summary
+- V4 Listening Priority Stack
+- V4 Revision Move Suggestions
+- V4 Humanization Confidence Score
+- V4 Client-Safe Summary
+- V4 Readiness Checklist
+- V4 Next-Pass Brief
+- V4 Producer Decision Log
+- V4 Human Touchpoints
+- V4 Client Update Draft
+- V4 Review Snapshot
+- V4 Final Recommendation
+- V4 Analysis Stack Overview
+- V4 Executive Summary
+- V4 Export Completeness Checklist
 
 ---
 
@@ -186,13 +209,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V3.5.1: Public Demo Stability Cleanup**
+**V4.0.0: Deeper Audio Intelligence**
 
-SoulFrame V3.5.1 refines the public demo experience after the V3.5 launch.
+SoulFrame V4.0 introduces a deeper audio intelligence layer for reviewing AI-generated music drafts.
 
-This version keeps the public prototype focused, easier to understand, and safer to share by improving the in-app demo explanation, public-facing copy, release notes, roadmap preview, share links, and neutral demo naming.
+This release builds on the V3.5 public demo foundation and adds producer-facing analysis, decision support, humanization confidence, revision planning, client-safe summaries, and final recommendation logic.
 
-The goal of V3.5.1 is to make SoulFrame feel clearer, more stable, and more intentional for first-time visitors, portfolio viewers, press contacts, and anyone reviewing the public GitHub repository.
+The goal of V4.0 is to make SoulFrame more than a demo: it becomes a practical review assistant for producers working with AI-generated music.
 
 ---
 
@@ -338,6 +361,49 @@ The goal of V3.5.1 is to make SoulFrame feel clearer, more stable, and more inte
 
 ---
 
+## V4.0 Features
+
+- V4 Audio Intelligence Baseline
+  - Frequency balance insight
+  - Low / Mid / High energy estimate
+  - Harshness risk
+  - Mud risk
+  - Thinness risk
+  - AI texture risk
+  - Producer interpretation summary
+- V4 Listening Priority Stack
+  - Ranks the main listening risks so the producer knows what to check first
+- V4 Revision Move Suggestions
+  - Turns analysis into practical next-pass moves
+- V4 Humanization Confidence Score
+  - Estimates how ready the draft feels for human-led refinement
+- V4 Client-Safe Summary
+  - Converts technical findings into clearer client-facing language
+- V4 Readiness Checklist
+  - Checks top-end comfort, low-mid clarity, body/warmth, generated texture control, and humanization confidence
+- V4 Next-Pass Brief
+  - Creates a focused producer plan for the next human edit
+- V4 Producer Decision Log
+  - Explains why the next edit should move in a specific direction
+- V4 Human Touchpoints
+  - Reconnects the analysis to emotion, movement, tone, and client delivery
+- V4 Client Update Draft
+  - Generates ready-to-send language for the next revision update
+- V4 Review Snapshot
+  - Condenses the whole V4 analysis into one quick overview
+- V4 Final Recommendation
+  - Suggests whether to proceed to final polish, do one focused humanization pass, or treat the draft as a high-priority revision
+- V4 Analysis Stack Overview
+  - Shows what SoulFrame checked before making the recommendation
+- V4 Executive Summary
+  - Summarizes the full V4 review in a clean producer-facing overview
+- V4 Export Completeness Checklist
+  - Confirms which V4 sections are included in the full report export
+- V4 sections added into full report exports
+- Improved SoulFrame from a public prototype into a deeper producer decision-support workflow
+
+---
+
 ## Version History
 
 ### V1.0.0 — Workflow Prototype
@@ -460,19 +526,33 @@ The goal of V3.5.1 is to make SoulFrame feel clearer, more stable, and more inte
 - Preserved the existing public footer and avoided duplicate footer changes
 - Improved public demo clarity, stability, and share-readiness
 
+### V4.0.0 — Deeper Audio Intelligence
+
+- Added V4 Audio Intelligence Baseline
+- Added Frequency Balance Insight
+- Added Low / Mid / High energy estimate
+- Added Harshness Risk, Mud Risk, Thinness Risk, and AI Texture Risk
+- Added Producer Interpretation Summary
+- Added V4 Listening Priority Stack
+- Added V4 Revision Move Suggestions
+- Added V4 Humanization Confidence Score
+- Added V4 Client-Safe Summary
+- Added V4 Readiness Checklist
+- Added V4 Next-Pass Brief
+- Added V4 Producer Decision Log
+- Added V4 Human Touchpoints
+- Added V4 Client Update Draft
+- Added V4 Review Snapshot
+- Added V4 Final Recommendation
+- Added V4 Analysis Stack Overview
+- Added V4 Executive Summary
+- Added V4 Export Completeness Checklist
+- Added V4 sections to full report exports
+- Improved SoulFrame from public prototype into deeper producer decision-support workflow
+
 ---
 
 ## Future Roadmap
-
-### V4.0 — Deeper Audio Intelligence
-
-- Deeper audio feature extraction
-- More advanced spectral analysis
-- Better harshness and resonance detection
-- Vocal-specific artifact detection
-- Instrumental texture analysis
-- More detailed humanization scoring
-- Section-level analysis improvements
 
 ### V4.1 — Backend/API Prototype
 
@@ -513,6 +593,7 @@ SoulFrame is currently a public prototype.
 - Demo presets are included for quick testing
 - No private client audio is included in the public repository
 - The tool supports producer judgement rather than replacing it
+- V4 analysis is a decision-support layer, not an automatic final verdict
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
