@@ -667,6 +667,56 @@ function buildV4ReadinessChecklistText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function buildV4NextPassBrief(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { label: "Step 1", title: "Load audio", note: "Upload a draft or use a demo preset before creating a next-pass brief." },
+      { label: "Step 2", title: "Run the review", note: "Use the V4 audio intelligence layer to identify the strongest revision priorities." },
+      { label: "Step 3", title: "Plan the pass", note: "Turn the risk profile into a focused humanization pass instead of making random changes." },
+    ];
+  }
+
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const moves = buildV4RevisionMoves(analysis).slice(0, 3);
+  const checklist = buildV4ReadinessChecklist(analysis);
+  const needsAttention = checklist.filter((item) => item.status === "Needs Attention").map((item) => item.label);
+
+  const brief = [
+    {
+      label: "Focus",
+      title: moves[0]?.move || "Listen for the clearest blocker",
+      note: moves[0]?.reason || "Start with the most obvious musical or technical issue before making broad changes.",
+    },
+    {
+      label: "Support",
+      title: moves[1]?.move || "Protect the emotional centre",
+      note: moves[1]?.reason || "Make changes that support the song’s feeling, not just its loudness or polish.",
+    },
+    {
+      label: "Final Check",
+      title: needsAttention.length ? `Recheck ${needsAttention.slice(0, 2).join(" and ")}` : "Confirm emotion, movement, and delivery",
+      note: needsAttention.length
+        ? "These readiness checks still need attention before the next version is treated as client-ready."
+        : "The core V4 checks look stable, so the next judgement should focus on taste, emotion, and delivery.",
+    },
+    {
+      label: "Confidence",
+      title: `${confidenceScore}/100 · ${confidenceLabel}`,
+      note: "Use this as a direction signal, not a final quality grade. The producer still makes the final human judgement.",
+    },
+  ];
+
+  return brief;
+}
+
+function buildV4NextPassBriefText(analysis) {
+  return buildV4NextPassBrief(analysis)
+    .map((item) => `- ${item.label}: ${item.title} — ${item.note}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1625,6 +1675,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 READINESS CHECKLIST");
   lines.push(buildV4ReadinessChecklistText(activeAnalysis));
   lines.push("");
+  lines.push("V4 NEXT-PASS BRIEF");
+  lines.push(buildV4NextPassBriefText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1789,6 +1842,8 @@ function runSoulFrameTests() {
     buildV4ClientSafeSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("draft") &&
     buildV4ReadinessChecklistText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Humanization confidence") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 READINESS CHECKLIST") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 NEXT-PASS BRIEF") &&
+    buildV4NextPassBriefText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2455,6 +2510,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const humanizationConfidenceReasons = buildV4HumanizationConfidenceReasons(activeAnalysis);
   const v4ClientSafeSummary = buildV4ClientSafeSummary(activeAnalysis);
   const v4ReadinessChecklist = buildV4ReadinessChecklist(activeAnalysis);
+  const v4NextPassBrief = buildV4NextPassBrief(activeAnalysis);
 
   return (
     <Card>
@@ -2468,7 +2524,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.6 Baseline
+            V4.0.7 Baseline
           </span>
         </div>
 
@@ -2574,6 +2630,24 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
               </div>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Next-Pass Brief</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">A focused plan for the next human edit</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This turns the V4 risk profile into a short producer brief so the next pass has a clear purpose instead of becoming endless tweaking.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {v4NextPassBrief.map((item) => (
+              <article key={`${item.label}-${item.title}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
+                <h4 className="mt-3 font-semibold text-zinc-100">{item.title}</h4>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+              </article>
             ))}
           </div>
         </div>
