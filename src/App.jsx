@@ -189,12 +189,6 @@ const demoWalkthroughSteps = [
   { title: "Export the right message", note: "Choose producer or client-safe outputs, then copy summaries, reports, action plans, or checklists." },
 ];
 
-const publicShareLinks = [
-  { label: "Live Demo", href: "https://soulframe-v1.vercel.app" },
-  { label: "GitHub Repository", href: "https://github.com/ahmedkordofani/soulframe-v1" },
-  { label: "ChordOfAnnie", href: "https://chordofannie.com" },
-];
-
 function clampScore(value) {
   return Math.min(100, Math.max(0, Number(value) || 0));
 }
@@ -275,6 +269,128 @@ function getTextureStabilityLabel(textureMovement) {
   return "Stable";
 }
 
+function clampUnit(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
+function formatPercent(value) {
+  return `${Math.round(clampUnit(value) * 100)}%`;
+}
+
+function getRiskLabelFromScore(score) {
+  if (!Number.isFinite(score) || score <= 0) return "Waiting";
+  if (score >= 75) return "High";
+  if (score >= 50) return "Elevated";
+  if (score >= 30) return "Moderate";
+  return "Low";
+}
+
+function buildFrequencyBalanceProfile({ brightnessScore = 0, textureMovement = 0, dynamicRange = 0, rms = 0, peak = 0, zeroCrossingRate = 0 } = {}) {
+  const highRaw = clampUnit(brightnessScore * 1.15 + zeroCrossingRate * 12);
+  const lowRaw = clampUnit((1 - brightnessScore) * 0.45 + rms * 2.2 + (dynamicRange < 0.06 ? 0.16 : 0));
+  const midRaw = clampUnit(0.55 + dynamicRange * 1.2 - Math.abs(highRaw - lowRaw) * 0.25 - textureMovement * 0.1);
+  const total = Math.max(lowRaw + midRaw + highRaw, 0.001);
+  const lowEnergy = lowRaw / total;
+  const midEnergy = midRaw / total;
+  const highEnergy = highRaw / total;
+
+  const harshnessRisk = clampScore(highEnergy * 70 + brightnessScore * 25 + (peak >= 0.94 ? 10 : 0));
+  const mudRisk = clampScore(lowEnergy * 70 + (dynamicRange < 0.06 ? 16 : 0) - highEnergy * 12);
+  const thinnessRisk = clampScore(highEnergy * 42 + (lowEnergy < 0.24 ? 34 : 0) + (rms < 0.035 ? 12 : 0));
+  const aiTextureRisk = clampScore(textureMovement * 80 + zeroCrossingRate * 500 + (dynamicRange < 0.05 ? 10 : 0));
+
+  return {
+    lowEnergy,
+    midEnergy,
+    highEnergy,
+    harshnessRisk,
+    mudRisk,
+    thinnessRisk,
+    aiTextureRisk,
+  };
+}
+
+function getFrequencyBalanceLabel(profile) {
+  if (!profile) return "Waiting for Audio";
+  const energies = [
+    { label: "Low-heavy", value: profile.lowEnergy },
+    { label: "Mid-focused", value: profile.midEnergy },
+    { label: "Bright / High-heavy", value: profile.highEnergy },
+  ];
+  const dominant = energies.reduce((best, item) => (item.value > best.value ? item : best), energies[0]);
+  if (Math.abs(profile.lowEnergy - profile.highEnergy) < 0.08 && profile.midEnergy >= 0.3) return "Balanced";
+  return dominant.label;
+}
+
+function buildProducerInterpretationSummary(analysis) {
+  if (!analysis || analysis.status !== "Ready") return "Upload audio to generate a V4 producer interpretation summary.";
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const balance = getFrequencyBalanceLabel(profile);
+  const harshness = getRiskLabelFromScore(profile.harshnessRisk);
+  const mud = getRiskLabelFromScore(profile.mudRisk);
+  const thinness = getRiskLabelFromScore(profile.thinnessRisk);
+  const texture = getRiskLabelFromScore(profile.aiTextureRisk);
+
+  if (harshness === "High" || texture === "High") {
+    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${harshness.toLowerCase()} harshness risk and ${texture.toLowerCase()} AI texture risk. Prioritize top-end control, cleaner movement, and a focused human listening pass before delivery.`;
+  }
+
+  if (mud === "High" || mud === "Elevated") {
+    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${mud.toLowerCase()} mud risk. Check low-mid buildup, arrangement density, and whether the track needs more space to feel emotionally clear.`;
+  }
+
+  if (thinness === "High" || thinness === "Elevated") {
+    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${thinness.toLowerCase()} thinness risk. Check whether the draft needs more body, warmth, or human-feeling weight.`;
+  }
+
+  return `The current proxy scan suggests a ${balance.toLowerCase()} profile with manageable harshness, mud, thinness, and AI texture risks. Use the next pass for taste, emotion, structure, and final human judgement.`;
+}
+
+function buildAudioIntelligenceInsights(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { label: "Frequency Balance", value: "Waiting", note: "Upload audio to estimate low, mid, and high energy balance." },
+      { label: "Producer Interpretation", value: "Waiting", note: "SoulFrame will summarize the likely production focus after analysis." },
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+
+  return [
+    {
+      label: "Frequency Balance",
+      value: getFrequencyBalanceLabel(profile),
+      note: `Low ${formatPercent(profile.lowEnergy)} · Mid ${formatPercent(profile.midEnergy)} · High ${formatPercent(profile.highEnergy)}`,
+    },
+    {
+      label: "Harshness Risk",
+      value: `${profile.harshnessRisk}/100 · ${getRiskLabelFromScore(profile.harshnessRisk)}`,
+      note: "Flags brittle top-end, metallic shimmer, and sharp generated edges that may need softening.",
+    },
+    {
+      label: "Mud Risk",
+      value: `${profile.mudRisk}/100 · ${getRiskLabelFromScore(profile.mudRisk)}`,
+      note: "Flags possible low-mid buildup, cloudy density, or lack of separation in the draft.",
+    },
+    {
+      label: "Thinness Risk",
+      value: `${profile.thinnessRisk}/100 · ${getRiskLabelFromScore(profile.thinnessRisk)}`,
+      note: "Flags whether the draft may need more body, warmth, or emotional weight.",
+    },
+    {
+      label: "AI Texture Risk",
+      value: `${profile.aiTextureRisk}/100 · ${getRiskLabelFromScore(profile.aiTextureRisk)}`,
+      note: "Flags generated movement, restless texture, or unstable synthetic detail.",
+    },
+    {
+      label: "Producer Interpretation",
+      value: "V4 Baseline",
+      note: buildProducerInterpretationSummary(analysis),
+    },
+  ];
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -324,6 +440,14 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
     const brightnessScore = averageAbs > 0 ? Math.min(1, averageDelta / Math.max(averageAbs * 4, 0.0001)) : 0;
     const zeroCrossingRate = zeroCrossings / Math.max(1, channelData.length);
     const textureMovement = Math.min(1, zeroCrossingRate * 20 + dynamicRange);
+    const frequencyProfile = buildFrequencyBalanceProfile({
+      brightnessScore,
+      textureMovement,
+      dynamicRange,
+      rms,
+      peak,
+      zeroCrossingRate,
+    });
 
     setAnalysis({
       status: "Ready",
@@ -341,6 +465,7 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
       zeroCrossingRate,
       textureMovement,
       textureStability: getTextureStabilityLabel(textureMovement),
+      frequencyProfile,
     });
     audioContext.close();
   } catch (error) {
@@ -1149,7 +1274,7 @@ function buildSavedProjectsBackup(savedProjects) {
     {
       app: "SoulFrame",
       type: "saved-projects-backup",
-      version: "3.5",
+      version: "2.x",
       exportedAt: new Date().toISOString(),
       projects: savedProjects,
     },
@@ -1202,6 +1327,14 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
 
   lines.push("");
 
+  const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
+
+  lines.push("V4 AUDIO INTELLIGENCE BASELINE");
+  buildAudioIntelligenceInsights(activeAnalysis).forEach((item) => {
+    lines.push(`${item.label}: ${item.value} - ${item.note}`);
+  });
+  lines.push("");
+
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
     buildBeforeAfterComparison(draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis).forEach((row) => {
@@ -1209,8 +1342,6 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
     });
     lines.push("");
   }
-
-  const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
 
   if (isClientReport) {
     lines.push("CLIENT-FRIENDLY FOCUS AREAS");
@@ -1358,6 +1489,7 @@ function runSoulFrameTests() {
   const copyReportTestsPassed =
     buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME PRODUCER HUMANIZATION REPORT") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test", reportTone: "client" }).includes("CLIENT-SAFE ACTION PLAN") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 AUDIO INTELLIGENCE BASELINE") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
     buildSessionSummaryText(defaultProjectSession, null, null, "draft", "marcel").includes("SOULFRAME SESSION SUMMARY");
   const exportReportTestsPassed =
@@ -1375,20 +1507,12 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V3.5 public demo polish") &&
     typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
     typeof SoulFrameFooter === "function" &&
     typeof DemoReadinessBanner === "function" &&
     typeof PublicDemoNotice === "function" &&
-    typeof DemoUseCasesPanel === "function" &&
-    typeof PublicLaunchChecklist === "function" &&
-    typeof PublicDemoStats === "function" &&
-    typeof ReleaseNotesPanel === "function" &&
-    typeof PublicRoadmapPreview === "function" &&
-    typeof ShareSoulFramePanel === "function" &&
-    buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -1762,132 +1886,6 @@ function PublicDemoNotice() {
   );
 }
 
-function DemoUseCasesPanel() {
-  const useCases = [
-    {
-      title: "Freelance producer workflow",
-      note: "Use SoulFrame to organize review notes before sending a clearer update to a client.",
-    },
-    {
-      title: "AI vocal humanization",
-      note: "Check metallic tone, cracking, flat phrasing, and emotional delivery before the next vocal pass.",
-    },
-    {
-      title: "Instrumental texture cleanup",
-      note: "Review shimmer, buzzing residue, repetition, and generated movement in AI instrumental drafts.",
-    },
-    {
-      title: "Before / after review",
-      note: "Compare an AI draft against a humanized edit and identify what improved before final delivery.",
-    },
-  ];
-
-  return (
-    <Panel title="Demo Use Cases" subtitle="The main ways SoulFrame can be tested, explained, or shown as a public prototype.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {useCases.map((useCase) => (
-          <article key={useCase.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <h3 className="font-semibold text-zinc-100">{useCase.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{useCase.note}</p>
-          </article>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-function PublicLaunchChecklist() {
-  const checklist = [
-    { label: "Live demo is accessible", status: "Ready" },
-    { label: "README explains the current version", status: "Ready" },
-    { label: "Demo presets work without uploads", status: "Ready" },
-    { label: "Project links are easy to find", status: "Ready" },
-    { label: "Client names are neutralized", status: "Ready" },
-    { label: "Public prototype limitations are clear", status: "Ready" },
-  ];
-
-  return (
-    <Panel title="Public Launch Checklist" subtitle="A lightweight readiness checklist for sharing SoulFrame as a public prototype.">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {checklist.map((item) => (
-          <div key={item.label} className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-sm text-zinc-200">{item.label}</p>
-            <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-function PublicDemoStats({ savedProjectsCount }) {
-  const stats = [
-    { label: "Demo Presets", value: Object.keys(demoPresets).length },
-    { label: "Artifact Types", value: artifactDatabase.length },
-    { label: "Walkthrough Steps", value: demoWalkthroughSteps.length },
-    { label: "Saved Sessions", value: savedProjectsCount },
-  ];
-
-  return (
-    <Panel title="Public Demo Stats" subtitle="A quick snapshot of what is currently available inside this SoulFrame prototype.">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{stat.label}</p>
-            <p className="mt-3 text-3xl font-bold text-zinc-100">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-function ReleaseNotesPanel() {
-  const releaseNotes = [
-    "Improved first-time visitor flow with Quick Start and demo launchers.",
-    "Added public-facing context so visitors understand the prototype clearly.",
-    "Added launch checklist, demo stats, use cases, share links, and public footer links.",
-    "Improved saved project sessions with an empty state and backup import/export support.",
-    "Neutralized demo naming for a cleaner public repository.",
-  ];
-
-  return (
-    <Panel title="V3.5 Release Notes" subtitle="A concise summary of what changed in the current public demo polish release.">
-      <div className="space-y-3">
-        {releaseNotes.map((note, index) => (
-          <div key={note} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
-            <p className="text-sm leading-6 text-zinc-300">{note}</p>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
-function PublicRoadmapPreview() {
-  const roadmap = [
-    { version: "V4.0", title: "Deeper Audio Intelligence", note: "More detailed frequency, texture, harshness, and humanization scoring." },
-    { version: "V4.1", title: "Backend/API Prototype", note: "Move beyond local-only analysis toward a more scalable product structure." },
-    { version: "V4.2", title: "Smarter Reports", note: "Genre-aware recommendations, clearer client language, and better edit priorities." },
-    { version: "V5.0", title: "Public Beta Direction", note: "Shareable reports, stronger branding, saved cloud sessions, and beta-ready polish." },
-  ];
-
-  return (
-    <Panel title="Roadmap Preview" subtitle="A transparent look at where SoulFrame can grow after the current public demo release.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {roadmap.map((item) => (
-          <article key={item.version} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.version}</p>
-            <h3 className="mt-3 font-semibold text-zinc-100">{item.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-          </article>
-        ))}
-      </div>
-    </Panel>
-  );
-}
-
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -2140,6 +2138,41 @@ function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftA
           </div>
         </div>
         <div className="mt-5 space-y-3">{comparisonRows.map((row) => <article key={row.label} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p><h3 className="mt-2 text-lg font-semibold text-zinc-100">{row.change}</h3></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{row.verdict}</span></div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">AI Draft</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.before}</p></div><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Humanized Edit</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.after}</p></div></div></article>)}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const insights = buildAudioIntelligenceInsights(activeAnalysis);
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Audio Intelligence</p>
+            <h2 className="mt-2 text-2xl font-semibold">Frequency Balance & Risk Baseline</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+              A producer-friendly proxy layer for estimating tonal balance, harshness, mud, thinness, and generated texture risk. This supports listening decisions rather than replacing the human ear.
+            </p>
+          </div>
+          <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+            V4.0.1 Baseline
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {insights.map((item) => (
+            <article key={item.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
+              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.label}</p>
+              <h3 className="mt-3 text-lg font-semibold text-zinc-100">{item.value}</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+            </article>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -2665,6 +2698,7 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       </Card>
 
       <AudioFactsSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
+      <AudioIntelligencePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <BeforeAfterComparisonSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ArtifactCluePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ListeningFocusPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
@@ -2688,17 +2722,6 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   );
 }
 
-function buildShareLinksText() {
-  const newline = String.fromCharCode(10);
-  return [
-    "SOULFRAME PUBLIC LINKS",
-    "",
-    ...publicShareLinks.map((link) => `${link.label}: ${link.href}`),
-    "",
-    "SoulFrame is an AI music humanization review tool built to support producers working with AI-generated music.",
-  ].join(newline);
-}
-
 function buildProductSummaryText() {
   const newline = String.fromCharCode(10);
   return [
@@ -2720,65 +2743,8 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V3.5 public demo polish prototype with browser-based audio analysis, producer-guided review logic, demo onboarding, share links, and local project sessions.",
+    "V3.4 presentation and productization prototype with browser-based audio analysis and producer-guided review logic.",
   ].join(newline);
-}
-
-function ShareSoulFramePanel() {
-  const [copyStatus, setCopyStatus] = useState("Copy Links");
-  const [downloadStatus, setDownloadStatus] = useState("Download Links");
-
-  async function handleCopyLinks() {
-    try {
-      await navigator.clipboard.writeText(buildShareLinksText());
-      setCopyStatus("Copied");
-      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
-    } catch (error) {
-      setCopyStatus("Copy failed");
-      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
-    }
-  }
-
-  function handleDownloadLinks() {
-    const downloaded = downloadTextFile("SoulFrame_Public_Links.txt", buildShareLinksText());
-    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
-    window.setTimeout(() => setDownloadStatus("Download Links"), 1500);
-  }
-
-  return (
-    <Panel
-      title="Share SoulFrame"
-      subtitle="A clean public link kit for sharing the live demo, repository, and ChordOfAnnie home base."
-      action={
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyLinks}>{copyStatus}</Button>
-          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadLinks}>{downloadStatus}</Button>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {publicShareLinks.map((link) => (
-          <a
-            key={link.label}
-            href={link.href}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-3xl border border-zinc-800 bg-black p-5 transition hover:bg-zinc-900"
-          >
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Link</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{link.label}</h3>
-            <p className="mt-3 break-words text-sm leading-6 text-zinc-400">{link.href}</p>
-          </a>
-        ))}
-      </div>
-      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Share line</p>
-        <p className="mt-3 text-sm leading-7 text-zinc-300">
-          SoulFrame is a browser-based AI music humanization review tool built to help producers inspect AI-generated drafts, identify artifact clues, and turn analysis into clearer revision plans and client-ready updates.
-        </p>
-      </div>
-    </Panel>
-  );
 }
 
 function AboutSoulFramePanel() {
@@ -2841,9 +2807,9 @@ function AboutSoulFramePanel() {
         </article>
         <article className="rounded-3xl border border-zinc-800 bg-black p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.5 public demo prototype</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.4 presentation prototype</h3>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
-            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, walkthrough views, share links, and public demo readiness panels.
+            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, and walkthrough views.
           </p>
         </article>
       </div>
@@ -2956,7 +2922,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, demo use cases panel, public launch checklist, public demo stats, release notes panel, roadmap preview, header version badge, share links panel, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -3085,11 +3051,6 @@ export default function SoulFrameDraftReviewV2() {
       <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
       <DemoReadinessBanner />
       <PublicDemoNotice />
-      <DemoUseCasesPanel />
-      <PublicLaunchChecklist />
-      <PublicDemoStats savedProjectsCount={savedProjects.length} />
-      <ReleaseNotesPanel />
-      <PublicRoadmapPreview />
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
       <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
@@ -3109,10 +3070,7 @@ export default function SoulFrameDraftReviewV2() {
         <header className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-6 shadow-2xl md:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V3.5.0 Public Demo</span>
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
             </div>
@@ -3122,12 +3080,11 @@ export default function SoulFrameDraftReviewV2() {
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
               <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
               <Button className={view === "how" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("how")}>How It Works</Button>
-              <Button className={view === "share" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("share")}>Share</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : demoView}
         </ErrorBoundary>
         <SoulFrameFooter setView={setView} />
       </div>
