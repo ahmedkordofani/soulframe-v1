@@ -1022,6 +1022,48 @@ function buildV4AnalysisStackOverviewText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function buildV4ExecutiveSummary(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return {
+      headline: "V4 review waiting for audio",
+      summary: "Upload a draft or load a demo preset to generate a complete V4 executive summary.",
+      bullets: [
+        "SoulFrame will review frequency balance, risk profile, listening priorities, revision moves, and human touchpoints.",
+        "The executive summary will condense the full V4 layer into a short producer-facing overview.",
+      ],
+    };
+  }
+
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const finalRecommendation = buildV4FinalRecommendation(analysis);
+  const snapshot = buildV4ReviewSnapshot(analysis);
+  const primaryFocus = snapshot.find((item) => item.label === "Main Listening Focus");
+  const nextMove = snapshot.find((item) => item.label === "Next Revision Move");
+  const readiness = snapshot.find((item) => item.label === "Readiness Flags");
+
+  return {
+    headline: `${finalRecommendation.title} · ${confidenceScore}/100`,
+    summary: `SoulFrame reviewed the draft through the V4 audio intelligence stack and classified it as ${confidenceLabel}. The recommended direction is: ${finalRecommendation.title.toLowerCase()}.`,
+    bullets: [
+      primaryFocus ? `Main listening focus: ${primaryFocus.value} — ${primaryFocus.note}` : "Main listening focus should be confirmed by producer judgement.",
+      nextMove ? `Next revision move: ${nextMove.value} — ${nextMove.note}` : "The next revision should start with one focused improvement.",
+      readiness ? `Readiness status: ${readiness.value} — ${readiness.note}` : "Readiness should be checked after the next pass.",
+      `Recommended next action: ${finalRecommendation.nextAction}`,
+    ],
+  };
+}
+
+function buildV4ExecutiveSummaryText(analysis) {
+  const summary = buildV4ExecutiveSummary(analysis);
+  return [
+    summary.headline,
+    summary.summary,
+    ...summary.bullets.map((item) => `- ${item}`),
+  ].join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -2001,6 +2043,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 ANALYSIS STACK OVERVIEW");
   lines.push(buildV4AnalysisStackOverviewText(activeAnalysis));
   lines.push("");
+  lines.push("V4 EXECUTIVE SUMMARY");
+  lines.push(buildV4ExecutiveSummaryText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -2178,6 +2223,8 @@ function runSoulFrameTests() {
     buildV4FinalRecommendationText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Recommendation") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 FINAL RECOMMENDATION") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 ANALYSIS STACK OVERVIEW") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 EXECUTIVE SUMMARY") &&
+    buildV4ExecutiveSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Recommended next action") &&
     buildV4AnalysisStackOverviewText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Frequency Balance") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
@@ -2852,6 +2899,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4ReviewSnapshot = buildV4ReviewSnapshot(activeAnalysis);
   const v4FinalRecommendation = buildV4FinalRecommendation(activeAnalysis);
   const v4AnalysisStackOverview = buildV4AnalysisStackOverview(activeAnalysis);
+  const v4ExecutiveSummary = buildV4ExecutiveSummary(activeAnalysis);
 
   return (
     <Card>
@@ -2865,7 +2913,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.13 Baseline
+            V4.0.14 Baseline
           </span>
         </div>
 
@@ -3096,6 +3144,20 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.purpose}</p>
               </article>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Executive Summary</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">{v4ExecutiveSummary.headline}</h3>
+          <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">{v4ExecutiveSummary.summary}</p>
+          <div className="mt-5 space-y-3">
+            {v4ExecutiveSummary.bullets.map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
             ))}
           </div>
         </div>
