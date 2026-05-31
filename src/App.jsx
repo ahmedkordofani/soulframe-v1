@@ -872,6 +872,59 @@ function buildV4ClientUpdateDraftText(analysis) {
   return buildV4ClientUpdateDraft(analysis).join(String.fromCharCode(10) + String.fromCharCode(10));
 }
 
+
+function buildV4ReviewSnapshot(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { label: "Status", value: "Waiting for audio", note: "Upload a draft or load a demo preset to generate the V4 review snapshot." },
+      { label: "Main Focus", value: "Not available yet", note: "SoulFrame needs an active analysis before it can summarize the next creative priority." },
+      { label: "Next Step", value: "Run review", note: "Once audio is ready, the snapshot will condense the full V4 layer into a quick overview." },
+    ];
+  }
+
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const priority = getV4RiskFocusStack(analysis)[0];
+  const move = buildV4RevisionMoves(analysis)[0];
+  const touchpoint = buildV4HumanTouchpoints(analysis)[0];
+  const checklist = buildV4ReadinessChecklist(analysis);
+  const needsAttentionCount = checklist.filter((item) => item.status === "Needs Attention").length;
+
+  return [
+    {
+      label: "Confidence",
+      value: `${confidenceScore}/100`,
+      note: confidenceLabel,
+    },
+    {
+      label: "Main Listening Focus",
+      value: priority?.title || "Producer judgement",
+      note: priority?.reason || "Use your ear to decide where the next pass should begin.",
+    },
+    {
+      label: "Next Revision Move",
+      value: move?.move || "Make one focused improvement",
+      note: move?.reason || "Avoid broad changes until the strongest blocker is addressed.",
+    },
+    {
+      label: "Human Touchpoint",
+      value: touchpoint?.area || "Emotion",
+      note: touchpoint?.focus || "Bring the track closer to a believable human performance.",
+    },
+    {
+      label: "Readiness Flags",
+      value: `${needsAttentionCount} needs attention`,
+      note: needsAttentionCount ? "Resolve these before treating the edit as client-ready." : "Core readiness checks look stable for this pass.",
+    },
+  ];
+}
+
+function buildV4ReviewSnapshotText(analysis) {
+  return buildV4ReviewSnapshot(analysis)
+    .map((item) => `- ${item.label}: ${item.value} — ${item.note}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1842,6 +1895,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 CLIENT UPDATE DRAFT");
   lines.push(buildV4ClientUpdateDraftText(activeAnalysis));
   lines.push("");
+  lines.push("V4 REVIEW SNAPSHOT");
+  lines.push(buildV4ReviewSnapshotText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -2014,6 +2070,8 @@ function runSoulFrameTests() {
     buildV4HumanTouchpointsText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Emotion") &&
     buildV4ClientUpdateDraftText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("humanization confidence") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT UPDATE DRAFT") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVIEW SNAPSHOT") &&
+    buildV4ReviewSnapshotText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2684,6 +2742,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4ProducerDecisionLog = buildV4ProducerDecisionLog(activeAnalysis);
   const v4HumanTouchpoints = buildV4HumanTouchpoints(activeAnalysis);
   const v4ClientUpdateDraft = buildV4ClientUpdateDraft(activeAnalysis);
+  const v4ReviewSnapshot = buildV4ReviewSnapshot(activeAnalysis);
 
   return (
     <Card>
@@ -2697,7 +2756,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.10 Baseline
+            V4.0.11 Baseline
           </span>
         </div>
 
@@ -2871,6 +2930,24 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
           <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-5">
             {v4ClientUpdateDraft.map((line) => (
               <p key={line} className="mb-4 text-sm leading-7 text-zinc-300 last:mb-0">{line}</p>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Review Snapshot</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">The whole V4 analysis condensed into one view</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This gives a quick at-a-glance summary of the V4 intelligence layer so the producer can understand the current state without rereading every panel.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {v4ReviewSnapshot.map((item) => (
+              <article key={`${item.label}-${item.value}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
+                <h4 className="mt-3 font-semibold text-zinc-100">{item.value}</h4>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+              </article>
             ))}
           </div>
         </div>
