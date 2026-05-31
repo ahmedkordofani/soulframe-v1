@@ -837,6 +837,41 @@ function buildV4HumanTouchpointsText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function buildV4ClientUpdateDraft(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      "I’ll review the audio in more detail once the draft is loaded into SoulFrame.",
+      "From there I’ll identify the main areas that need humanization and prepare the next revision pass with a clearer direction.",
+    ];
+  }
+
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const moves = buildV4RevisionMoves(analysis).slice(0, 2);
+  const touchpoints = buildV4HumanTouchpoints(analysis).slice(0, 2);
+
+  const update = [
+    `I’ve reviewed the draft for tone balance, texture movement, and humanization readiness. The current humanization confidence is ${confidenceScore}/100 (${confidenceLabel}).`,
+  ];
+
+  if (moves.length) {
+    update.push(`For the next pass, I’ll focus mainly on ${moves.map((item) => item.move.toLowerCase()).join(" and ")}.`);
+  }
+
+  if (touchpoints.length) {
+    update.push(`The goal is to improve the ${touchpoints.map((item) => item.area.toLowerCase()).join(" and ")} of the track so it feels more natural, intentional, and emotionally believable.`);
+  }
+
+  update.push("I’ll avoid over-processing and focus on changes that make the track feel more human rather than simply louder or cleaner.");
+
+  return update;
+}
+
+function buildV4ClientUpdateDraftText(analysis) {
+  return buildV4ClientUpdateDraft(analysis).join(String.fromCharCode(10) + String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1804,6 +1839,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 HUMAN TOUCHPOINTS");
   lines.push(buildV4HumanTouchpointsText(activeAnalysis));
   lines.push("");
+  lines.push("V4 CLIENT UPDATE DRAFT");
+  lines.push(buildV4ClientUpdateDraftText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1974,6 +2012,8 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 PRODUCER DECISION LOG") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMAN TOUCHPOINTS") &&
     buildV4HumanTouchpointsText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Emotion") &&
+    buildV4ClientUpdateDraftText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("humanization confidence") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT UPDATE DRAFT") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2643,6 +2683,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4NextPassBrief = buildV4NextPassBrief(activeAnalysis);
   const v4ProducerDecisionLog = buildV4ProducerDecisionLog(activeAnalysis);
   const v4HumanTouchpoints = buildV4HumanTouchpoints(activeAnalysis);
+  const v4ClientUpdateDraft = buildV4ClientUpdateDraft(activeAnalysis);
 
   return (
     <Card>
@@ -2656,7 +2697,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.9 Baseline
+            V4.0.10 Baseline
           </span>
         </div>
 
@@ -2816,6 +2857,20 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 <h4 className="mt-3 font-semibold text-zinc-100">{item.focus}</h4>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
               </article>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Client Update Draft</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Ready-to-send language for the next revision update</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This converts the V4 producer reasoning into a simple client-facing update that explains the next pass clearly without sounding overly technical.
+          </p>
+          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-5">
+            {v4ClientUpdateDraft.map((line) => (
+              <p key={line} className="mb-4 text-sm leading-7 text-zinc-300 last:mb-0">{line}</p>
             ))}
           </div>
         </div>
