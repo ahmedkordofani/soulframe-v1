@@ -609,6 +609,64 @@ function buildV4ClientSafeSummaryText(analysis) {
   return buildV4ClientSafeSummary(analysis).map((line) => `- ${line}`).join(String.fromCharCode(10));
 }
 
+
+function buildV4ReadinessChecklist(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { label: "Load or upload audio", status: "Waiting", note: "SoulFrame needs an audio source before the V4 readiness checklist can be generated." },
+      { label: "Review V4 audio intelligence", status: "Waiting", note: "Frequency balance, risk profile, and humanization confidence will appear after analysis." },
+      { label: "Plan the next revision pass", status: "Waiting", note: "Revision moves will become clearer once the draft has been inspected." },
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+
+  return [
+    {
+      label: "Top-end comfort",
+      status: profile.harshnessRisk < 60 ? "Ready" : "Needs Attention",
+      note: profile.harshnessRisk < 60
+        ? "The high-frequency area is not currently the main blocker."
+        : "Check brittle brightness, harsh consonants, shimmer, or overexcited upper texture before final delivery.",
+    },
+    {
+      label: "Low-mid clarity",
+      status: profile.mudRisk < 60 ? "Ready" : "Needs Attention",
+      note: profile.mudRisk < 60
+        ? "The low-mid area appears manageable for the next pass."
+        : "Create space around low-mids so the emotional centre and groove feel clearer.",
+    },
+    {
+      label: "Body and warmth",
+      status: profile.thinnessRisk < 60 ? "Ready" : "Needs Attention",
+      note: profile.thinnessRisk < 60
+        ? "The draft does not appear severely thin from the current proxy analysis."
+        : "Add controlled body, warmth, saturation, or arrangement weight before calling the edit final.",
+    },
+    {
+      label: "Generated texture control",
+      status: profile.aiTextureRisk < 60 ? "Ready" : "Needs Attention",
+      note: profile.aiTextureRisk < 60
+        ? "Texture movement does not appear to dominate this pass."
+        : "Reduce restless generated movement so the track feels more intentional and less synthetic.",
+    },
+    {
+      label: "Humanization confidence",
+      status: confidenceScore >= 65 ? "Ready" : "Needs Attention",
+      note: confidenceScore >= 65
+        ? "The draft has a workable foundation for human-led refinement."
+        : "The draft likely needs a focused humanization pass before it feels emotionally convincing.",
+    },
+  ];
+}
+
+function buildV4ReadinessChecklistText(analysis) {
+  return buildV4ReadinessChecklist(analysis)
+    .map((item) => `- ${item.label}: ${item.status} — ${item.note}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1564,6 +1622,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 CLIENT-SAFE SUMMARY");
   lines.push(buildV4ClientSafeSummaryText(activeAnalysis));
   lines.push("");
+  lines.push("V4 READINESS CHECKLIST");
+  lines.push(buildV4ReadinessChecklistText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1726,6 +1787,8 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT-SAFE SUMMARY") &&
     getV4HumanizationConfidenceScore({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }) > 0 &&
     buildV4ClientSafeSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("draft") &&
+    buildV4ReadinessChecklistText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Humanization confidence") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 READINESS CHECKLIST") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2391,6 +2454,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const humanizationConfidenceLabel = getV4HumanizationConfidenceLabel(humanizationConfidenceScore);
   const humanizationConfidenceReasons = buildV4HumanizationConfidenceReasons(activeAnalysis);
   const v4ClientSafeSummary = buildV4ClientSafeSummary(activeAnalysis);
+  const v4ReadinessChecklist = buildV4ReadinessChecklist(activeAnalysis);
 
   return (
     <Card>
@@ -2404,7 +2468,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.5 Baseline
+            V4.0.6 Baseline
           </span>
         </div>
 
@@ -2492,6 +2556,23 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             {v4ClientSafeSummary.map((line) => (
               <div key={line} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
                 <p className="text-sm leading-6 text-zinc-300">{line}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Readiness Checklist</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Final checks before the next humanization pass</h3>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {v4ReadinessChecklist.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-zinc-100">{item.label}</p>
+                  <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
               </div>
             ))}
           </div>
