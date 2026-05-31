@@ -1064,6 +1064,49 @@ function buildV4ExecutiveSummaryText(analysis) {
   ].join(String.fromCharCode(10));
 }
 
+
+function buildV4ExportCompletenessChecklist(analysis) {
+  const ready = analysis && analysis.status === "Ready";
+  return [
+    {
+      label: "Executive Summary",
+      status: ready ? "Included" : "Waiting",
+      note: "Condenses the V4 review into a short producer-facing overview.",
+    },
+    {
+      label: "Final Recommendation",
+      status: ready ? "Included" : "Waiting",
+      note: "Shows whether the draft needs final polish, a focused pass, or deeper revision.",
+    },
+    {
+      label: "Client Update Draft",
+      status: ready ? "Included" : "Waiting",
+      note: "Provides simple client-facing revision language without overwhelming technical detail.",
+    },
+    {
+      label: "Readiness Checklist",
+      status: ready ? "Included" : "Waiting",
+      note: "Confirms which areas are ready and which still need attention.",
+    },
+    {
+      label: "Producer Decision Log",
+      status: ready ? "Included" : "Waiting",
+      note: "Preserves the reasoning behind the suggested edit direction.",
+    },
+    {
+      label: "Human Touchpoints",
+      status: ready ? "Included" : "Waiting",
+      note: "Connects the analysis back to emotion, movement, tone, and delivery.",
+    },
+  ];
+}
+
+function buildV4ExportCompletenessChecklistText(analysis) {
+  return buildV4ExportCompletenessChecklist(analysis)
+    .map((item) => `- ${item.label}: ${item.status} — ${item.note}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -2046,6 +2089,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 EXECUTIVE SUMMARY");
   lines.push(buildV4ExecutiveSummaryText(activeAnalysis));
   lines.push("");
+  lines.push("V4 EXPORT COMPLETENESS CHECKLIST");
+  lines.push(buildV4ExportCompletenessChecklistText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -2224,7 +2270,9 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 FINAL RECOMMENDATION") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 ANALYSIS STACK OVERVIEW") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 EXECUTIVE SUMMARY") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 EXPORT COMPLETENESS CHECKLIST") &&
     buildV4ExecutiveSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Recommended next action") &&
+    buildV4ExportCompletenessChecklistText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Executive Summary") &&
     buildV4AnalysisStackOverviewText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Frequency Balance") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
@@ -2900,6 +2948,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4FinalRecommendation = buildV4FinalRecommendation(activeAnalysis);
   const v4AnalysisStackOverview = buildV4AnalysisStackOverview(activeAnalysis);
   const v4ExecutiveSummary = buildV4ExecutiveSummary(activeAnalysis);
+  const v4ExportCompletenessChecklist = buildV4ExportCompletenessChecklist(activeAnalysis);
 
   return (
     <Card>
@@ -2913,7 +2962,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.14 Baseline
+            V4.0.15 Baseline
           </span>
         </div>
 
@@ -3158,6 +3207,26 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
               <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
                 <p className="text-sm leading-6 text-zinc-300">{item}</p>
               </div>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Export Completeness</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">What the full report now includes</h3>
+          <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">
+            This confirms that the V4 report export includes both producer-facing reasoning and client-safe communication sections.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {v4ExportCompletenessChecklist.map((item) => (
+              <article key={item.label} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="font-semibold text-zinc-100">{item.label}</h4>
+                  <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+              </article>
             ))}
           </div>
         </div>
