@@ -717,6 +717,73 @@ function buildV4NextPassBriefText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function buildV4ProducerDecisionLog(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { decision: "Wait for audio analysis", reason: "No ready audio analysis is available yet.", action: "Upload a draft or load a demo preset before making production decisions." },
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const priorityStack = getV4RiskFocusStack(analysis);
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
+  const decisions = [];
+
+  decisions.push({
+    decision: `Lead with ${priorityStack[0]?.title || "the clearest listening priority"}`,
+    reason: priorityStack[0]?.reason || "The strongest risk should guide the first pass.",
+    action: priorityStack[0]?.nextStep || "Make one focused change, then re-listen before adding more processing.",
+  });
+
+  if (profile.harshnessRisk >= 60) {
+    decisions.push({
+      decision: "Control high-frequency discomfort before adding polish",
+      reason: "Harshness can make an AI draft feel brittle, synthetic, or tiring.",
+      action: "Use gentler EQ, de-essing, saturation control, or arrangement spacing before increasing brightness.",
+    });
+  }
+
+  if (profile.mudRisk >= 60) {
+    decisions.push({
+      decision: "Clean low-mid density before judging loudness",
+      reason: "Mud can hide emotion, groove, and vocal/body clarity.",
+      action: "Carve space around competing low-mid layers and rebalance the foundation.",
+    });
+  }
+
+  if (profile.thinnessRisk >= 60) {
+    decisions.push({
+      decision: "Restore body before final delivery",
+      reason: "Thin drafts can feel unfinished even when they are technically clean.",
+      action: "Add controlled warmth, harmonic weight, or arrangement support without overcrowding the mix.",
+    });
+  }
+
+  if (profile.aiTextureRisk >= 60) {
+    decisions.push({
+      decision: "Simplify generated movement",
+      reason: "Restless texture movement can reveal the synthetic origin of a draft.",
+      action: "Reduce unnecessary shimmer, buzzing, modulation, or busy artifacts so the track feels intentional.",
+    });
+  }
+
+  decisions.push({
+    decision: `Treat confidence as ${confidenceScore}/100 · ${confidenceLabel}`,
+    reason: "The score is a direction signal, not a replacement for taste.",
+    action: "Use it to decide how deep the next humanization pass should be, then trust the producer ear.",
+  });
+
+  return decisions.slice(0, 5);
+}
+
+function buildV4ProducerDecisionLogText(analysis) {
+  return buildV4ProducerDecisionLog(analysis)
+    .map((item) => `- Decision: ${item.decision} | Reason: ${item.reason} | Action: ${item.action}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1678,6 +1745,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 NEXT-PASS BRIEF");
   lines.push(buildV4NextPassBriefText(activeAnalysis));
   lines.push("");
+  lines.push("V4 PRODUCER DECISION LOG");
+  lines.push(buildV4ProducerDecisionLogText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1844,6 +1914,8 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 READINESS CHECKLIST") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 NEXT-PASS BRIEF") &&
     buildV4NextPassBriefText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
+    buildV4ProducerDecisionLogText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Decision") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 PRODUCER DECISION LOG") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2511,6 +2583,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4ClientSafeSummary = buildV4ClientSafeSummary(activeAnalysis);
   const v4ReadinessChecklist = buildV4ReadinessChecklist(activeAnalysis);
   const v4NextPassBrief = buildV4NextPassBrief(activeAnalysis);
+  const v4ProducerDecisionLog = buildV4ProducerDecisionLog(activeAnalysis);
 
   return (
     <Card>
@@ -2524,7 +2597,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.7 Baseline
+            V4.0.8 Baseline
           </span>
         </div>
 
@@ -2647,6 +2720,24 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
                 <h4 className="mt-3 font-semibold text-zinc-100">{item.title}</h4>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Producer Decision Log</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Why the next edit should move in this direction</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This records the reasoning behind the suggested next pass so a producer can explain the edit direction clearly and avoid random processing decisions.
+          </p>
+          <div className="mt-5 space-y-3">
+            {v4ProducerDecisionLog.map((item) => (
+              <article key={`${item.decision}-${item.action}`} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <h4 className="font-semibold text-zinc-100">{item.decision}</h4>
+                <p className="mt-3 text-sm leading-6 text-zinc-400"><span className="text-zinc-500">Reason:</span> {item.reason}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Action:</span> {item.action}</p>
               </article>
             ))}
           </div>
