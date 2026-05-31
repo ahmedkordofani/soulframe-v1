@@ -391,6 +391,53 @@ function buildAudioIntelligenceInsights(analysis) {
   ];
 }
 
+function getV4RiskFocusStack(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      {
+        title: "Waiting for audio",
+        score: 0,
+        label: "Waiting",
+        action: "Upload or load a demo preset to generate a V4 listening priority stack.",
+      },
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  return [
+    {
+      title: "Harshness / top-end control",
+      score: profile.harshnessRisk,
+      label: getRiskLabelFromScore(profile.harshnessRisk),
+      action: "Listen for brittle highs, metallic vocal edges, and sharp generated shimmer before boosting brightness.",
+    },
+    {
+      title: "Low-mid mud / density",
+      score: profile.mudRisk,
+      label: getRiskLabelFromScore(profile.mudRisk),
+      action: "Check whether the arrangement needs more separation, low-mid cleanup, or less overlapping texture.",
+    },
+    {
+      title: "Thinness / lack of body",
+      score: profile.thinnessRisk,
+      label: getRiskLabelFromScore(profile.thinnessRisk),
+      action: "Check whether the draft needs more warmth, body, saturation, or emotional weight.",
+    },
+    {
+      title: "Generated texture movement",
+      score: profile.aiTextureRisk,
+      label: getRiskLabelFromScore(profile.aiTextureRisk),
+      action: "Listen for restless movement, artificial detail, loop-like motion, or texture that does not serve the song.",
+    },
+  ].sort((a, b) => b.score - a.score);
+}
+
+function buildV4ListeningPriorityText(analysis) {
+  return getV4RiskFocusStack(analysis)
+    .map((item, index) => `${index + 1}. ${item.title}: ${Math.round(item.score)}/100 · ${item.label} — ${item.action}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1334,6 +1381,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
     lines.push(`${item.label}: ${item.value} - ${item.note}`);
   });
   lines.push("");
+  lines.push("V4 LISTENING PRIORITY STACK");
+  lines.push(buildV4ListeningPriorityText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1490,6 +1540,8 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME PRODUCER HUMANIZATION REPORT") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test", reportTone: "client" }).includes("CLIENT-SAFE ACTION PLAN") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 AUDIO INTELLIGENCE BASELINE") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 LISTENING PRIORITY STACK") &&
+    buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
     buildSessionSummaryText(defaultProjectSession, null, null, "draft", "marcel").includes("SOULFRAME SESSION SUMMARY");
   const exportReportTestsPassed =
@@ -2147,6 +2199,7 @@ function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftA
 function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const insights = buildAudioIntelligenceInsights(activeAnalysis);
+  const priorityStack = getV4RiskFocusStack(activeAnalysis);
 
   return (
     <Card>
@@ -2160,7 +2213,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.1 Baseline
+            V4.0.2 Baseline
           </span>
         </div>
 
@@ -2172,6 +2225,27 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
               <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
             </article>
           ))}
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Listening Priority Stack</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">What to check first</h3>
+          <div className="mt-4 space-y-3">
+            {priorityStack.map((item, index) => (
+              <div key={item.title} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Priority {index + 1}</p>
+                    <h4 className="mt-2 font-semibold text-zinc-100">{item.title}</h4>
+                  </div>
+                  <span className="w-fit rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
+                    {Math.round(item.score)}/100 · {item.label}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.action}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
