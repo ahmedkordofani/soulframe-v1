@@ -784,6 +784,59 @@ function buildV4ProducerDecisionLogText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function buildV4HumanTouchpoints(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      { area: "Emotion", focus: "Waiting for audio", note: "Upload a draft or load a demo preset before SoulFrame can suggest human touchpoints." },
+      { area: "Movement", focus: "Waiting for audio", note: "The tool needs an analysis layer before it can suggest where the edit should feel more alive." },
+      { area: "Delivery", focus: "Waiting for audio", note: "Client-safe delivery notes will become clearer after the draft has been reviewed." },
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
+  const priorities = getV4RiskFocusStack(analysis);
+  const primaryPriority = priorities[0]?.title || "main listening priority";
+
+  const touchpoints = [
+    {
+      area: "Emotion",
+      focus: confidenceScore >= 65 ? "Preserve the strongest feeling" : "Rebuild emotional believability",
+      note: confidenceScore >= 65
+        ? "The next pass should protect what already feels convincing while refining the technical weak spots."
+        : "The next pass should focus on making the performance, tone, and arrangement feel less generated and more intentional.",
+    },
+    {
+      area: "Movement",
+      focus: profile.aiTextureRisk >= 60 ? "Simplify restless generated motion" : "Shape musical movement with taste",
+      note: profile.aiTextureRisk >= 60
+        ? "Reduce busy shimmer, buzzing, or unstable texture so the song moves like a deliberate human arrangement."
+        : "Use automation, dynamics, and arrangement changes to make the track evolve naturally rather than mechanically.",
+    },
+    {
+      area: "Tone",
+      focus: primaryPriority,
+      note: "Let the strongest V4 listening priority guide the first tonal decision before adding more processing.",
+    },
+    {
+      area: "Client Delivery",
+      focus: confidenceScore >= 75 ? "Prepare for final polish language" : "Frame the next version as a focused improvement pass",
+      note: confidenceScore >= 75
+        ? "The client update can lean toward refinement and delivery confidence."
+        : "The client update should explain the next pass as targeted humanization rather than a final master.",
+    },
+  ];
+
+  return touchpoints;
+}
+
+function buildV4HumanTouchpointsText(analysis) {
+  return buildV4HumanTouchpoints(analysis)
+    .map((item) => `- ${item.area}: ${item.focus} — ${item.note}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1748,6 +1801,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 PRODUCER DECISION LOG");
   lines.push(buildV4ProducerDecisionLogText(activeAnalysis));
   lines.push("");
+  lines.push("V4 HUMAN TOUCHPOINTS");
+  lines.push(buildV4HumanTouchpointsText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1916,6 +1972,8 @@ function runSoulFrameTests() {
     buildV4NextPassBriefText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
     buildV4ProducerDecisionLogText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Decision") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 PRODUCER DECISION LOG") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMAN TOUCHPOINTS") &&
+    buildV4HumanTouchpointsText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Emotion") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2584,6 +2642,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const v4ReadinessChecklist = buildV4ReadinessChecklist(activeAnalysis);
   const v4NextPassBrief = buildV4NextPassBrief(activeAnalysis);
   const v4ProducerDecisionLog = buildV4ProducerDecisionLog(activeAnalysis);
+  const v4HumanTouchpoints = buildV4HumanTouchpoints(activeAnalysis);
 
   return (
     <Card>
@@ -2597,7 +2656,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.8 Baseline
+            V4.0.9 Baseline
           </span>
         </div>
 
@@ -2738,6 +2797,24 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 <h4 className="font-semibold text-zinc-100">{item.decision}</h4>
                 <p className="mt-3 text-sm leading-6 text-zinc-400"><span className="text-zinc-500">Reason:</span> {item.reason}</p>
                 <p className="mt-2 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Action:</span> {item.action}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Human Touchpoints</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Where the producer should bring the track back to life</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+            This turns the V4 risk profile into human-centred creative touchpoints: emotion, movement, tone, and client delivery.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {v4HumanTouchpoints.map((item) => (
+              <article key={`${item.area}-${item.focus}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.area}</p>
+                <h4 className="mt-3 font-semibold text-zinc-100">{item.focus}</h4>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
               </article>
             ))}
           </div>
