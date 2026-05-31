@@ -438,6 +438,71 @@ function buildV4ListeningPriorityText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+function getV4RevisionMoveForPriority(priority) {
+  if (!priority) {
+    return {
+      move: "Run a focused listening pass",
+      reason: "SoulFrame needs an uploaded draft or demo preset before it can suggest specific revision moves.",
+      check: "Load audio, then listen from start to finish without making changes first.",
+    };
+  }
+
+  if (priority.title.includes("Harshness")) {
+    return {
+      move: "Soften brittle top-end before adding brightness",
+      reason: "High-frequency edge can make AI vocals, cymbals, and generated textures feel metallic or fatiguing.",
+      check: "Bypass any bright EQ or exciter moves, then compare whether the vocal and hooks feel more natural.",
+    };
+  }
+
+  if (priority.title.includes("Low-mid")) {
+    return {
+      move: "Create space in the low-mids",
+      reason: "AI drafts can stack cloudy information around the body of the mix, making emotion and arrangement movement harder to read.",
+      check: "Listen around the vocal, bass, pads, and lower instruments for buildup that masks the song's main feeling.",
+    };
+  }
+
+  if (priority.title.includes("Thinness")) {
+    return {
+      move: "Add body, warmth, or controlled saturation",
+      reason: "Thin drafts can sound technically clean but emotionally weightless, especially when the vocal or lead idea lacks physical presence.",
+      check: "Compare the chorus and main hook at low volume to hear whether the track still carries weight.",
+    };
+  }
+
+  if (priority.title.includes("Generated texture")) {
+    return {
+      move: "Simplify restless generated movement",
+      reason: "Synthetic motion can distract from the song when texture changes are busy but not emotionally intentional.",
+      check: "Mute or reduce decorative layers and confirm whether the groove, vocal, or main musical idea becomes clearer.",
+    };
+  }
+
+  return {
+    move: "Use taste-led refinement",
+    reason: "The measurable risks look manageable, so the next pass should focus on feeling, structure, and delivery judgement.",
+    check: "Listen for the moment where the track stops sounding like a draft and starts feeling like a record.",
+  };
+}
+
+function buildV4RevisionMoves(analysis) {
+  const stack = getV4RiskFocusStack(analysis).slice(0, 3);
+  return stack.map((priority, index) => ({
+    priority: index + 1,
+    title: priority.title,
+    score: priority.score,
+    label: priority.label,
+    ...getV4RevisionMoveForPriority(priority),
+  }));
+}
+
+function buildV4RevisionMovesText(analysis) {
+  return buildV4RevisionMoves(analysis)
+    .map((item) => `${item.priority}. ${item.move}: ${Math.round(item.score)}/100 · ${item.label} — ${item.reason} Check: ${item.check}`)
+    .join(String.fromCharCode(10));
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1384,6 +1449,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 LISTENING PRIORITY STACK");
   lines.push(buildV4ListeningPriorityText(activeAnalysis));
   lines.push("");
+  lines.push("V4 REVISION MOVE SUGGESTIONS");
+  lines.push(buildV4RevisionMovesText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1541,7 +1609,9 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test", reportTone: "client" }).includes("CLIENT-SAFE ACTION PLAN") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 AUDIO INTELLIGENCE BASELINE") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 LISTENING PRIORITY STACK") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVISION MOVE SUGGESTIONS") &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
+    buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
     buildSessionSummaryText(defaultProjectSession, null, null, "draft", "marcel").includes("SOULFRAME SESSION SUMMARY");
   const exportReportTestsPassed =
@@ -2200,6 +2270,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
   const insights = buildAudioIntelligenceInsights(activeAnalysis);
   const priorityStack = getV4RiskFocusStack(activeAnalysis);
+  const revisionMoves = buildV4RevisionMoves(activeAnalysis);
 
   return (
     <Card>
@@ -2213,7 +2284,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.2 Baseline
+            V4.0.3 Baseline
           </span>
         </div>
 
@@ -2244,6 +2315,24 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.action}</p>
               </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Revision Move Suggestions</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">How to respond in the next pass</h3>
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+            {revisionMoves.map((item) => (
+              <article key={`${item.priority}-${item.move}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Move {item.priority}</p>
+                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{Math.round(item.score)}/100 · {item.label}</span>
+                </div>
+                <h4 className="mt-3 font-semibold text-zinc-100">{item.move}</h4>
+                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.reason}</p>
+                <p className="mt-3 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Check:</span> {item.check}</p>
+              </article>
             ))}
           </div>
         </div>
