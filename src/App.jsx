@@ -503,6 +503,72 @@ function buildV4RevisionMovesText(analysis) {
     .join(String.fromCharCode(10));
 }
 
+
+function getV4HumanizationConfidenceScore(analysis) {
+  if (!analysis || analysis.status !== "Ready") return 0;
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const riskAverage = (profile.harshnessRisk + profile.mudRisk + profile.thinnessRisk + profile.aiTextureRisk) / 4;
+  const dynamicsSupport = analysis.dynamicRange >= 0.1 ? 8 : analysis.dynamicRange >= 0.06 ? 4 : -6;
+  const headroomSupport = analysis.peak < 0.92 ? 6 : analysis.peak < 0.98 ? 2 : -8;
+  const textureSupport = analysis.textureMovement < 0.18 ? 6 : analysis.textureMovement < 0.38 ? 2 : -6;
+  return clampScore(100 - riskAverage + dynamicsSupport + headroomSupport + textureSupport);
+}
+
+function getV4HumanizationConfidenceLabel(score) {
+  if (!Number.isFinite(score) || score <= 0) return "Waiting for Audio";
+  if (score >= 82) return "Strong Humanization Potential";
+  if (score >= 65) return "Good Humanization Potential";
+  if (score >= 48) return "Needs Focused Humanization";
+  return "High-Risk AI Draft";
+}
+
+function buildV4HumanizationConfidenceReasons(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      "Upload audio or load a demo preset to calculate a humanization confidence score.",
+      "SoulFrame will estimate how much focused production judgement the draft may need.",
+    ];
+  }
+
+  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
+  const score = getV4HumanizationConfidenceScore(analysis);
+  const reasons = [];
+
+  if (profile.harshnessRisk >= 60) {
+    reasons.push("Top-end control may be important before the draft feels natural or comfortable.");
+  } else {
+    reasons.push("Top-end risk looks manageable, so brightness can be judged more creatively.");
+  }
+
+  if (profile.aiTextureRisk >= 60) {
+    reasons.push("Generated texture movement may need simplification so the song feels more intentional.");
+  } else {
+    reasons.push("Texture movement does not appear to be the main blocker in this pass.");
+  }
+
+  if (profile.mudRisk >= 60) {
+    reasons.push("Low-mid density may need cleanup before the emotional centre becomes clear.");
+  } else if (profile.thinnessRisk >= 60) {
+    reasons.push("The draft may need more body, warmth, or weight before it feels fully human.");
+  } else {
+    reasons.push("The main remaining work may be taste, arrangement, emotion, and final delivery judgement.");
+  }
+
+  reasons.push(`Overall confidence: ${score}/100 · ${getV4HumanizationConfidenceLabel(score)}.`);
+
+  return reasons;
+}
+
+function buildV4HumanizationConfidenceText(analysis) {
+  const score = getV4HumanizationConfidenceScore(analysis);
+  const label = getV4HumanizationConfidenceLabel(score);
+  const newline = String.fromCharCode(10);
+  return [
+    `Score: ${score}/100 · ${label}`,
+    ...buildV4HumanizationConfidenceReasons(analysis).map((reason) => `- ${reason}`),
+  ].join(newline);
+}
+
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1452,6 +1518,9 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
   lines.push("V4 REVISION MOVE SUGGESTIONS");
   lines.push(buildV4RevisionMovesText(activeAnalysis));
   lines.push("");
+  lines.push("V4 HUMANIZATION CONFIDENCE");
+  lines.push(buildV4HumanizationConfidenceText(activeAnalysis));
+  lines.push("");
 
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
@@ -1610,6 +1679,8 @@ function runSoulFrameTests() {
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 AUDIO INTELLIGENCE BASELINE") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 LISTENING PRIORITY STACK") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVISION MOVE SUGGESTIONS") &&
+    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMANIZATION CONFIDENCE") &&
+    getV4HumanizationConfidenceScore({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }) > 0 &&
     buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
     buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
@@ -2271,6 +2342,9 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
   const insights = buildAudioIntelligenceInsights(activeAnalysis);
   const priorityStack = getV4RiskFocusStack(activeAnalysis);
   const revisionMoves = buildV4RevisionMoves(activeAnalysis);
+  const humanizationConfidenceScore = getV4HumanizationConfidenceScore(activeAnalysis);
+  const humanizationConfidenceLabel = getV4HumanizationConfidenceLabel(humanizationConfidenceScore);
+  const humanizationConfidenceReasons = buildV4HumanizationConfidenceReasons(activeAnalysis);
 
   return (
     <Card>
@@ -2284,7 +2358,7 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
             </p>
           </div>
           <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.3 Baseline
+            V4.0.4 Baseline
           </span>
         </div>
 
@@ -2333,6 +2407,30 @@ function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }
                 <p className="mt-3 text-sm leading-6 text-zinc-400">{item.reason}</p>
                 <p className="mt-3 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Check:</span> {item.check}</p>
               </article>
+            ))}
+          </div>
+        </div>
+
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Humanization Confidence</p>
+              <h3 className="mt-2 text-lg font-semibold text-zinc-100">How ready the draft feels for human-led refinement</h3>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
+                A producer-facing confidence estimate based on the current risk balance. This is not a quality score; it is a guide for how much focused humanization work the draft may still need.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-zinc-800 bg-black p-5 text-right">
+              <p className="text-4xl font-bold text-zinc-100">{humanizationConfidenceScore}/100</p>
+              <p className="mt-2 text-sm text-zinc-300">{humanizationConfidenceLabel}</p>
+            </div>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {humanizationConfidenceReasons.map((reason) => (
+              <div key={reason} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm leading-6 text-zinc-300">{reason}</p>
+              </div>
             ))}
           </div>
         </div>
