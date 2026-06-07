@@ -1390,11 +1390,14 @@ function runSoulFrameTests() {
     typeof ShareSoulFramePanel === "function" &&
     typeof V41BackendScaffoldPanel === "function" &&
     typeof V41AnalysisEngineSeparationPanel === "function" &&
+    typeof V41MockApiResponsePanel === "function" &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
     buildV41EngineSeparationText().includes("SOULFRAME V4.1 ANALYSIS ENGINE SEPARATION PLAN") &&
     buildV41EngineResultShape().engineVersion === "v4.1" &&
+    buildV41MockApiExchangeText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.1 MOCK API EXCHANGE") &&
+    buildV41MockAnalysisResponse({ status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).status === "complete" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -2192,6 +2195,189 @@ function V41AnalysisEngineSeparationPanel() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function buildV41MockAnalysisRequest(projectSession, reviewMode = "draft") {
+  return {
+    apiVersion: "v4.1",
+    requestType: "mock-analysis-request",
+    project: {
+      projectName: getSessionValue(projectSession, "projectName"),
+      clientName: getSessionValue(projectSession, "clientName"),
+      trackType: getSessionValue(projectSession, "trackType"),
+      aiTool: getSessionValue(projectSession, "aiTool"),
+      goal: getSessionValue(projectSession, "goal"),
+    },
+    reviewMode,
+    requestedSections: [
+      "audioFeatures",
+      "riskProfile",
+      "humanizationPriority",
+      "revisionGuidance",
+      "clientSummary",
+    ],
+    privacy: "mock-only-no-upload",
+  };
+}
+
+function buildV41RiskProfileFromAnalysis(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return {
+      harshnessRisk: 0,
+      movementRisk: 0,
+      headroomRisk: 0,
+      dynamicsRisk: 0,
+      status: "waiting-for-audio",
+    };
+  }
+
+  const harshnessRisk = analysis.brightness === "Bright / Potentially Harsh" ? 78 : analysis.brightness === "Balanced" ? 38 : 24;
+  const movementRisk = analysis.textureStability === "Unstable / Busy" ? 82 : analysis.textureStability === "Moderate Movement" ? 48 : 26;
+  const headroomRisk = analysis.clippingRisk === "High" ? 90 : analysis.clippingRisk === "Medium" ? 58 : 22;
+  const dynamicsRisk = analysis.dynamics === "Compressed" ? 76 : analysis.dynamics === "Moderate" ? 38 : 28;
+
+  return {
+    harshnessRisk,
+    movementRisk,
+    headroomRisk,
+    dynamicsRisk,
+    status: "ready",
+  };
+}
+
+function buildV41MockAnalysisResponse(analysis) {
+  const ready = analysis && analysis.status === "Ready";
+  const riskProfile = buildV41RiskProfileFromAnalysis(analysis);
+  const priorityScore = ready ? getHumanizationPriorityScore(analysis) : 0;
+  const priorityLabel = ready ? getHumanizationPriorityLabel(priorityScore) : "Waiting for Audio";
+  const actionPlan = ready ? buildHumanizationActionPlan(analysis).slice(0, 3).map((item) => item.action) : [];
+
+  return {
+    apiVersion: "v4.1",
+    responseType: "mock-analysis-response",
+    status: ready ? "complete" : "waiting-for-audio",
+    analysisId: ready ? "sf_mock_complete_001" : "sf_mock_waiting_001",
+    source: "frontend-mock",
+    audioFeatures: ready
+      ? {
+          peakDb: analysis.peakDb || "Not available",
+          rmsDb: analysis.rmsDb || "Not available",
+          dynamics: analysis.dynamics || "Not available",
+          brightness: analysis.brightness || "Not available",
+          textureStability: analysis.textureStability || "Not available",
+          clippingRisk: analysis.clippingRisk || "Not available",
+          sampleRate: analysis.sampleRate || null,
+          channels: analysis.channels || null,
+        }
+      : null,
+    riskProfile,
+    humanization: {
+      priorityScore,
+      priorityLabel,
+      suggestedActions: actionPlan,
+    },
+    communication: {
+      clientSummary: ready
+        ? buildArtifactClueSentence(analysis)
+        : "Waiting for audio analysis before generating a client-safe summary.",
+      reportMode: "frontend mock only",
+    },
+    note: "This response is generated locally as a mock API layer. It does not call a backend or upload audio.",
+  };
+}
+
+function buildV41MockApiExchangeText(projectSession, reviewMode, analysis) {
+  const request = buildV41MockAnalysisRequest(projectSession, reviewMode);
+  const response = buildV41MockAnalysisResponse(analysis);
+  const newline = String.fromCharCode(10);
+
+  return [
+    "SOULFRAME V4.1 MOCK API EXCHANGE",
+    "",
+    "Request:",
+    `- apiVersion: ${request.apiVersion}`,
+    `- requestType: ${request.requestType}`,
+    `- reviewMode: ${request.reviewMode}`,
+    `- projectName: ${request.project.projectName}`,
+    `- requestedSections: ${request.requestedSections.join(", ")}`,
+    `- privacy: ${request.privacy}`,
+    "",
+    "Response:",
+    `- apiVersion: ${response.apiVersion}`,
+    `- responseType: ${response.responseType}`,
+    `- status: ${response.status}`,
+    `- analysisId: ${response.analysisId}`,
+    `- source: ${response.source}`,
+    `- priority: ${response.humanization.priorityScore}/100 · ${response.humanization.priorityLabel}`,
+    "",
+    response.note,
+  ].join(newline);
+}
+
+function V41MockApiResponsePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const request = buildV41MockAnalysisRequest(projectSession, reviewMode);
+  const response = buildV41MockAnalysisResponse(activeAnalysis);
+
+  return (
+    <Panel title="V4.1 Mock API Response Layer" subtitle="A local request/response model for testing backend-style integration without uploading audio or calling a real server.">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Mock Request</p>
+              <h3 className="mt-2 text-lg font-semibold text-zinc-100">{request.requestType}</h3>
+            </div>
+            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{request.apiVersion}</span>
+          </div>
+          <div className="mt-5 space-y-3 text-sm text-zinc-300">
+            <p><span className="text-zinc-500">Project:</span> {request.project.projectName}</p>
+            <p><span className="text-zinc-500">Client:</span> {request.project.clientName}</p>
+            <p><span className="text-zinc-500">Review Mode:</span> {request.reviewMode}</p>
+            <p><span className="text-zinc-500">Privacy:</span> {request.privacy}</p>
+            <p><span className="text-zinc-500">Sections:</span> {request.requestedSections.join(", ")}</p>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Mock Response</p>
+              <h3 className="mt-2 text-lg font-semibold text-zinc-100">{response.responseType}</h3>
+            </div>
+            <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{response.status}</span>
+          </div>
+          <div className="mt-5 space-y-3 text-sm text-zinc-300">
+            <p><span className="text-zinc-500">Analysis ID:</span> {response.analysisId}</p>
+            <p><span className="text-zinc-500">Source:</span> {response.source}</p>
+            <p><span className="text-zinc-500">Priority:</span> {response.humanization.priorityScore}/100 · {response.humanization.priorityLabel}</p>
+            <p className="leading-6 text-zinc-500">{response.note}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Risk Profile</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">
+            {response.riskProfile.status === "ready" ? `Harshness ${response.riskProfile.harshnessRisk}/100 · Movement ${response.riskProfile.movementRisk}/100 · Headroom ${response.riskProfile.headroomRisk}/100 · Dynamics ${response.riskProfile.dynamicsRisk}/100` : "Waiting for audio analysis."}
+          </p>
+        </div>
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Suggested Actions</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">
+            {response.humanization.suggestedActions.length ? response.humanization.suggestedActions.join(" · ") : "Waiting for action plan suggestions."}
+          </p>
+        </div>
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Communication Output</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">
+            {response.communication.clientSummary}
+          </p>
         </div>
       </div>
     </Panel>
@@ -3397,6 +3583,7 @@ export default function SoulFrameDraftReviewV2() {
       <PublicDemoNotice />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
+      <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
