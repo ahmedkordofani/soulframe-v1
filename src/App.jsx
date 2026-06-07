@@ -189,6 +189,12 @@ const demoWalkthroughSteps = [
   { title: "Export the right message", note: "Choose producer or client-safe outputs, then copy summaries, reports, action plans, or checklists." },
 ];
 
+const publicShareLinks = [
+  { label: "Live Demo", href: "https://soulframe-v1.vercel.app" },
+  { label: "GitHub Repository", href: "https://github.com/ahmedkordofani/soulframe-v1" },
+  { label: "ChordOfAnnie", href: "https://chordofannie.com" },
+];
+
 function clampScore(value) {
   return Math.min(100, Math.max(0, Number(value) || 0));
 }
@@ -269,844 +275,6 @@ function getTextureStabilityLabel(textureMovement) {
   return "Stable";
 }
 
-function clampUnit(value) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.min(1, Math.max(0, value));
-}
-
-function formatPercent(value) {
-  return `${Math.round(clampUnit(value) * 100)}%`;
-}
-
-function getRiskLabelFromScore(score) {
-  if (!Number.isFinite(score) || score <= 0) return "Waiting";
-  if (score >= 75) return "High";
-  if (score >= 50) return "Elevated";
-  if (score >= 30) return "Moderate";
-  return "Low";
-}
-
-function buildFrequencyBalanceProfile({ brightnessScore = 0, textureMovement = 0, dynamicRange = 0, rms = 0, peak = 0, zeroCrossingRate = 0 } = {}) {
-  const highRaw = clampUnit(brightnessScore * 1.15 + zeroCrossingRate * 12);
-  const lowRaw = clampUnit((1 - brightnessScore) * 0.45 + rms * 2.2 + (dynamicRange < 0.06 ? 0.16 : 0));
-  const midRaw = clampUnit(0.55 + dynamicRange * 1.2 - Math.abs(highRaw - lowRaw) * 0.25 - textureMovement * 0.1);
-  const total = Math.max(lowRaw + midRaw + highRaw, 0.001);
-  const lowEnergy = lowRaw / total;
-  const midEnergy = midRaw / total;
-  const highEnergy = highRaw / total;
-
-  const harshnessRisk = clampScore(highEnergy * 70 + brightnessScore * 25 + (peak >= 0.94 ? 10 : 0));
-  const mudRisk = clampScore(lowEnergy * 70 + (dynamicRange < 0.06 ? 16 : 0) - highEnergy * 12);
-  const thinnessRisk = clampScore(highEnergy * 42 + (lowEnergy < 0.24 ? 34 : 0) + (rms < 0.035 ? 12 : 0));
-  const aiTextureRisk = clampScore(textureMovement * 80 + zeroCrossingRate * 500 + (dynamicRange < 0.05 ? 10 : 0));
-
-  return {
-    lowEnergy,
-    midEnergy,
-    highEnergy,
-    harshnessRisk,
-    mudRisk,
-    thinnessRisk,
-    aiTextureRisk,
-  };
-}
-
-function getFrequencyBalanceLabel(profile) {
-  if (!profile) return "Waiting for Audio";
-  const energies = [
-    { label: "Low-heavy", value: profile.lowEnergy },
-    { label: "Mid-focused", value: profile.midEnergy },
-    { label: "Bright / High-heavy", value: profile.highEnergy },
-  ];
-  const dominant = energies.reduce((best, item) => (item.value > best.value ? item : best), energies[0]);
-  if (Math.abs(profile.lowEnergy - profile.highEnergy) < 0.08 && profile.midEnergy >= 0.3) return "Balanced";
-  return dominant.label;
-}
-
-function buildProducerInterpretationSummary(analysis) {
-  if (!analysis || analysis.status !== "Ready") return "Upload audio to generate a V4 producer interpretation summary.";
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const balance = getFrequencyBalanceLabel(profile);
-  const harshness = getRiskLabelFromScore(profile.harshnessRisk);
-  const mud = getRiskLabelFromScore(profile.mudRisk);
-  const thinness = getRiskLabelFromScore(profile.thinnessRisk);
-  const texture = getRiskLabelFromScore(profile.aiTextureRisk);
-
-  if (harshness === "High" || texture === "High") {
-    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${harshness.toLowerCase()} harshness risk and ${texture.toLowerCase()} AI texture risk. Prioritize top-end control, cleaner movement, and a focused human listening pass before delivery.`;
-  }
-
-  if (mud === "High" || mud === "Elevated") {
-    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${mud.toLowerCase()} mud risk. Check low-mid buildup, arrangement density, and whether the track needs more space to feel emotionally clear.`;
-  }
-
-  if (thinness === "High" || thinness === "Elevated") {
-    return `The current proxy scan suggests a ${balance.toLowerCase()} profile with ${thinness.toLowerCase()} thinness risk. Check whether the draft needs more body, warmth, or human-feeling weight.`;
-  }
-
-  return `The current proxy scan suggests a ${balance.toLowerCase()} profile with manageable harshness, mud, thinness, and AI texture risks. Use the next pass for taste, emotion, structure, and final human judgement.`;
-}
-
-function buildAudioIntelligenceInsights(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { label: "Frequency Balance", value: "Waiting", note: "Upload audio to estimate low, mid, and high energy balance." },
-      { label: "Producer Interpretation", value: "Waiting", note: "SoulFrame will summarize the likely production focus after analysis." },
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-
-  return [
-    {
-      label: "Frequency Balance",
-      value: getFrequencyBalanceLabel(profile),
-      note: `Low ${formatPercent(profile.lowEnergy)} · Mid ${formatPercent(profile.midEnergy)} · High ${formatPercent(profile.highEnergy)}`,
-    },
-    {
-      label: "Harshness Risk",
-      value: `${profile.harshnessRisk}/100 · ${getRiskLabelFromScore(profile.harshnessRisk)}`,
-      note: "Flags brittle top-end, metallic shimmer, and sharp generated edges that may need softening.",
-    },
-    {
-      label: "Mud Risk",
-      value: `${profile.mudRisk}/100 · ${getRiskLabelFromScore(profile.mudRisk)}`,
-      note: "Flags possible low-mid buildup, cloudy density, or lack of separation in the draft.",
-    },
-    {
-      label: "Thinness Risk",
-      value: `${profile.thinnessRisk}/100 · ${getRiskLabelFromScore(profile.thinnessRisk)}`,
-      note: "Flags whether the draft may need more body, warmth, or emotional weight.",
-    },
-    {
-      label: "AI Texture Risk",
-      value: `${profile.aiTextureRisk}/100 · ${getRiskLabelFromScore(profile.aiTextureRisk)}`,
-      note: "Flags generated movement, restless texture, or unstable synthetic detail.",
-    },
-    {
-      label: "Producer Interpretation",
-      value: "V4 Baseline",
-      note: buildProducerInterpretationSummary(analysis),
-    },
-  ];
-}
-
-function getV4RiskFocusStack(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      {
-        title: "Waiting for audio",
-        score: 0,
-        label: "Waiting",
-        action: "Upload or load a demo preset to generate a V4 listening priority stack.",
-      },
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  return [
-    {
-      title: "Harshness / top-end control",
-      score: profile.harshnessRisk,
-      label: getRiskLabelFromScore(profile.harshnessRisk),
-      action: "Listen for brittle highs, metallic vocal edges, and sharp generated shimmer before boosting brightness.",
-    },
-    {
-      title: "Low-mid mud / density",
-      score: profile.mudRisk,
-      label: getRiskLabelFromScore(profile.mudRisk),
-      action: "Check whether the arrangement needs more separation, low-mid cleanup, or less overlapping texture.",
-    },
-    {
-      title: "Thinness / lack of body",
-      score: profile.thinnessRisk,
-      label: getRiskLabelFromScore(profile.thinnessRisk),
-      action: "Check whether the draft needs more warmth, body, saturation, or emotional weight.",
-    },
-    {
-      title: "Generated texture movement",
-      score: profile.aiTextureRisk,
-      label: getRiskLabelFromScore(profile.aiTextureRisk),
-      action: "Listen for restless movement, artificial detail, loop-like motion, or texture that does not serve the song.",
-    },
-  ].sort((a, b) => b.score - a.score);
-}
-
-function buildV4ListeningPriorityText(analysis) {
-  return getV4RiskFocusStack(analysis)
-    .map((item, index) => `${index + 1}. ${item.title}: ${Math.round(item.score)}/100 · ${item.label} — ${item.action}`)
-    .join(String.fromCharCode(10));
-}
-
-function getV4RevisionMoveForPriority(priority) {
-  if (!priority) {
-    return {
-      move: "Run a focused listening pass",
-      reason: "SoulFrame needs an uploaded draft or demo preset before it can suggest specific revision moves.",
-      check: "Load audio, then listen from start to finish without making changes first.",
-    };
-  }
-
-  if (priority.title.includes("Harshness")) {
-    return {
-      move: "Soften brittle top-end before adding brightness",
-      reason: "High-frequency edge can make AI vocals, cymbals, and generated textures feel metallic or fatiguing.",
-      check: "Bypass any bright EQ or exciter moves, then compare whether the vocal and hooks feel more natural.",
-    };
-  }
-
-  if (priority.title.includes("Low-mid")) {
-    return {
-      move: "Create space in the low-mids",
-      reason: "AI drafts can stack cloudy information around the body of the mix, making emotion and arrangement movement harder to read.",
-      check: "Listen around the vocal, bass, pads, and lower instruments for buildup that masks the song's main feeling.",
-    };
-  }
-
-  if (priority.title.includes("Thinness")) {
-    return {
-      move: "Add body, warmth, or controlled saturation",
-      reason: "Thin drafts can sound technically clean but emotionally weightless, especially when the vocal or lead idea lacks physical presence.",
-      check: "Compare the chorus and main hook at low volume to hear whether the track still carries weight.",
-    };
-  }
-
-  if (priority.title.includes("Generated texture")) {
-    return {
-      move: "Simplify restless generated movement",
-      reason: "Synthetic motion can distract from the song when texture changes are busy but not emotionally intentional.",
-      check: "Mute or reduce decorative layers and confirm whether the groove, vocal, or main musical idea becomes clearer.",
-    };
-  }
-
-  return {
-    move: "Use taste-led refinement",
-    reason: "The measurable risks look manageable, so the next pass should focus on feeling, structure, and delivery judgement.",
-    check: "Listen for the moment where the track stops sounding like a draft and starts feeling like a record.",
-  };
-}
-
-function buildV4RevisionMoves(analysis) {
-  const stack = getV4RiskFocusStack(analysis).slice(0, 3);
-  return stack.map((priority, index) => ({
-    priority: index + 1,
-    title: priority.title,
-    score: priority.score,
-    label: priority.label,
-    ...getV4RevisionMoveForPriority(priority),
-  }));
-}
-
-function buildV4RevisionMovesText(analysis) {
-  return buildV4RevisionMoves(analysis)
-    .map((item) => `${item.priority}. ${item.move}: ${Math.round(item.score)}/100 · ${item.label} — ${item.reason} Check: ${item.check}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function getV4HumanizationConfidenceScore(analysis) {
-  if (!analysis || analysis.status !== "Ready") return 0;
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const riskAverage = (profile.harshnessRisk + profile.mudRisk + profile.thinnessRisk + profile.aiTextureRisk) / 4;
-  const dynamicsSupport = analysis.dynamicRange >= 0.1 ? 8 : analysis.dynamicRange >= 0.06 ? 4 : -6;
-  const headroomSupport = analysis.peak < 0.92 ? 6 : analysis.peak < 0.98 ? 2 : -8;
-  const textureSupport = analysis.textureMovement < 0.18 ? 6 : analysis.textureMovement < 0.38 ? 2 : -6;
-  return clampScore(100 - riskAverage + dynamicsSupport + headroomSupport + textureSupport);
-}
-
-function getV4HumanizationConfidenceLabel(score) {
-  if (!Number.isFinite(score) || score <= 0) return "Waiting for Audio";
-  if (score >= 82) return "Strong Humanization Potential";
-  if (score >= 65) return "Good Humanization Potential";
-  if (score >= 48) return "Needs Focused Humanization";
-  return "High-Risk AI Draft";
-}
-
-function buildV4HumanizationConfidenceReasons(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      "Upload audio or load a demo preset to calculate a humanization confidence score.",
-      "SoulFrame will estimate how much focused production judgement the draft may need.",
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const score = getV4HumanizationConfidenceScore(analysis);
-  const reasons = [];
-
-  if (profile.harshnessRisk >= 60) {
-    reasons.push("Top-end control may be important before the draft feels natural or comfortable.");
-  } else {
-    reasons.push("Top-end risk looks manageable, so brightness can be judged more creatively.");
-  }
-
-  if (profile.aiTextureRisk >= 60) {
-    reasons.push("Generated texture movement may need simplification so the song feels more intentional.");
-  } else {
-    reasons.push("Texture movement does not appear to be the main blocker in this pass.");
-  }
-
-  if (profile.mudRisk >= 60) {
-    reasons.push("Low-mid density may need cleanup before the emotional centre becomes clear.");
-  } else if (profile.thinnessRisk >= 60) {
-    reasons.push("The draft may need more body, warmth, or weight before it feels fully human.");
-  } else {
-    reasons.push("The main remaining work may be taste, arrangement, emotion, and final delivery judgement.");
-  }
-
-  reasons.push(`Overall confidence: ${score}/100 · ${getV4HumanizationConfidenceLabel(score)}.`);
-
-  return reasons;
-}
-
-function buildV4HumanizationConfidenceText(analysis) {
-  const score = getV4HumanizationConfidenceScore(analysis);
-  const label = getV4HumanizationConfidenceLabel(score);
-  const newline = String.fromCharCode(10);
-  return [
-    `Score: ${score}/100 · ${label}`,
-    ...buildV4HumanizationConfidenceReasons(analysis).map((reason) => `- ${reason}`),
-  ].join(newline);
-}
-
-
-function buildV4ClientSafeSummary(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      "Upload audio or load a demo preset to create a client-safe V4 summary.",
-      "SoulFrame will translate the V4 audio intelligence layer into clearer next-step language.",
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const topPriorities = getV4RiskFocusStack(analysis).slice(0, 2);
-  const topMoves = buildV4RevisionMoves(analysis).slice(0, 2);
-
-  const summary = [
-    `The draft has been reviewed for tonal balance, texture movement, and humanization readiness. Current confidence is ${confidenceScore}/100 (${confidenceLabel}).`,
-  ];
-
-  if (topPriorities.length) {
-    summary.push(`The first listening focus should be ${topPriorities.map((item) => item.title.toLowerCase()).join(" and ")}.`);
-  }
-
-  if (topMoves.length) {
-    summary.push(`The next production pass should focus on ${topMoves.map((item) => item.move.toLowerCase()).join("; ")}.`);
-  }
-
-  if (profile.harshnessRisk < 55 && profile.mudRisk < 55 && profile.thinnessRisk < 55 && profile.aiTextureRisk < 55) {
-    summary.push("No single technical risk is dominating the review, so the next stage can focus more on emotion, arrangement, and final musical judgement.");
-  } else {
-    summary.push("The goal of the next pass is not only to make the track cleaner, but to make it feel more controlled, intentional, and emotionally believable.");
-  }
-
-  return summary;
-}
-
-function buildV4ClientSafeSummaryText(analysis) {
-  return buildV4ClientSafeSummary(analysis).map((line) => `- ${line}`).join(String.fromCharCode(10));
-}
-
-
-function buildV4ReadinessChecklist(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { label: "Load or upload audio", status: "Waiting", note: "SoulFrame needs an audio source before the V4 readiness checklist can be generated." },
-      { label: "Review V4 audio intelligence", status: "Waiting", note: "Frequency balance, risk profile, and humanization confidence will appear after analysis." },
-      { label: "Plan the next revision pass", status: "Waiting", note: "Revision moves will become clearer once the draft has been inspected." },
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-
-  return [
-    {
-      label: "Top-end comfort",
-      status: profile.harshnessRisk < 60 ? "Ready" : "Needs Attention",
-      note: profile.harshnessRisk < 60
-        ? "The high-frequency area is not currently the main blocker."
-        : "Check brittle brightness, harsh consonants, shimmer, or overexcited upper texture before final delivery.",
-    },
-    {
-      label: "Low-mid clarity",
-      status: profile.mudRisk < 60 ? "Ready" : "Needs Attention",
-      note: profile.mudRisk < 60
-        ? "The low-mid area appears manageable for the next pass."
-        : "Create space around low-mids so the emotional centre and groove feel clearer.",
-    },
-    {
-      label: "Body and warmth",
-      status: profile.thinnessRisk < 60 ? "Ready" : "Needs Attention",
-      note: profile.thinnessRisk < 60
-        ? "The draft does not appear severely thin from the current proxy analysis."
-        : "Add controlled body, warmth, saturation, or arrangement weight before calling the edit final.",
-    },
-    {
-      label: "Generated texture control",
-      status: profile.aiTextureRisk < 60 ? "Ready" : "Needs Attention",
-      note: profile.aiTextureRisk < 60
-        ? "Texture movement does not appear to dominate this pass."
-        : "Reduce restless generated movement so the track feels more intentional and less synthetic.",
-    },
-    {
-      label: "Humanization confidence",
-      status: confidenceScore >= 65 ? "Ready" : "Needs Attention",
-      note: confidenceScore >= 65
-        ? "The draft has a workable foundation for human-led refinement."
-        : "The draft likely needs a focused humanization pass before it feels emotionally convincing.",
-    },
-  ];
-}
-
-function buildV4ReadinessChecklistText(analysis) {
-  return buildV4ReadinessChecklist(analysis)
-    .map((item) => `- ${item.label}: ${item.status} — ${item.note}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4NextPassBrief(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { label: "Step 1", title: "Load audio", note: "Upload a draft or use a demo preset before creating a next-pass brief." },
-      { label: "Step 2", title: "Run the review", note: "Use the V4 audio intelligence layer to identify the strongest revision priorities." },
-      { label: "Step 3", title: "Plan the pass", note: "Turn the risk profile into a focused humanization pass instead of making random changes." },
-    ];
-  }
-
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const moves = buildV4RevisionMoves(analysis).slice(0, 3);
-  const checklist = buildV4ReadinessChecklist(analysis);
-  const needsAttention = checklist.filter((item) => item.status === "Needs Attention").map((item) => item.label);
-
-  const brief = [
-    {
-      label: "Focus",
-      title: moves[0]?.move || "Listen for the clearest blocker",
-      note: moves[0]?.reason || "Start with the most obvious musical or technical issue before making broad changes.",
-    },
-    {
-      label: "Support",
-      title: moves[1]?.move || "Protect the emotional centre",
-      note: moves[1]?.reason || "Make changes that support the song’s feeling, not just its loudness or polish.",
-    },
-    {
-      label: "Final Check",
-      title: needsAttention.length ? `Recheck ${needsAttention.slice(0, 2).join(" and ")}` : "Confirm emotion, movement, and delivery",
-      note: needsAttention.length
-        ? "These readiness checks still need attention before the next version is treated as client-ready."
-        : "The core V4 checks look stable, so the next judgement should focus on taste, emotion, and delivery.",
-    },
-    {
-      label: "Confidence",
-      title: `${confidenceScore}/100 · ${confidenceLabel}`,
-      note: "Use this as a direction signal, not a final quality grade. The producer still makes the final human judgement.",
-    },
-  ];
-
-  return brief;
-}
-
-function buildV4NextPassBriefText(analysis) {
-  return buildV4NextPassBrief(analysis)
-    .map((item) => `- ${item.label}: ${item.title} — ${item.note}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4ProducerDecisionLog(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { decision: "Wait for audio analysis", reason: "No ready audio analysis is available yet.", action: "Upload a draft or load a demo preset before making production decisions." },
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const priorityStack = getV4RiskFocusStack(analysis);
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const decisions = [];
-
-  decisions.push({
-    decision: `Lead with ${priorityStack[0]?.title || "the clearest listening priority"}`,
-    reason: priorityStack[0]?.reason || "The strongest risk should guide the first pass.",
-    action: priorityStack[0]?.nextStep || "Make one focused change, then re-listen before adding more processing.",
-  });
-
-  if (profile.harshnessRisk >= 60) {
-    decisions.push({
-      decision: "Control high-frequency discomfort before adding polish",
-      reason: "Harshness can make an AI draft feel brittle, synthetic, or tiring.",
-      action: "Use gentler EQ, de-essing, saturation control, or arrangement spacing before increasing brightness.",
-    });
-  }
-
-  if (profile.mudRisk >= 60) {
-    decisions.push({
-      decision: "Clean low-mid density before judging loudness",
-      reason: "Mud can hide emotion, groove, and vocal/body clarity.",
-      action: "Carve space around competing low-mid layers and rebalance the foundation.",
-    });
-  }
-
-  if (profile.thinnessRisk >= 60) {
-    decisions.push({
-      decision: "Restore body before final delivery",
-      reason: "Thin drafts can feel unfinished even when they are technically clean.",
-      action: "Add controlled warmth, harmonic weight, or arrangement support without overcrowding the mix.",
-    });
-  }
-
-  if (profile.aiTextureRisk >= 60) {
-    decisions.push({
-      decision: "Simplify generated movement",
-      reason: "Restless texture movement can reveal the synthetic origin of a draft.",
-      action: "Reduce unnecessary shimmer, buzzing, modulation, or busy artifacts so the track feels intentional.",
-    });
-  }
-
-  decisions.push({
-    decision: `Treat confidence as ${confidenceScore}/100 · ${confidenceLabel}`,
-    reason: "The score is a direction signal, not a replacement for taste.",
-    action: "Use it to decide how deep the next humanization pass should be, then trust the producer ear.",
-  });
-
-  return decisions.slice(0, 5);
-}
-
-function buildV4ProducerDecisionLogText(analysis) {
-  return buildV4ProducerDecisionLog(analysis)
-    .map((item) => `- Decision: ${item.decision} | Reason: ${item.reason} | Action: ${item.action}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4HumanTouchpoints(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { area: "Emotion", focus: "Waiting for audio", note: "Upload a draft or load a demo preset before SoulFrame can suggest human touchpoints." },
-      { area: "Movement", focus: "Waiting for audio", note: "The tool needs an analysis layer before it can suggest where the edit should feel more alive." },
-      { area: "Delivery", focus: "Waiting for audio", note: "Client-safe delivery notes will become clearer after the draft has been reviewed." },
-    ];
-  }
-
-  const profile = analysis.frequencyProfile || buildFrequencyBalanceProfile(analysis);
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const priorities = getV4RiskFocusStack(analysis);
-  const primaryPriority = priorities[0]?.title || "main listening priority";
-
-  const touchpoints = [
-    {
-      area: "Emotion",
-      focus: confidenceScore >= 65 ? "Preserve the strongest feeling" : "Rebuild emotional believability",
-      note: confidenceScore >= 65
-        ? "The next pass should protect what already feels convincing while refining the technical weak spots."
-        : "The next pass should focus on making the performance, tone, and arrangement feel less generated and more intentional.",
-    },
-    {
-      area: "Movement",
-      focus: profile.aiTextureRisk >= 60 ? "Simplify restless generated motion" : "Shape musical movement with taste",
-      note: profile.aiTextureRisk >= 60
-        ? "Reduce busy shimmer, buzzing, or unstable texture so the song moves like a deliberate human arrangement."
-        : "Use automation, dynamics, and arrangement changes to make the track evolve naturally rather than mechanically.",
-    },
-    {
-      area: "Tone",
-      focus: primaryPriority,
-      note: "Let the strongest V4 listening priority guide the first tonal decision before adding more processing.",
-    },
-    {
-      area: "Client Delivery",
-      focus: confidenceScore >= 75 ? "Prepare for final polish language" : "Frame the next version as a focused improvement pass",
-      note: confidenceScore >= 75
-        ? "The client update can lean toward refinement and delivery confidence."
-        : "The client update should explain the next pass as targeted humanization rather than a final master.",
-    },
-  ];
-
-  return touchpoints;
-}
-
-function buildV4HumanTouchpointsText(analysis) {
-  return buildV4HumanTouchpoints(analysis)
-    .map((item) => `- ${item.area}: ${item.focus} — ${item.note}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4ClientUpdateDraft(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      "I’ll review the audio in more detail once the draft is loaded into SoulFrame.",
-      "From there I’ll identify the main areas that need humanization and prepare the next revision pass with a clearer direction.",
-    ];
-  }
-
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const moves = buildV4RevisionMoves(analysis).slice(0, 2);
-  const touchpoints = buildV4HumanTouchpoints(analysis).slice(0, 2);
-
-  const update = [
-    `I’ve reviewed the draft for tone balance, texture movement, and humanization readiness. The current humanization confidence is ${confidenceScore}/100 (${confidenceLabel}).`,
-  ];
-
-  if (moves.length) {
-    update.push(`For the next pass, I’ll focus mainly on ${moves.map((item) => item.move.toLowerCase()).join(" and ")}.`);
-  }
-
-  if (touchpoints.length) {
-    update.push(`The goal is to improve the ${touchpoints.map((item) => item.area.toLowerCase()).join(" and ")} of the track so it feels more natural, intentional, and emotionally believable.`);
-  }
-
-  update.push("I’ll avoid over-processing and focus on changes that make the track feel more human rather than simply louder or cleaner.");
-
-  return update;
-}
-
-function buildV4ClientUpdateDraftText(analysis) {
-  return buildV4ClientUpdateDraft(analysis).join(String.fromCharCode(10) + String.fromCharCode(10));
-}
-
-
-function buildV4ReviewSnapshot(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { label: "Status", value: "Waiting for audio", note: "Upload a draft or load a demo preset to generate the V4 review snapshot." },
-      { label: "Main Focus", value: "Not available yet", note: "SoulFrame needs an active analysis before it can summarize the next creative priority." },
-      { label: "Next Step", value: "Run review", note: "Once audio is ready, the snapshot will condense the full V4 layer into a quick overview." },
-    ];
-  }
-
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const priority = getV4RiskFocusStack(analysis)[0];
-  const move = buildV4RevisionMoves(analysis)[0];
-  const touchpoint = buildV4HumanTouchpoints(analysis)[0];
-  const checklist = buildV4ReadinessChecklist(analysis);
-  const needsAttentionCount = checklist.filter((item) => item.status === "Needs Attention").length;
-
-  return [
-    {
-      label: "Confidence",
-      value: `${confidenceScore}/100`,
-      note: confidenceLabel,
-    },
-    {
-      label: "Main Listening Focus",
-      value: priority?.title || "Producer judgement",
-      note: priority?.reason || "Use your ear to decide where the next pass should begin.",
-    },
-    {
-      label: "Next Revision Move",
-      value: move?.move || "Make one focused improvement",
-      note: move?.reason || "Avoid broad changes until the strongest blocker is addressed.",
-    },
-    {
-      label: "Human Touchpoint",
-      value: touchpoint?.area || "Emotion",
-      note: touchpoint?.focus || "Bring the track closer to a believable human performance.",
-    },
-    {
-      label: "Readiness Flags",
-      value: `${needsAttentionCount} needs attention`,
-      note: needsAttentionCount ? "Resolve these before treating the edit as client-ready." : "Core readiness checks look stable for this pass.",
-    },
-  ];
-}
-
-function buildV4ReviewSnapshotText(analysis) {
-  return buildV4ReviewSnapshot(analysis)
-    .map((item) => `- ${item.label}: ${item.value} — ${item.note}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4FinalRecommendation(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return {
-      title: "Run the V4 review first",
-      status: "Waiting for audio",
-      summary: "Upload a draft or load a demo preset before SoulFrame can create a final V4 recommendation.",
-      nextAction: "Start with audio analysis, then review the listening priority stack and readiness checklist.",
-    };
-  }
-
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const checklist = buildV4ReadinessChecklist(analysis);
-  const needsAttention = checklist.filter((item) => item.status === "Needs Attention");
-  const primaryMove = buildV4RevisionMoves(analysis)[0];
-  const primaryTouchpoint = buildV4HumanTouchpoints(analysis)[0];
-
-  if (confidenceScore >= 78 && needsAttention.length <= 1) {
-    return {
-      title: "Proceed to final polish",
-      status: `${confidenceScore}/100 · ${confidenceLabel}`,
-      summary: "The draft has a strong foundation for human-led refinement. The next pass can focus on final taste, emotion, and delivery polish.",
-      nextAction: primaryMove?.move || "Make one final focused improvement, then compare against the original draft.",
-    };
-  }
-
-  if (confidenceScore >= 60 && needsAttention.length <= 3) {
-    return {
-      title: "Do one focused humanization pass",
-      status: `${confidenceScore}/100 · ${confidenceLabel}`,
-      summary: `The draft is workable, but it still needs focused attention around ${primaryTouchpoint?.area?.toLowerCase() || "the main human touchpoint"} before it feels fully believable.`,
-      nextAction: primaryMove?.move || "Address the strongest listening priority before making broad mix changes.",
-    };
-  }
-
-  return {
-    title: "Treat as a high-priority revision",
-    status: `${confidenceScore}/100 · ${confidenceLabel}`,
-    summary: "The draft likely needs a deeper humanization pass before it should be framed as client-ready.",
-    nextAction: primaryMove?.move || "Start with the clearest technical or emotional blocker, then rebuild the revision plan.",
-  };
-}
-
-function buildV4FinalRecommendationText(analysis) {
-  const recommendation = buildV4FinalRecommendation(analysis);
-  return [
-    `Recommendation: ${recommendation.title}`,
-    `Status: ${recommendation.status}`,
-    `Summary: ${recommendation.summary}`,
-    `Next Action: ${recommendation.nextAction}`,
-  ].join(String.fromCharCode(10));
-}
-
-
-function buildV4AnalysisStackOverview(analysis) {
-  const ready = analysis && analysis.status === "Ready";
-  return [
-    {
-      layer: "Frequency Balance",
-      purpose: "Reads the low, mid, and high energy relationship so the producer can spot tonal imbalance.",
-      status: ready ? "Active" : "Waiting",
-    },
-    {
-      layer: "Risk Profile",
-      purpose: "Estimates harshness, mud, thinness, and generated texture risk before the next edit.",
-      status: ready ? "Active" : "Waiting",
-    },
-    {
-      layer: "Listening Priority Stack",
-      purpose: "Ranks the strongest issues so the next pass starts with the highest-impact decision.",
-      status: ready ? "Active" : "Waiting",
-    },
-    {
-      layer: "Revision Moves",
-      purpose: "Turns the risk profile into practical producer actions for the next humanization pass.",
-      status: ready ? "Active" : "Waiting",
-    },
-    {
-      layer: "Human Touchpoints",
-      purpose: "Connects the technical analysis back to emotion, movement, tone, and client delivery.",
-      status: ready ? "Active" : "Waiting",
-    },
-    {
-      layer: "Final Recommendation",
-      purpose: "Condenses the full V4 review into one recommended direction for the next step.",
-      status: ready ? "Active" : "Waiting",
-    },
-  ];
-}
-
-function buildV4AnalysisStackOverviewText(analysis) {
-  return buildV4AnalysisStackOverview(analysis)
-    .map((item) => `- ${item.layer}: ${item.status} — ${item.purpose}`)
-    .join(String.fromCharCode(10));
-}
-
-
-function buildV4ExecutiveSummary(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return {
-      headline: "V4 review waiting for audio",
-      summary: "Upload a draft or load a demo preset to generate a complete V4 executive summary.",
-      bullets: [
-        "SoulFrame will review frequency balance, risk profile, listening priorities, revision moves, and human touchpoints.",
-        "The executive summary will condense the full V4 layer into a short producer-facing overview.",
-      ],
-    };
-  }
-
-  const confidenceScore = getV4HumanizationConfidenceScore(analysis);
-  const confidenceLabel = getV4HumanizationConfidenceLabel(confidenceScore);
-  const finalRecommendation = buildV4FinalRecommendation(analysis);
-  const snapshot = buildV4ReviewSnapshot(analysis);
-  const primaryFocus = snapshot.find((item) => item.label === "Main Listening Focus");
-  const nextMove = snapshot.find((item) => item.label === "Next Revision Move");
-  const readiness = snapshot.find((item) => item.label === "Readiness Flags");
-
-  return {
-    headline: `${finalRecommendation.title} · ${confidenceScore}/100`,
-    summary: `SoulFrame reviewed the draft through the V4 audio intelligence stack and classified it as ${confidenceLabel}. The recommended direction is: ${finalRecommendation.title.toLowerCase()}.`,
-    bullets: [
-      primaryFocus ? `Main listening focus: ${primaryFocus.value} — ${primaryFocus.note}` : "Main listening focus should be confirmed by producer judgement.",
-      nextMove ? `Next revision move: ${nextMove.value} — ${nextMove.note}` : "The next revision should start with one focused improvement.",
-      readiness ? `Readiness status: ${readiness.value} — ${readiness.note}` : "Readiness should be checked after the next pass.",
-      `Recommended next action: ${finalRecommendation.nextAction}`,
-    ],
-  };
-}
-
-function buildV4ExecutiveSummaryText(analysis) {
-  const summary = buildV4ExecutiveSummary(analysis);
-  return [
-    summary.headline,
-    summary.summary,
-    ...summary.bullets.map((item) => `- ${item}`),
-  ].join(String.fromCharCode(10));
-}
-
-
-function buildV4ExportCompletenessChecklist(analysis) {
-  const ready = analysis && analysis.status === "Ready";
-  return [
-    {
-      label: "Executive Summary",
-      status: ready ? "Included" : "Waiting",
-      note: "Condenses the V4 review into a short producer-facing overview.",
-    },
-    {
-      label: "Final Recommendation",
-      status: ready ? "Included" : "Waiting",
-      note: "Shows whether the draft needs final polish, a focused pass, or deeper revision.",
-    },
-    {
-      label: "Client Update Draft",
-      status: ready ? "Included" : "Waiting",
-      note: "Provides simple client-facing revision language without overwhelming technical detail.",
-    },
-    {
-      label: "Readiness Checklist",
-      status: ready ? "Included" : "Waiting",
-      note: "Confirms which areas are ready and which still need attention.",
-    },
-    {
-      label: "Producer Decision Log",
-      status: ready ? "Included" : "Waiting",
-      note: "Preserves the reasoning behind the suggested edit direction.",
-    },
-    {
-      label: "Human Touchpoints",
-      status: ready ? "Included" : "Waiting",
-      note: "Connects the analysis back to emotion, movement, tone, and delivery.",
-    },
-  ];
-}
-
-function buildV4ExportCompletenessChecklistText(analysis) {
-  return buildV4ExportCompletenessChecklist(analysis)
-    .map((item) => `- ${item.label}: ${item.status} — ${item.note}`)
-    .join(String.fromCharCode(10));
-}
-
 async function loadAudioHealthCheck(audioUrl, setAnalysis) {
   try {
     setAnalysis({ status: "Analyzing audio..." });
@@ -1156,14 +324,6 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
     const brightnessScore = averageAbs > 0 ? Math.min(1, averageDelta / Math.max(averageAbs * 4, 0.0001)) : 0;
     const zeroCrossingRate = zeroCrossings / Math.max(1, channelData.length);
     const textureMovement = Math.min(1, zeroCrossingRate * 20 + dynamicRange);
-    const frequencyProfile = buildFrequencyBalanceProfile({
-      brightnessScore,
-      textureMovement,
-      dynamicRange,
-      rms,
-      peak,
-      zeroCrossingRate,
-    });
 
     setAnalysis({
       status: "Ready",
@@ -1181,7 +341,6 @@ async function loadAudioHealthCheck(audioUrl, setAnalysis) {
       zeroCrossingRate,
       textureMovement,
       textureStability: getTextureStabilityLabel(textureMovement),
-      frequencyProfile,
     });
     audioContext.close();
   } catch (error) {
@@ -1990,7 +1149,7 @@ function buildSavedProjectsBackup(savedProjects) {
     {
       app: "SoulFrame",
       type: "saved-projects-backup",
-      version: "2.x",
+      version: "3.5",
       exportedAt: new Date().toISOString(),
       projects: savedProjects,
     },
@@ -2043,56 +1202,6 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
 
   lines.push("");
 
-  const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
-
-  lines.push("V4 AUDIO INTELLIGENCE BASELINE");
-  buildAudioIntelligenceInsights(activeAnalysis).forEach((item) => {
-    lines.push(`${item.label}: ${item.value} - ${item.note}`);
-  });
-  lines.push("");
-  lines.push("V4 LISTENING PRIORITY STACK");
-  lines.push(buildV4ListeningPriorityText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 REVISION MOVE SUGGESTIONS");
-  lines.push(buildV4RevisionMovesText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 HUMANIZATION CONFIDENCE");
-  lines.push(buildV4HumanizationConfidenceText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 CLIENT-SAFE SUMMARY");
-  lines.push(buildV4ClientSafeSummaryText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 READINESS CHECKLIST");
-  lines.push(buildV4ReadinessChecklistText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 NEXT-PASS BRIEF");
-  lines.push(buildV4NextPassBriefText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 PRODUCER DECISION LOG");
-  lines.push(buildV4ProducerDecisionLogText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 HUMAN TOUCHPOINTS");
-  lines.push(buildV4HumanTouchpointsText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 CLIENT UPDATE DRAFT");
-  lines.push(buildV4ClientUpdateDraftText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 REVIEW SNAPSHOT");
-  lines.push(buildV4ReviewSnapshotText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 FINAL RECOMMENDATION");
-  lines.push(buildV4FinalRecommendationText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 ANALYSIS STACK OVERVIEW");
-  lines.push(buildV4AnalysisStackOverviewText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 EXECUTIVE SUMMARY");
-  lines.push(buildV4ExecutiveSummaryText(activeAnalysis));
-  lines.push("");
-  lines.push("V4 EXPORT COMPLETENESS CHECKLIST");
-  lines.push(buildV4ExportCompletenessChecklistText(activeAnalysis));
-  lines.push("");
-
   if (reviewMode === "compare") {
     lines.push("BEFORE / AFTER COMPARISON");
     buildBeforeAfterComparison(draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis).forEach((row) => {
@@ -2100,6 +1209,8 @@ function buildFullReportText({ report, reviewMode, projectSession, draftAudioMet
     });
     lines.push("");
   }
+
+  const activeAnalysis = reviewMode === "compare" ? humanizedAudioAnalysis || draftAudioAnalysis : draftAudioAnalysis;
 
   if (isClientReport) {
     lines.push("CLIENT-FRIENDLY FOCUS AREAS");
@@ -2247,35 +1358,6 @@ function runSoulFrameTests() {
   const copyReportTestsPassed =
     buildFullReportText({ report: beforeAfterReport, reviewMode: "compare", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("SOULFRAME PRODUCER HUMANIZATION REPORT") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test", reportTone: "client" }).includes("CLIENT-SAFE ACTION PLAN") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 AUDIO INTELLIGENCE BASELINE") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 LISTENING PRIORITY STACK") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVISION MOVE SUGGESTIONS") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMANIZATION CONFIDENCE") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT-SAFE SUMMARY") &&
-    getV4HumanizationConfidenceScore({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }) > 0 &&
-    buildV4ClientSafeSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("draft") &&
-    buildV4ReadinessChecklistText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Humanization confidence") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 READINESS CHECKLIST") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 NEXT-PASS BRIEF") &&
-    buildV4NextPassBriefText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
-    buildV4ProducerDecisionLogText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Decision") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 PRODUCER DECISION LOG") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 HUMAN TOUCHPOINTS") &&
-    buildV4HumanTouchpointsText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Emotion") &&
-    buildV4ClientUpdateDraftText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("humanization confidence") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 CLIENT UPDATE DRAFT") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 REVIEW SNAPSHOT") &&
-    buildV4ReviewSnapshotText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Confidence") &&
-    buildV4FinalRecommendationText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Recommendation") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 FINAL RECOMMENDATION") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 ANALYSIS STACK OVERVIEW") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 EXECUTIVE SUMMARY") &&
-    buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: { status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("V4 EXPORT COMPLETENESS CHECKLIST") &&
-    buildV4ExecutiveSummaryText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Recommended next action") &&
-    buildV4ExportCompletenessChecklistText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Executive Summary") &&
-    buildV4AnalysisStackOverviewText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Frequency Balance") &&
-    buildV4ListeningPriorityText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Harshness") &&
-    buildV4RevisionMovesText({ status: "Ready", brightnessScore: 0.5, textureMovement: 0.2, dynamicRange: 0.1, rms: 0.08, peak: 0.9, zeroCrossingRate: 0.02 }).includes("Check:") &&
     buildFullReportText({ report: beforeAfterReport, reviewMode: "draft", projectSession: defaultProjectSession, draftAudioMetadata: null, humanizedAudioMetadata: null, draftAudioAnalysis: null, humanizedAudioAnalysis: null, clientUpdate: "Test" }).includes("CLIENT DELIVERY CHECKLIST") &&
     buildSessionSummaryText(defaultProjectSession, null, null, "draft", "marcel").includes("SOULFRAME SESSION SUMMARY");
   const exportReportTestsPassed =
@@ -2293,12 +1375,23 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
+    buildProductSummaryText().includes("V3.5 public demo polish") &&
     typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
     typeof SoulFrameFooter === "function" &&
     typeof DemoReadinessBanner === "function" &&
     typeof PublicDemoNotice === "function" &&
+    typeof DemoUseCasesPanel === "function" &&
+    typeof PublicLaunchChecklist === "function" &&
+    typeof PublicDemoStats === "function" &&
+    typeof ReleaseNotesPanel === "function" &&
+    typeof PublicRoadmapPreview === "function" &&
+    typeof ShareSoulFramePanel === "function" &&
+    typeof V41BackendScaffoldPanel === "function" &&
+    buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
+    buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
+    buildV41MockApiResponseShape().apiVersion === "v4.1" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -2672,6 +1765,271 @@ function PublicDemoNotice() {
   );
 }
 
+function DemoUseCasesPanel() {
+  const useCases = [
+    {
+      title: "Freelance producer workflow",
+      note: "Use SoulFrame to organize review notes before sending a clearer update to a client.",
+    },
+    {
+      title: "AI vocal humanization",
+      note: "Check metallic tone, cracking, flat phrasing, and emotional delivery before the next vocal pass.",
+    },
+    {
+      title: "Instrumental texture cleanup",
+      note: "Review shimmer, buzzing residue, repetition, and generated movement in AI instrumental drafts.",
+    },
+    {
+      title: "Before / after review",
+      note: "Compare an AI draft against a humanized edit and identify what improved before final delivery.",
+    },
+  ];
+
+  return (
+    <Panel title="Demo Use Cases" subtitle="The main ways SoulFrame can be tested, explained, or shown as a public prototype.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {useCases.map((useCase) => (
+          <article key={useCase.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <h3 className="font-semibold text-zinc-100">{useCase.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{useCase.note}</p>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function PublicLaunchChecklist() {
+  const checklist = [
+    { label: "Live demo is accessible", status: "Ready" },
+    { label: "README explains the current version", status: "Ready" },
+    { label: "Demo presets work without uploads", status: "Ready" },
+    { label: "Project links are easy to find", status: "Ready" },
+    { label: "Client names are neutralized", status: "Ready" },
+    { label: "Public prototype limitations are clear", status: "Ready" },
+  ];
+
+  return (
+    <Panel title="Public Launch Checklist" subtitle="A lightweight readiness checklist for sharing SoulFrame as a public prototype.">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {checklist.map((item) => (
+          <div key={item.label} className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-black p-4">
+            <p className="text-sm text-zinc-200">{item.label}</p>
+            <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function PublicDemoStats({ savedProjectsCount }) {
+  const stats = [
+    { label: "Demo Presets", value: Object.keys(demoPresets).length },
+    { label: "Artifact Types", value: artifactDatabase.length },
+    { label: "Walkthrough Steps", value: demoWalkthroughSteps.length },
+    { label: "Saved Sessions", value: savedProjectsCount },
+  ];
+
+  return (
+    <Panel title="Public Demo Stats" subtitle="A quick snapshot of what is currently available inside this SoulFrame prototype.">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{stat.label}</p>
+            <p className="mt-3 text-3xl font-bold text-zinc-100">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function ReleaseNotesPanel() {
+  const releaseNotes = [
+    "Improved first-time visitor flow with Quick Start and demo launchers.",
+    "Added public-facing context so visitors understand the prototype clearly.",
+    "Added launch checklist, demo stats, use cases, share links, and public footer links.",
+    "Improved saved project sessions with an empty state and backup import/export support.",
+    "Neutralized demo naming for a cleaner public repository.",
+  ];
+
+  return (
+    <Panel title="V3.5 Release Notes" subtitle="A concise summary of what changed in the current public demo polish release.">
+      <div className="space-y-3">
+        {releaseNotes.map((note, index) => (
+          <div key={note} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
+            <p className="text-sm leading-6 text-zinc-300">{note}</p>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function PublicRoadmapPreview() {
+  const roadmap = [
+    { version: "V4.0", title: "Deeper Audio Intelligence", note: "More detailed frequency, texture, harshness, and humanization scoring." },
+    { version: "V4.1", title: "Backend/API Prototype", note: "Move beyond local-only analysis toward a more scalable product structure." },
+    { version: "V4.2", title: "Smarter Reports", note: "Genre-aware recommendations, clearer client language, and better edit priorities." },
+    { version: "V5.0", title: "Public Beta Direction", note: "Shareable reports, stronger branding, saved cloud sessions, and beta-ready polish." },
+  ];
+
+  return (
+    <Panel title="Roadmap Preview" subtitle="A transparent look at where SoulFrame can grow after the current public demo release.">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {roadmap.map((item) => (
+          <article key={item.version} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.version}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{item.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function buildV41BackendArchitecturePlan() {
+  return {
+    title: "V4.1 Backend/API Prototype",
+    status: "Architecture scaffold",
+    goal: "Prepare SoulFrame for a future backend without breaking the current browser-based demo.",
+    responsibilities: [
+      {
+        layer: "Frontend",
+        role: "Keep the public demo fast, visual, and interactive.",
+        examples: "Project intake, demo presets, local sessions, audio preview, report UI, and client-facing copy.",
+      },
+      {
+        layer: "API Adapter",
+        role: "Create a safe bridge between the app and any future backend service.",
+        examples: "Mock request/response format, analysis status handling, error states, and versioned payloads.",
+      },
+      {
+        layer: "Backend",
+        role: "Handle heavier analysis and future server-side processing.",
+        examples: "Audio feature extraction, stored analysis records, authenticated projects, and scalable report generation.",
+      },
+      {
+        layer: "Human Review",
+        role: "Keep the producer as the final decision-maker.",
+        examples: "Taste, emotion, context, musical judgement, and final client delivery choices.",
+      },
+    ],
+    roadmap: [
+      "V4.1.1 — Backend Architecture Scaffold",
+      "V4.1.2 — Analysis Engine Separation Plan",
+      "V4.1.3 — Mock API Response Layer",
+      "V4.1.4 — Frontend API Adapter",
+      "V4.1.5 — README + Release Prep",
+    ],
+  };
+}
+
+function buildV41MockApiResponseShape() {
+  return {
+    apiVersion: "v4.1",
+    mode: "mock-backend",
+    status: "ready",
+    analysisId: "sf_mock_analysis_001",
+    source: "browser-demo",
+    sections: [
+      "audioIntelligence",
+      "riskProfile",
+      "humanizationConfidence",
+      "revisionPlan",
+      "clientSafeSummary",
+      "finalRecommendation",
+    ],
+    note: "This is a frontend-safe mock shape for planning backend integration. It does not upload audio or call a server yet.",
+  };
+}
+
+function buildV41ApiContractText() {
+  const plan = buildV41BackendArchitecturePlan();
+  const mock = buildV41MockApiResponseShape();
+  const newline = String.fromCharCode(10);
+  return [
+    "SOULFRAME V4.1 BACKEND/API ARCHITECTURE",
+    "",
+    `Goal: ${plan.goal}`,
+    "",
+    "Responsibilities:",
+    ...plan.responsibilities.map((item) => `- ${item.layer}: ${item.role} ${item.examples}`),
+    "",
+    "Mock response shape:",
+    `- apiVersion: ${mock.apiVersion}`,
+    `- mode: ${mock.mode}`,
+    `- status: ${mock.status}`,
+    `- analysisId: ${mock.analysisId}`,
+    `- source: ${mock.source}`,
+    `- sections: ${mock.sections.join(", ")}`,
+    "",
+    "Roadmap:",
+    ...plan.roadmap.map((item) => `- ${item}`),
+  ].join(newline);
+}
+
+function V41BackendScaffoldPanel() {
+  const plan = buildV41BackendArchitecturePlan();
+  const mock = buildV41MockApiResponseShape();
+
+  return (
+    <Panel title="V4.1 Backend/API Scaffold" subtitle="A safe architecture layer for planning backend integration before adding a real server.">
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{plan.status}</p>
+            <h3 className="mt-2 text-xl font-semibold text-zinc-100">{plan.title}</h3>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">{plan.goal}</p>
+          </div>
+          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+            V4.1.1 Scaffold
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {plan.responsibilities.map((item) => (
+          <article key={item.layer} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.layer}</p>
+            <h4 className="mt-3 font-semibold text-zinc-100">{item.role}</h4>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.examples}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Mock API Response Shape</p>
+          <div className="mt-4 space-y-3 text-sm text-zinc-300">
+            <p><span className="text-zinc-500">apiVersion:</span> {mock.apiVersion}</p>
+            <p><span className="text-zinc-500">mode:</span> {mock.mode}</p>
+            <p><span className="text-zinc-500">status:</span> {mock.status}</p>
+            <p><span className="text-zinc-500">analysisId:</span> {mock.analysisId}</p>
+            <p><span className="text-zinc-500">source:</span> {mock.source}</p>
+            <p><span className="text-zinc-500">sections:</span> {mock.sections.join(", ")}</p>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-zinc-500">{mock.note}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4.1 Roadmap</p>
+          <div className="mt-4 space-y-3">
+            {plan.roadmap.map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -2924,312 +2282,6 @@ function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftA
           </div>
         </div>
         <div className="mt-5 space-y-3">{comparisonRows.map((row) => <article key={row.label} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><p className="text-xs uppercase tracking-wide text-zinc-500">{row.label}</p><h3 className="mt-2 text-lg font-semibold text-zinc-100">{row.change}</h3></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{row.verdict}</span></div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">AI Draft</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.before}</p></div><div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Humanized Edit</p><p className="mt-2 text-sm font-semibold text-zinc-100">{row.after}</p></div></div></article>)}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-
-function AudioIntelligencePanel({ draftAnalysis, humanizedAnalysis, reviewMode }) {
-  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const insights = buildAudioIntelligenceInsights(activeAnalysis);
-  const priorityStack = getV4RiskFocusStack(activeAnalysis);
-  const revisionMoves = buildV4RevisionMoves(activeAnalysis);
-  const humanizationConfidenceScore = getV4HumanizationConfidenceScore(activeAnalysis);
-  const humanizationConfidenceLabel = getV4HumanizationConfidenceLabel(humanizationConfidenceScore);
-  const humanizationConfidenceReasons = buildV4HumanizationConfidenceReasons(activeAnalysis);
-  const v4ClientSafeSummary = buildV4ClientSafeSummary(activeAnalysis);
-  const v4ReadinessChecklist = buildV4ReadinessChecklist(activeAnalysis);
-  const v4NextPassBrief = buildV4NextPassBrief(activeAnalysis);
-  const v4ProducerDecisionLog = buildV4ProducerDecisionLog(activeAnalysis);
-  const v4HumanTouchpoints = buildV4HumanTouchpoints(activeAnalysis);
-  const v4ClientUpdateDraft = buildV4ClientUpdateDraft(activeAnalysis);
-  const v4ReviewSnapshot = buildV4ReviewSnapshot(activeAnalysis);
-  const v4FinalRecommendation = buildV4FinalRecommendation(activeAnalysis);
-  const v4AnalysisStackOverview = buildV4AnalysisStackOverview(activeAnalysis);
-  const v4ExecutiveSummary = buildV4ExecutiveSummary(activeAnalysis);
-  const v4ExportCompletenessChecklist = buildV4ExportCompletenessChecklist(activeAnalysis);
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Audio Intelligence</p>
-            <h2 className="mt-2 text-2xl font-semibold">Frequency Balance & Risk Baseline</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
-              A producer-friendly proxy layer for estimating tonal balance, harshness, mud, thinness, and generated texture risk. This supports listening decisions rather than replacing the human ear.
-            </p>
-          </div>
-          <span className="rounded-full border border-zinc-800 bg-black px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            V4.0.15 Baseline
-          </span>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {insights.map((item) => (
-            <article key={item.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
-              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.label}</p>
-              <h3 className="mt-3 text-lg font-semibold text-zinc-100">{item.value}</h3>
-              <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Listening Priority Stack</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">What to check first</h3>
-          <div className="mt-4 space-y-3">
-            {priorityStack.map((item, index) => (
-              <div key={item.title} className="rounded-2xl border border-zinc-800 bg-black p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Priority {index + 1}</p>
-                    <h4 className="mt-2 font-semibold text-zinc-100">{item.title}</h4>
-                  </div>
-                  <span className="w-fit rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">
-                    {Math.round(item.score)}/100 · {item.label}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.action}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Revision Move Suggestions</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">How to respond in the next pass</h3>
-          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
-            {revisionMoves.map((item) => (
-              <article key={`${item.priority}-${item.move}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Move {item.priority}</p>
-                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{Math.round(item.score)}/100 · {item.label}</span>
-                </div>
-                <h4 className="mt-3 font-semibold text-zinc-100">{item.move}</h4>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.reason}</p>
-                <p className="mt-3 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Check:</span> {item.check}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Humanization Confidence</p>
-              <h3 className="mt-2 text-lg font-semibold text-zinc-100">How ready the draft feels for human-led refinement</h3>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-                A producer-facing confidence estimate based on the current risk balance. This is not a quality score; it is a guide for how much focused humanization work the draft may still need.
-              </p>
-            </div>
-            <div className="rounded-3xl border border-zinc-800 bg-black p-5 text-right">
-              <p className="text-4xl font-bold text-zinc-100">{humanizationConfidenceScore}/100</p>
-              <p className="mt-2 text-sm text-zinc-300">{humanizationConfidenceLabel}</p>
-            </div>
-          </div>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {humanizationConfidenceReasons.map((reason) => (
-              <div key={reason} className="rounded-2xl border border-zinc-800 bg-black p-4">
-                <p className="text-sm leading-6 text-zinc-300">{reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Client-Safe Summary</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Clear update language without overloading the client</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This translates the V4 audio intelligence layer into client-friendly language that explains the next pass without exposing too much technical detail.
-          </p>
-          <div className="mt-5 space-y-3">
-            {v4ClientSafeSummary.map((line) => (
-              <div key={line} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <p className="text-sm leading-6 text-zinc-300">{line}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Readiness Checklist</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Final checks before the next humanization pass</h3>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {v4ReadinessChecklist.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold text-zinc-100">{item.label}</p>
-                  <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Next-Pass Brief</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">A focused plan for the next human edit</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This turns the V4 risk profile into a short producer brief so the next pass has a clear purpose instead of becoming endless tweaking.
-          </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {v4NextPassBrief.map((item) => (
-              <article key={`${item.label}-${item.title}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
-                <h4 className="mt-3 font-semibold text-zinc-100">{item.title}</h4>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Producer Decision Log</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Why the next edit should move in this direction</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This records the reasoning behind the suggested next pass so a producer can explain the edit direction clearly and avoid random processing decisions.
-          </p>
-          <div className="mt-5 space-y-3">
-            {v4ProducerDecisionLog.map((item) => (
-              <article key={`${item.decision}-${item.action}`} className="rounded-2xl border border-zinc-800 bg-black p-4">
-                <h4 className="font-semibold text-zinc-100">{item.decision}</h4>
-                <p className="mt-3 text-sm leading-6 text-zinc-400"><span className="text-zinc-500">Reason:</span> {item.reason}</p>
-                <p className="mt-2 text-sm leading-6 text-zinc-300"><span className="text-zinc-500">Action:</span> {item.action}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Human Touchpoints</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Where the producer should bring the track back to life</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This turns the V4 risk profile into human-centred creative touchpoints: emotion, movement, tone, and client delivery.
-          </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {v4HumanTouchpoints.map((item) => (
-              <article key={`${item.area}-${item.focus}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.area}</p>
-                <h4 className="mt-3 font-semibold text-zinc-100">{item.focus}</h4>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Client Update Draft</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">Ready-to-send language for the next revision update</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This converts the V4 producer reasoning into a simple client-facing update that explains the next pass clearly without sounding overly technical.
-          </p>
-          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-5">
-            {v4ClientUpdateDraft.map((line) => (
-              <p key={line} className="mb-4 text-sm leading-7 text-zinc-300 last:mb-0">{line}</p>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Review Snapshot</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">The whole V4 analysis condensed into one view</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This gives a quick at-a-glance summary of the V4 intelligence layer so the producer can understand the current state without rereading every panel.
-          </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-            {v4ReviewSnapshot.map((item) => (
-              <article key={`${item.label}-${item.value}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
-                <h4 className="mt-3 font-semibold text-zinc-100">{item.value}</h4>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Final Recommendation</p>
-              <h3 className="mt-2 text-lg font-semibold text-zinc-100">{v4FinalRecommendation.title}</h3>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{v4FinalRecommendation.summary}</p>
-            </div>
-            <div className="rounded-3xl border border-zinc-800 bg-black p-5 text-right">
-              <p className="text-sm uppercase tracking-[0.2em] text-zinc-500">Status</p>
-              <p className="mt-3 text-lg font-semibold text-zinc-100">{v4FinalRecommendation.status}</p>
-            </div>
-          </div>
-          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Recommended Next Action</p>
-            <p className="mt-3 text-sm leading-6 text-zinc-300">{v4FinalRecommendation.nextAction}</p>
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Analysis Stack Overview</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">What SoulFrame checked before making the recommendation</h3>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            This makes the V4 workflow easier to explain by showing the main intelligence layers behind the final recommendation.
-          </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {v4AnalysisStackOverview.map((item) => (
-              <article key={item.layer} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h4 className="font-semibold text-zinc-100">{item.layer}</h4>
-                  <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.purpose}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Executive Summary</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">{v4ExecutiveSummary.headline}</h3>
-          <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">{v4ExecutiveSummary.summary}</p>
-          <div className="mt-5 space-y-3">
-            {v4ExecutiveSummary.bullets.map((item) => (
-              <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
-                <p className="text-sm leading-6 text-zinc-300">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V4 Export Completeness</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">What the full report now includes</h3>
-          <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">
-            This confirms that the V4 report export includes both producer-facing reasoning and client-safe communication sections.
-          </p>
-          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {v4ExportCompletenessChecklist.map((item) => (
-              <article key={item.label} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h4 className="font-semibold text-zinc-100">{item.label}</h4>
-                  <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-              </article>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -3755,7 +2807,6 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
       </Card>
 
       <AudioFactsSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
-      <AudioIntelligencePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <BeforeAfterComparisonSummary draftMetadata={draftAudioMetadata} humanizedMetadata={humanizedAudioMetadata} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ArtifactCluePanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
       <ListeningFocusPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} reviewMode={reviewMode} />
@@ -3779,6 +2830,17 @@ function ReportView({ report, reviewMode, projectSession, draftAudioMetadata, hu
   );
 }
 
+function buildShareLinksText() {
+  const newline = String.fromCharCode(10);
+  return [
+    "SOULFRAME PUBLIC LINKS",
+    "",
+    ...publicShareLinks.map((link) => `${link.label}: ${link.href}`),
+    "",
+    "SoulFrame is an AI music humanization review tool built to support producers working with AI-generated music.",
+  ].join(newline);
+}
+
 function buildProductSummaryText() {
   const newline = String.fromCharCode(10);
   return [
@@ -3800,8 +2862,65 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V3.4 presentation and productization prototype with browser-based audio analysis and producer-guided review logic.",
+    "V3.5 public demo polish prototype with browser-based audio analysis, producer-guided review logic, demo onboarding, share links, and local project sessions.",
   ].join(newline);
+}
+
+function ShareSoulFramePanel() {
+  const [copyStatus, setCopyStatus] = useState("Copy Links");
+  const [downloadStatus, setDownloadStatus] = useState("Download Links");
+
+  async function handleCopyLinks() {
+    try {
+      await navigator.clipboard.writeText(buildShareLinksText());
+      setCopyStatus("Copied");
+      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
+    } catch (error) {
+      setCopyStatus("Copy failed");
+      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
+    }
+  }
+
+  function handleDownloadLinks() {
+    const downloaded = downloadTextFile("SoulFrame_Public_Links.txt", buildShareLinksText());
+    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
+    window.setTimeout(() => setDownloadStatus("Download Links"), 1500);
+  }
+
+  return (
+    <Panel
+      title="Share SoulFrame"
+      subtitle="A clean public link kit for sharing the live demo, repository, and ChordOfAnnie home base."
+      action={
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyLinks}>{copyStatus}</Button>
+          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadLinks}>{downloadStatus}</Button>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {publicShareLinks.map((link) => (
+          <a
+            key={link.label}
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-3xl border border-zinc-800 bg-black p-5 transition hover:bg-zinc-900"
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Link</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{link.label}</h3>
+            <p className="mt-3 break-words text-sm leading-6 text-zinc-400">{link.href}</p>
+          </a>
+        ))}
+      </div>
+      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Share line</p>
+        <p className="mt-3 text-sm leading-7 text-zinc-300">
+          SoulFrame is a browser-based AI music humanization review tool built to help producers inspect AI-generated drafts, identify artifact clues, and turn analysis into clearer revision plans and client-ready updates.
+        </p>
+      </div>
+    </Panel>
+  );
 }
 
 function AboutSoulFramePanel() {
@@ -3864,9 +2983,9 @@ function AboutSoulFramePanel() {
         </article>
         <article className="rounded-3xl border border-zinc-800 bg-black p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.4 presentation prototype</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V3.5 public demo prototype</h3>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
-            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, and walkthrough views.
+            The app currently combines real browser-based audio inspection with producer-guided review logic, report exports, client-safe summaries, revision checklists, saved sessions, demo presets, walkthrough views, share links, and public demo readiness panels.
           </p>
         </article>
       </div>
@@ -3979,7 +3098,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
         {reviewMode === "compare" ? <><UploadBox fileName={humanizedFile} onFileChange={handleHumanizedFileChange} title="Upload Humanized Edit" description="Upload your edited version so SoulFrame can compare what improved and what still needs work." /><AudioPreview src={humanizedAudioUrl} label="Humanized Edit Preview" /><WaveformPreview src={humanizedAudioUrl} label="Humanized Edit Waveform" /><AudioHealthCheck analysis={humanizedAudioAnalysis} label="Humanized Edit Health Check" /><AudioMetadata metadata={humanizedAudioMetadata} label="Humanized Edit Metadata" /></> : null}
         {reviewMode === "draft" ? <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><label htmlFor="preset-select" className="block text-sm font-semibold text-zinc-100">Sample Report Type</label><select id="preset-select" value={selectedPreset} onChange={(event) => setSelectedPreset(event.target.value)} className="mt-3 w-full rounded-xl border border-zinc-800 bg-black p-3 text-sm text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-500">{Object.entries(draftReports).map(([key, report]) => <option key={key} value={key}>{report.name}</option>)}</select></div> : <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-300"><span className="block font-semibold text-zinc-100">Comparison Mode</span><span className="mt-2 block text-zinc-400">SoulFrame will compare the AI draft against the humanized edit and summarize what improved.</span></div>}
         <Button className="w-full bg-white py-6 text-black hover:bg-zinc-200" onClick={handleRunAnalysis}>{reviewMode === "compare" ? "Run Before / After Review" : "Run Draft Review"}</Button>
-        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
+        <div className="rounded-2xl border border-zinc-800 bg-black p-3 text-xs text-zinc-400">Prototype mode: simulated analysis. Audio preview, metadata, waveform, health check, spectral texture proxies, early artifact clues, producer listening focus, humanization priority score, section-by-section review notes, humanization action plan, client action plan export, client-safe summary copy, revision checklist generator, producer/client-safe note toggle, before/after humanization delta, session summary card, copy session summary, error boundary protection, producer/client report export modes, demo mode presets, quick start guide, demo launcher presets, demo readiness banner, public demo notice, demo use cases panel, public launch checklist, public demo stats, release notes panel, roadmap preview, header version badge, share links panel, public footer links, neutral public demo naming, save demo preset as project, product summary export, client update export, searchable saved projects, import/export backup, and local session save: <span className="text-zinc-100">enabled</span>. Self-tests: <span className={testsPassed ? "text-zinc-100" : "text-red-300"}>{testsPassed ? "passed" : "failed"}</span>.</div>
       </CardContent>
     </Card>
   );
@@ -4108,6 +3227,12 @@ export default function SoulFrameDraftReviewV2() {
       <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
       <DemoReadinessBanner />
       <PublicDemoNotice />
+      <V41BackendScaffoldPanel />
+      <DemoUseCasesPanel />
+      <PublicLaunchChecklist />
+      <PublicDemoStats savedProjectsCount={savedProjects.length} />
+      <ReleaseNotesPanel />
+      <PublicRoadmapPreview />
       <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
       <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
       <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
@@ -4127,7 +3252,10 @@ export default function SoulFrameDraftReviewV2() {
         <header className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-6 shadow-2xl md:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V3.5.0 Public Demo</span>
+              </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
             </div>
@@ -4137,11 +3265,12 @@ export default function SoulFrameDraftReviewV2() {
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
               <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
               <Button className={view === "how" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("how")}>How It Works</Button>
+              <Button className={view === "share" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("share")}>Share</Button>
             </div>
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : demoView}
+          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
         </ErrorBoundary>
         <SoulFrameFooter setView={setView} />
       </div>
