@@ -37,6 +37,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 15. Show public demo status, use cases, release notes, roadmap direction, and local-session privacy notes
 16. Provide share links and footer links to the live demo, GitHub, and ChordOfAnnie
 17. Use V4 audio intelligence to turn browser-based analysis into producer priorities, humanization confidence, revision moves, client-safe summaries, and final recommendations
+18. Prepare V4.1 backend/API architecture using a mock API layer and frontend adapter without uploading audio or requiring a live server
 
 ---
 
@@ -179,6 +180,10 @@ SoulFrame is built around a practical AI-humanization workflow:
 - V4 Analysis Stack Overview
 - V4 Executive Summary
 - V4 Export Completeness Checklist
+- V4.1 Backend/API Scaffold
+- V4.1 Analysis Engine Separation Plan
+- V4.1 Mock API Response Layer
+- V4.1 Frontend API Adapter
 
 ---
 
@@ -209,155 +214,26 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V4.0.0: Deeper Audio Intelligence**
+**V4.1.0: Backend/API Prototype Scaffold**
 
-SoulFrame V4.0 introduces a deeper audio intelligence layer for reviewing AI-generated music drafts.
+SoulFrame V4.1 prepares the project for future backend/API integration while preserving the current browser-based public demo.
 
-This release builds on the V3.5 public demo foundation and adds producer-facing analysis, decision support, humanization confidence, revision planning, client-safe summaries, and final recommendation logic.
+This release adds architecture scaffolding, analysis-engine separation planning, a mock API response layer, and a frontend API adapter. These features make the app more structured and backend-ready without uploading audio, requiring authentication, or depending on a live server.
 
-The goal of V4.0 is to make SoulFrame more than a demo: it becomes a practical review assistant for producers working with AI-generated music.
-
----
-
-## V3 Features
-
-- Spectral texture proxy analysis
-- Brightness profile detection
-  - Dark / Warm
-  - Balanced
-  - Bright / Potentially Harsh
-- Texture stability detection
-  - Stable
-  - Moderate Movement
-  - Unstable / Busy
-- Early artifact clues
-  - Possible harsh AI shimmer
-  - Possible generated texture movement
-  - Possible flat emotional movement
-  - Headroom may affect perception
-- Artifact clues included in client updates
-- Artifact clues included in exported reports
-- Producer Listening Focus
-- Humanization Priority Score
-- Priority labels
-  - Low Priority
-  - Medium Priority
-  - High Priority
-- Section-by-section review notes
-  - Intro
-  - Verse
-  - Chorus
-  - Bridge / Breakdown
-  - Outro
-- Producer-focused prompts for emotional realism, arrangement movement, and sonic intention
+The goal of V4.1 is to create a safe bridge between the current frontend-only prototype and a future scalable backend architecture.
 
 ---
 
-## V3.1 Features
+## V3 Feature Summary
 
-- Humanization Action Plan
-- Practical production moves based on SoulFrame review results
-- Before / After Humanization Delta
-- Producer Notes / Client-Safe Notes toggle
-- Client-safe action plan wording
-- Session Summary Card
-- Session summary included in full report exports
+V3 expanded SoulFrame from a technical review tool into a humanization-focused workflow.
 
----
-
-## V3.2 Features
-
-- Error Boundary / blank screen protection
-- Recovery fallback if a review panel crashes
-- Producer Report / Client Report export modes
-- Client-friendly report wording
-- Copy Session Summary
-- Demo Mode Presets
-- Preset scenarios for:
-  - AI Vocal Draft
-  - AI Instrumental Draft
-  - Client-Ready Review
-  - Before / After Humanized Edit
-
----
-
-## V3.3 Features
-
-- Export Client Action Plan
-- Copy Client Plan
-- Download Client Plan
-- Copy Client-Safe Report Summary
-- Revision Checklist Generator
-- Copy Revision Checklist
-- Download Revision Checklist
-- Save Demo Preset as Project
-- Client workflow support for review output, revision planning, and client communication
-
----
-
-## V3.4 Features
-
-- About / Product Story panel
-- Demo Walkthrough mode
-- Export Product Summary
-- Copy Product Summary
-- Download Product Summary
-- How SoulFrame Works section
-- Clearer in-app explanation of the SoulFrame workflow
-- Improved product presentation, demo readiness, and project storytelling
-
----
-
-## V3.5 Features
-
-- Quick Start Guide for first-time visitors
-- Demo Launcher Presets
-  - Vocal Demo
-  - Instrumental Demo
-  - Before / After Demo
-  - Walkthrough
-- Demo Readiness Banner
-- Public Footer Links
-  - Live Demo
-  - GitHub
-  - ChordOfAnnie
-  - About SoulFrame
-- Saved Project Sessions visible even when no projects are saved
-- Import Backup available before any project has been saved
-- Disabled Clear All button when there are no saved projects
-- Improved empty-state guidance for public demo visitors
-- Improved public demo polish, navigation, and first-time user experience
-
----
-
-## V3.5.1 Features
-
-- Public Demo Notice explaining that SoulFrame is a prototype and human-led workflow
-- Demo Use Cases panel
-  - Freelance producer workflow
-  - AI vocal humanization
-  - Instrumental texture cleanup
-  - Before / after review
-- Public Launch Checklist
-- Public Demo Stats
-- V3.5 Release Notes inside the app
-- Roadmap Preview panel
-  - V4.0 Deeper Audio Intelligence
-  - V4.1 Backend/API Prototype
-  - V4.2 Smarter Reports
-  - V5.0 Public Beta Direction
-- Share SoulFrame panel
-  - Live Demo
-  - GitHub Repository
-  - ChordOfAnnie
-- Copy public share links
-- Download public share links as `.txt`
-- Header version badge
-- Updated product summary wording from V3.4 to V3.5 public demo polish
-- Updated saved backup version metadata to V3.5
-- Neutralized public demo/client naming
-- Preserved existing public footer structure
-- Improved public demo clarity without adding unnecessary layout bloat
+- V3.0 added spectral texture proxy analysis, brightness profile detection, texture stability detection, early artifact clues, producer listening focus, humanization priority scoring, and section-by-section review notes.
+- V3.1 added the Humanization Action Plan, Before / After Humanization Delta, Producer Notes / Client-Safe Notes toggle, and Session Summary Card.
+- V3.2 added Error Boundary protection, producer/client report export modes, client-friendly wording, Copy Session Summary, and demo mode presets.
+- V3.3 added client action plan exports, revision checklist generation, Save Demo Preset as Project, and stronger client workflow support.
+- V3.4 added the About / Product Story panel, Demo Walkthrough mode, product summary exports, and How SoulFrame Works section.
+- V3.5 and V3.5.1 added public demo polish, Quick Start, demo launcher presets, public demo notice, use cases, launch checklist, demo stats, release notes, roadmap preview, share links, neutral demo naming, and public-demo stability cleanup.
 
 ---
 
@@ -398,9 +274,37 @@ The goal of V4.0 is to make SoulFrame more than a demo: it becomes a practical r
 - V4 Executive Summary
   - Summarizes the full V4 review in a clean producer-facing overview
 - V4 Export Completeness Checklist
+- V4.1 Backend/API Scaffold
+- V4.1 Analysis Engine Separation Plan
+- V4.1 Mock API Response Layer
+- V4.1 Frontend API Adapter
   - Confirms which V4 sections are included in the full report export
 - V4 sections added into full report exports
 - Improved SoulFrame from a public prototype into a deeper producer decision-support workflow
+
+---
+
+## V4.1 Features
+
+- V4.1 Backend/API Scaffold
+  - API-ready architecture notes
+  - Frontend/backend responsibility map
+  - Mock backend response shape
+- V4.1 Analysis Engine Separation Plan
+  - Audio Feature Engine
+  - Risk Interpretation Engine
+  - Humanization Engine
+  - Communication Engine
+- V4.1 Mock API Response Layer
+  - Mock analysis request and response
+  - Local-only risk profile and communication preview
+  - No real backend calls or audio uploads
+- V4.1 Frontend API Adapter
+  - Local browser source
+  - Mock API source
+  - Future backend source
+  - Adapter state and UI state handling
+- Preserves the current browser-safe demo while preparing for future server-side analysis
 
 ---
 
@@ -550,17 +454,19 @@ The goal of V4.0 is to make SoulFrame more than a demo: it becomes a practical r
 - Added V4 sections to full report exports
 - Improved SoulFrame from public prototype into deeper producer decision-support workflow
 
+### V4.1.0 — Backend/API Prototype Scaffold
+
+- Added V4.1 Backend/API Scaffold panel
+- Added frontend/backend responsibility map
+- Added V4.1 Analysis Engine Separation Plan
+- Added V4.1 Mock API Response Layer
+- Added V4.1 Frontend API Adapter
+- Added local browser, mock API, and future backend source mapping
+- Preserved browser-only demo behavior with no audio upload and no real backend calls
+- Prepared SoulFrame for future backend/API architecture without breaking the current public prototype
+
 ---
-
 ## Future Roadmap
-
-### V4.1 — Backend/API Prototype
-
-- Backend API integration for deeper analysis
-- More scalable project structure
-- Stored analysis results
-- Optional AI-assisted report logic
-- Improved file-processing pipeline
 
 ### V4.2 — Smarter Humanization Reports
 
@@ -594,6 +500,7 @@ SoulFrame is currently a public prototype.
 - No private client audio is included in the public repository
 - The tool supports producer judgement rather than replacing it
 - V4 analysis is a decision-support layer, not an automatic final verdict
+- V4.1 backend/API features are local mock architecture only, with no real server calls or audio uploads
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
