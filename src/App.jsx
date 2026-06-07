@@ -1391,6 +1391,9 @@ function runSoulFrameTests() {
     typeof V41BackendScaffoldPanel === "function" &&
     typeof V41AnalysisEngineSeparationPanel === "function" &&
     typeof V41MockApiResponsePanel === "function" &&
+    typeof V41FrontendApiAdapterPanel === "function" &&
+    buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
+    buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -2378,6 +2381,145 @@ function V41MockApiResponsePanel({ projectSession, reviewMode, draftAnalysis, hu
           <p className="mt-3 text-sm leading-6 text-zinc-400">
             {response.communication.clientSummary}
           </p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function buildV41FrontendApiAdapterConfig() {
+  return {
+    adapterVersion: "v4.1",
+    mode: "local-mock-adapter",
+    purpose: "Give the frontend one stable place to request analysis results, whether the source is local browser logic now or a backend later.",
+    sources: [
+      {
+        source: "local-browser",
+        status: "Active",
+        role: "Uses the current in-browser SoulFrame analysis and V4 intelligence layers.",
+      },
+      {
+        source: "mock-api",
+        status: "Active",
+        role: "Formats local analysis as if it came from an API response.",
+      },
+      {
+        source: "future-backend",
+        status: "Planned",
+        role: "Reserved for a real server/API once the contract is stable.",
+      },
+    ],
+    adapterSteps: [
+      "Receive project context and review mode from the app.",
+      "Read the current browser analysis result.",
+      "Normalize the result into a backend-style response shape.",
+      "Return safe loading, success, and waiting states to the UI.",
+      "Keep the backend optional until a real API exists.",
+    ],
+  };
+}
+
+function buildV41AdapterState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const request = buildV41MockAnalysisRequest(projectSession, reviewMode);
+  const response = buildV41MockAnalysisResponse(activeAnalysis);
+
+  return {
+    adapterVersion: "v4.1",
+    adapterMode: "local-mock-adapter",
+    isBackendConnected: false,
+    source: response.source,
+    status: response.status,
+    request,
+    response,
+    uiState: response.status === "complete" ? "ready" : "waiting-for-audio",
+    safeToDemo: true,
+    note: "The adapter is intentionally local-only. It prepares the frontend for a future backend without sending audio anywhere.",
+  };
+}
+
+function buildV41AdapterContractText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis) {
+  const config = buildV41FrontendApiAdapterConfig();
+  const adapter = buildV41AdapterState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const newline = String.fromCharCode(10);
+
+  return [
+    "SOULFRAME V4.1 FRONTEND API ADAPTER",
+    "",
+    `Adapter version: ${adapter.adapterVersion}`,
+    `Mode: ${adapter.adapterMode}`,
+    `Backend connected: ${adapter.isBackendConnected ? "yes" : "no"}`,
+    `UI state: ${adapter.uiState}`,
+    `Source: ${adapter.source}`,
+    "",
+    "Purpose:",
+    config.purpose,
+    "",
+    "Adapter steps:",
+    ...config.adapterSteps.map((step) => `- ${step}`),
+    "",
+    "Sources:",
+    ...config.sources.map((item) => `- ${item.source}: ${item.status} — ${item.role}`),
+    "",
+    adapter.note,
+  ].join(newline);
+}
+
+function V41FrontendApiAdapterPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const config = buildV41FrontendApiAdapterConfig();
+  const adapter = buildV41AdapterState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel title="V4.1 Frontend API Adapter" subtitle="A local adapter layer that prepares SoulFrame for future backend analysis while keeping the current demo browser-safe.">
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Adapter Mode</p>
+            <h3 className="mt-2 text-xl font-semibold text-zinc-100">{config.mode}</h3>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">{config.purpose}</p>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-4 text-right">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">UI State</p>
+            <p className="mt-2 text-lg font-semibold text-zinc-100">{adapter.uiState}</p>
+            <p className="mt-1 text-xs text-zinc-500">Backend connected: {adapter.isBackendConnected ? "Yes" : "No"}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {config.sources.map((item) => (
+          <article key={item.source} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.source}</p>
+              <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.role}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Adapter Steps</p>
+          <div className="mt-4 space-y-3">
+            {config.adapterSteps.map((step) => (
+              <div key={step} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-sm leading-6 text-zinc-300">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Adapter State</p>
+          <div className="mt-4 space-y-3 text-sm text-zinc-300">
+            <p><span className="text-zinc-500">Version:</span> {adapter.adapterVersion}</p>
+            <p><span className="text-zinc-500">Mode:</span> {adapter.adapterMode}</p>
+            <p><span className="text-zinc-500">Source:</span> {adapter.source}</p>
+            <p><span className="text-zinc-500">Status:</span> {adapter.status}</p>
+            <p><span className="text-zinc-500">Safe to demo:</span> {adapter.safeToDemo ? "Yes" : "No"}</p>
+            <p className="leading-6 text-zinc-500">{adapter.note}</p>
+          </div>
         </div>
       </div>
     </Panel>
@@ -3584,6 +3726,7 @@ export default function SoulFrameDraftReviewV2() {
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
