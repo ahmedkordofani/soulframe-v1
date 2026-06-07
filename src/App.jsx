@@ -1389,9 +1389,12 @@ function runSoulFrameTests() {
     typeof PublicRoadmapPreview === "function" &&
     typeof ShareSoulFramePanel === "function" &&
     typeof V41BackendScaffoldPanel === "function" &&
+    typeof V41AnalysisEngineSeparationPanel === "function" &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
+    buildV41EngineSeparationText().includes("SOULFRAME V4.1 ANALYSIS ENGINE SEPARATION PLAN") &&
+    buildV41EngineResultShape().engineVersion === "v4.1" &&
     buildSavedProjectsBackup([]).includes("saved-projects-backup") &&
     parseSavedProjectsBackup(buildSavedProjectsBackup([])).length === 0;
   return scoreTestsPassed && labelTestsPassed && reportTestsPassed && audioTestsPassed && comparisonTestsPassed && copyReportTestsPassed && exportReportTestsPassed && storageTestsPassed;
@@ -2021,6 +2024,171 @@ function V41BackendScaffoldPanel() {
             {plan.roadmap.map((item) => (
               <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
                 <p className="text-sm text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function buildV41AnalysisEngineSeparationPlan() {
+  return {
+    title: "V4.1 Analysis Engine Separation Plan",
+    status: "Planning layer",
+    goal: "Separate SoulFrame's analysis logic into clearer engine-style responsibilities before a real backend is introduced.",
+    currentState: [
+      "Audio analysis currently runs safely in the browser.",
+      "V4 producer intelligence is generated inside the frontend app.",
+      "Reports and client-safe summaries are produced locally.",
+      "No audio is uploaded to a server in this scaffold stage.",
+    ],
+    futureEngineLayers: [
+      {
+        layer: "Audio Feature Engine",
+        role: "Extract measurable audio facts from uploaded files.",
+        output: "Peak, RMS, dynamics, brightness proxy, texture movement, sample rate, and channel data.",
+      },
+      {
+        layer: "Risk Interpretation Engine",
+        role: "Translate audio features into review risks.",
+        output: "Harshness risk, mud risk, thinness risk, AI texture risk, and listening priority stack.",
+      },
+      {
+        layer: "Humanization Engine",
+        role: "Turn risk interpretation into producer guidance.",
+        output: "Humanization confidence, revision moves, readiness checklist, touchpoints, and final recommendation.",
+      },
+      {
+        layer: "Communication Engine",
+        role: "Convert producer reasoning into usable outputs.",
+        output: "Client-safe summary, client update draft, executive summary, and export-ready report sections.",
+      },
+    ],
+    separationSteps: [
+      "Keep browser-based analysis working as the default path.",
+      "Group analysis functions by responsibility instead of mixing all logic together.",
+      "Create a stable internal result shape that can later be returned by an API.",
+      "Make frontend panels read from normalized analysis objects rather than raw helper chains.",
+      "Only introduce a real backend after the frontend engine boundaries are clear.",
+    ],
+  };
+}
+
+function buildV41EngineResultShape() {
+  return {
+    engineVersion: "v4.1",
+    mode: "frontend-engine-scaffold",
+    audioFeatures: {
+      peak: "number",
+      rms: "number",
+      dynamicRange: "number",
+      brightnessScore: "number",
+      textureMovement: "number",
+      sampleRate: "number",
+      channels: "number",
+    },
+    riskProfile: {
+      harshnessRisk: "number",
+      mudRisk: "number",
+      thinnessRisk: "number",
+      aiTextureRisk: "number",
+    },
+    humanization: {
+      confidenceScore: "number",
+      confidenceLabel: "string",
+      listeningPriorityStack: "array",
+      revisionMoves: "array",
+      readinessChecklist: "array",
+      finalRecommendation: "object",
+    },
+    communication: {
+      clientSafeSummary: "array",
+      clientUpdateDraft: "array",
+      executiveSummary: "object",
+      reportSections: "array",
+    },
+  };
+}
+
+function buildV41EngineSeparationText() {
+  const plan = buildV41AnalysisEngineSeparationPlan();
+  const shape = buildV41EngineResultShape();
+  const newline = String.fromCharCode(10);
+
+  return [
+    "SOULFRAME V4.1 ANALYSIS ENGINE SEPARATION PLAN",
+    "",
+    `Goal: ${plan.goal}`,
+    "",
+    "Current state:",
+    ...plan.currentState.map((item) => `- ${item}`),
+    "",
+    "Future engine layers:",
+    ...plan.futureEngineLayers.map((item) => `- ${item.layer}: ${item.role} Output: ${item.output}`),
+    "",
+    "Separation steps:",
+    ...plan.separationSteps.map((item) => `- ${item}`),
+    "",
+    "Normalized result shape:",
+    `- engineVersion: ${shape.engineVersion}`,
+    `- mode: ${shape.mode}`,
+    "- audioFeatures",
+    "- riskProfile",
+    "- humanization",
+    "- communication",
+  ].join(newline);
+}
+
+function V41AnalysisEngineSeparationPanel() {
+  const plan = buildV41AnalysisEngineSeparationPlan();
+  const shape = buildV41EngineResultShape();
+
+  return (
+    <Panel title="V4.1 Analysis Engine Separation" subtitle="A planning layer for separating browser analysis, risk interpretation, humanization logic, and communication outputs.">
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{plan.status}</p>
+            <h3 className="mt-2 text-xl font-semibold text-zinc-100">{plan.title}</h3>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-400">{plan.goal}</p>
+          </div>
+          <span className="rounded-full border border-zinc-700 bg-zinc-950 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+            V4.1.2 Plan
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {plan.futureEngineLayers.map((item) => (
+          <article key={item.layer} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.layer}</p>
+            <h4 className="mt-3 font-semibold text-zinc-100">{item.role}</h4>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.output}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Separation Steps</p>
+          <div className="mt-4 space-y-3">
+            {plan.separationSteps.map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Normalized Engine Result Shape</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {Object.keys(shape).map((key) => (
+              <div key={key} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm font-semibold text-zinc-100">{key}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{typeof shape[key] === "string" ? shape[key] : "structured object"}</p>
               </div>
             ))}
           </div>
@@ -3228,6 +3396,7 @@ export default function SoulFrameDraftReviewV2() {
       <DemoReadinessBanner />
       <PublicDemoNotice />
       <V41BackendScaffoldPanel />
+      <V41AnalysisEngineSeparationPanel />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
