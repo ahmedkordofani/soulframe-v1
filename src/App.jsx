@@ -1395,6 +1395,7 @@ function runSoulFrameTests() {
     typeof V42SmarterReportRouterPanel === "function" &&
     typeof V42GenreRecommendationPanel === "function" &&
     typeof V42PathSpecificReportPanel === "function" &&
+    typeof V42ClientToneDraftPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1403,6 +1404,8 @@ function runSoulFrameTests() {
     buildV42GenreRecommendationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 GENRE-AWARE RECOMMENDATION LAYER") &&
     buildV42PathSpecificReportSections("Vocal Humanization Report", "R&B / Soul", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" })[0].title === "Vocal Realism" &&
     buildV42PathSpecificReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 PATH-SPECIFIC REPORT BUILDER") &&
+    buildV42ClientToneDrafts(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length === 3 &&
+    buildV42ClientToneDraftText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 CLIENT TONE DRAFT LAYER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3085,6 +3088,84 @@ function V42PathSpecificReportPanel({ projectSession, reviewMode, draftAnalysis,
   );
 }
 
+
+function buildV42ClientToneDrafts(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
+  const genreProfile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, analysis);
+  const reportSections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, analysis);
+  const mainMove = context.suggestedEditOrder[0] || "Shape the next pass around the clearest humanization priority.";
+  const sectionFocus = reportSections[0]?.title || "Humanization Focus";
+  const clientAngle = genreProfile.clientAngle;
+  const difficulty = context.difficulty.label;
+  const priority = context.priorityScore === null ? "not scored yet" : `${context.priorityScore}/100`;
+
+  return [
+    {
+      tone: "Professional",
+      bestFor: "Formal client updates, project records, and polished delivery notes.",
+      draft: `I reviewed the track through SoulFrame's ${context.reportPath.toLowerCase()} path. The current focus is ${sectionFocus.toLowerCase()}, with a ${difficulty.toLowerCase()} revision profile and a humanization priority of ${priority}. The next pass should focus on this first: ${mainMove} ${clientAngle}`,
+    },
+    {
+      tone: "Encouraging",
+      bestFor: "Clients who need reassurance that the track is moving in the right direction.",
+      draft: `The track has a clear direction, and the next revision can make it feel more natural and intentional. SoulFrame is routing this as a ${context.reportPath.toLowerCase()}, so the focus is on ${sectionFocus.toLowerCase()}. The main move now is: ${mainMove} ${clientAngle}`,
+    },
+    {
+      tone: "Direct",
+      bestFor: "Fast revision notes when the client mainly needs the next action.",
+      draft: `SoulFrame route: ${context.reportPath}. Main focus: ${sectionFocus}. Difficulty: ${difficulty}. Priority: ${priority}. Next move: ${mainMove}`,
+    },
+  ];
+}
+
+function buildV42ClientToneDraftText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const newline = String.fromCharCode(10);
+  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
+  const drafts = buildV42ClientToneDrafts(projectSession, reviewMode, analysis);
+
+  return [
+    "SOULFRAME V4.2 CLIENT TONE DRAFT LAYER",
+    "",
+    `Report path: ${context.reportPath}`,
+    `Genre focus: ${context.genreFocus}`,
+    "",
+    "TONE DRAFTS",
+    ...drafts.flatMap((item) => [
+      `${item.tone}`,
+      `Best for: ${item.bestFor}`,
+      item.draft,
+      "",
+    ]),
+  ].join(newline);
+}
+
+function V42ClientToneDraftPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const drafts = buildV42ClientToneDrafts(projectSession, reviewMode, activeAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Client Tone Drafts"
+      subtitle="Creates multiple client-facing versions of the same report direction so the producer can choose the right communication style."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.4: <span className="font-semibold text-zinc-100">Client Tone</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {drafts.map((item) => (
+          <article key={item.tone} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Tone Option</p>
+            <h3 className="mt-3 text-xl font-semibold text-zinc-100">{item.tone}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-500">{item.bestFor}</p>
+            <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Draft</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{item.draft}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4289,6 +4370,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42SmarterReportRouterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42GenreRecommendationPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42PathSpecificReportPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42ClientToneDraftPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4315,7 +4397,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.3 Report Paths</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.4 Client Tone</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
