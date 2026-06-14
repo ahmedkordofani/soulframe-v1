@@ -1393,10 +1393,13 @@ function runSoulFrameTests() {
     typeof V41MockApiResponsePanel === "function" &&
     typeof V41FrontendApiAdapterPanel === "function" &&
     typeof V42SmarterReportRouterPanel === "function" &&
+    typeof V42GenreRecommendationPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
     buildV42SmarterReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 SMARTER HUMANIZATION REPORT ROUTER") &&
+    buildV42GenreRecommendationProfile("R&B / Soul", "Vocal Humanization Report", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).title === "Vocal Humanization Focus" &&
+    buildV42GenreRecommendationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 GENRE-AWARE RECOMMENDATION LAYER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -2734,6 +2737,210 @@ function V42SmarterReportRouterPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV42GenreRecommendationProfile(genreFocus = "General music", reportPath = "General AI Draft Humanization Report", analysis = null) {
+  const normalizedGenre = normalizeV42Text(genreFocus);
+  const normalizedPath = normalizeV42Text(reportPath);
+  const isReady = analysis && analysis.status === "Ready";
+
+  const shared = {
+    emotionalTarget: "Keep the track intentional, less synthetic, and easier for a listener to trust.",
+    priority: isReady ? getHumanizationPriorityLabel(getHumanizationPriorityScore(analysis)) : "Waiting for analysis",
+  };
+
+  if (normalizedPath.includes("vocal")) {
+    return {
+      title: "Vocal Humanization Focus",
+      listeningLens: "Lead emotion, vocal texture, breath, phrasing, and how naturally the vocal sits in the track.",
+      musicalMoves: [
+        "Check whether the vocal feels emotionally present rather than pasted on top of the beat.",
+        "Soften harsh generated sibilance, metallic air, or brittle vocal edges before widening or brightening.",
+        "Add subtle automation so phrases breathe and important lines feel intentionally supported.",
+      ],
+      clientAngle: "Frame the revision around improving emotional delivery, vocal realism, and listener connection.",
+      ...shared,
+    };
+  }
+
+  if (normalizedPath.includes("instrumental")) {
+    return {
+      title: "Instrumental Humanization Focus",
+      listeningLens: "Arrangement movement, groove variation, texture depth, and whether the instrumental feels looped or performed.",
+      musicalMoves: [
+        "Look for repeated patterns that need small human variations across sections.",
+        "Shape transitions so the arrangement feels guided rather than generated in blocks.",
+        "Use texture cleanup only after the groove and section movement feel intentional.",
+      ],
+      clientAngle: "Frame the revision around making the instrumental feel more arranged, dynamic, and emotionally directed.",
+      ...shared,
+    };
+  }
+
+  if (normalizedPath.includes("before / after")) {
+    return {
+      title: "Before / After Humanization Focus",
+      listeningLens: "Whether the humanized edit improves emotion, clarity, movement, and client-readiness compared with the original draft.",
+      musicalMoves: [
+        "Compare the most obvious artificial texture in the original against the humanized version.",
+        "Check whether the edit improved feel without over-processing the track.",
+        "Use the report to explain what changed in simple client-safe language.",
+      ],
+      clientAngle: "Frame the revision around clear improvement from draft to humanized edit.",
+      ...shared,
+    };
+  }
+
+  if (normalizedGenre.includes("hip-hop") || normalizedGenre.includes("rap")) {
+    return {
+      title: "Hip-Hop / Rap Focus",
+      listeningLens: "Drum weight, vocal pocket, low-end confidence, space around the lead, and whether the beat feels alive.",
+      musicalMoves: [
+        "Prioritize the pocket between drums, bass, and vocal before polishing decorative textures.",
+        "Keep the low end controlled but not over-cleaned, because weight is part of the emotional impact.",
+        "Remove brittle AI shimmer that distracts from the groove or vocal presence.",
+      ],
+      clientAngle: "Frame the revision around stronger pocket, cleaner impact, and more natural energy.",
+      ...shared,
+    };
+  }
+
+  if (normalizedGenre.includes("r&b") || normalizedGenre.includes("soul")) {
+    return {
+      title: "R&B / Soul Focus",
+      listeningLens: "Warmth, vocal intimacy, groove softness, chord movement, and emotional smoothness.",
+      musicalMoves: [
+        "Protect warmth and intimacy before chasing brightness.",
+        "Smooth any plastic top-end that makes the vocal or keys feel less human.",
+        "Use subtle dynamic movement so the track breathes instead of feeling grid-locked.",
+      ],
+      clientAngle: "Frame the revision around warmth, emotion, and a more natural human feel.",
+      ...shared,
+    };
+  }
+
+  if (normalizedGenre.includes("electronic") || normalizedGenre.includes("edm")) {
+    return {
+      title: "Electronic / EDM Focus",
+      listeningLens: "Impact, controlled brightness, drop energy, transition design, and synthetic texture that still feels intentional.",
+      musicalMoves: [
+        "Keep bright energy exciting without letting harshness become fatiguing.",
+        "Make transitions, risers, and drops feel designed rather than randomly generated.",
+        "Tighten low-end impact after harshness and texture movement are under control.",
+      ],
+      clientAngle: "Frame the revision around energy, impact, and cleaner controlled intensity.",
+      ...shared,
+    };
+  }
+
+  if (normalizedGenre.includes("rock") || normalizedGenre.includes("guitar")) {
+    return {
+      title: "Rock / Guitar-led Focus",
+      listeningLens: "Performance feel, guitar realism, drum movement, section energy, and believable dynamics.",
+      musicalMoves: [
+        "Protect performance imperfections that make the track feel played rather than generated.",
+        "Check guitar tails, transitions, and drum fills for natural movement.",
+        "Avoid over-polishing if the genre needs grit, body, and human edge.",
+      ],
+      clientAngle: "Frame the revision around performance realism, energy, and natural dynamics.",
+      ...shared,
+    };
+  }
+
+  if (normalizedGenre.includes("cinematic") || normalizedGenre.includes("score")) {
+    return {
+      title: "Cinematic / Score Focus",
+      listeningLens: "Emotional arc, space, build, contrast, and whether sections support the intended scene or mood.",
+      musicalMoves: [
+        "Shape dynamics around emotional storytelling before detailed mix polish.",
+        "Check whether swells, impacts, and transitions feel placed with intention.",
+        "Clean artificial textures only where they distract from the scene or mood.",
+      ],
+      clientAngle: "Frame the revision around emotional arc, scene support, and controlled atmosphere.",
+      ...shared,
+    };
+  }
+
+  return {
+    title: "General Music Focus",
+    listeningLens: "Overall emotion, clarity, movement, texture realism, and whether the track feels intentionally produced.",
+    musicalMoves: [
+      "Start with the issue that most affects listener trust.",
+      "Balance technical cleanup with musical feel instead of treating the report like a checklist.",
+      "Use the final client note to explain the next pass in simple language.",
+    ],
+    clientAngle: "Frame the revision around making the track feel more natural, intentional, and ready for feedback.",
+    ...shared,
+  };
+}
+
+function buildV42GenreRecommendationText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const newline = String.fromCharCode(10);
+  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
+  const profile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, analysis);
+
+  return [
+    "SOULFRAME V4.2 GENRE-AWARE RECOMMENDATION LAYER",
+    "",
+    `Report path: ${context.reportPath}`,
+    `Genre focus: ${context.genreFocus}`,
+    `Recommendation profile: ${profile.title}`,
+    `Priority: ${profile.priority}`,
+    "",
+    "LISTENING LENS",
+    profile.listeningLens,
+    "",
+    "MUSICAL MOVES",
+    ...profile.musicalMoves.map((move, index) => `${index + 1}. ${move}`),
+    "",
+    "CLIENT ANGLE",
+    profile.clientAngle,
+  ].join(newline);
+}
+
+function V42GenreRecommendationPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const profile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, activeAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Genre-Aware Recommendations"
+      subtitle="Turns the report route into genre-sensitive listening priorities and practical production moves."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.2: <span className="font-semibold text-zinc-100">Genre Guidance</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Recommendation Profile</p>
+          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{profile.title}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{profile.listeningLens}</p>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Priority</p>
+            <p className="mt-2 font-semibold text-zinc-100">{profile.priority}</p>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Genre-Sensitive Moves</p>
+          <div className="mt-4 space-y-3">
+            {profile.musicalMoves.map((move, index) => (
+              <div key={move} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Move {index + 1}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{move}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Client Angle</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">{profile.clientAngle}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">Emotional target: {profile.emotionalTarget}</p>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -3936,6 +4143,7 @@ export default function SoulFrameDraftReviewV2() {
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42SmarterReportRouterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42GenreRecommendationPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -3962,7 +4170,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.1 Smarter Reports</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.2 Genre Guidance</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
