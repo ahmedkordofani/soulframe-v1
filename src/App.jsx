@@ -1400,6 +1400,7 @@ function runSoulFrameTests() {
     typeof V42SmartReportComposerPanel === "function" &&
     typeof V42ReportQualityGatePanel === "function" &&
     typeof V42ReportOutputPackPanel === "function" &&
+    typeof V42FinalReportHandoffPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1418,6 +1419,8 @@ function runSoulFrameTests() {
     buildV42ReportQualityGateText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT QUALITY GATE") &&
     buildV42ReportOutputPack(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Output Pack" &&
     buildV42ReportOutputPackText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT OUTPUT PACK") &&
+    buildV42FinalReportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Final Report Handoff" &&
+    buildV42FinalReportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 FINAL REPORT HANDOFF") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3686,6 +3689,139 @@ function V42ReportOutputPackPanel({ projectSession, reviewMode, draftAnalysis, h
   );
 }
 
+
+function buildV42FinalReportHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const handoffSteps = [
+    {
+      label: "Confirm producer direction",
+      done: qualityGate.score >= 60,
+      note: qualityGate.score >= 60
+        ? "The report direction is clear enough for producer review."
+        : "Tighten the intake, analysis, or report path before using this as the main direction.",
+    },
+    {
+      label: "Choose client tone",
+      done: outputPack.clientUpdate && outputPack.clientUpdate.length > 100,
+      note: "Use the client update if the wording matches the relationship and project context.",
+    },
+    {
+      label: "Check revision task order",
+      done: composedReport.producerPlan.length >= 3,
+      note: "The revision checklist should guide the next edit pass without overwhelming the workflow.",
+    },
+    {
+      label: "Review before/after clarity",
+      done: reviewMode !== "compare" || composedReport.beforeAfterLine.length > 80,
+      note: "Comparison projects should explain what improved without overselling the result.",
+    },
+    {
+      label: "Final human read-through",
+      done: false,
+      note: "SoulFrame can structure the report, but the producer still makes the final judgement before sending.",
+    },
+  ];
+
+  const readyCount = handoffSteps.filter((step) => step.done).length;
+  const handoffScore = Math.round((readyCount / handoffSteps.length) * 100);
+
+  let handoffStatus = "Needs producer review";
+  let finalRecommendation = "Review the output pack carefully before using it in a client message.";
+
+  if (handoffScore >= 80 && qualityGate.score >= 80) {
+    handoffStatus = "Ready for final read-through";
+    finalRecommendation = "The report is ready for a final human read-through before export or client sharing.";
+  } else if (handoffScore >= 60) {
+    handoffStatus = "Almost ready";
+    finalRecommendation = "The report has a strong structure, but one pass on wording and context would help.";
+  }
+
+  return {
+    version: "v4.2",
+    feature: "Final Report Handoff",
+    handoffScore,
+    handoffStatus,
+    finalRecommendation,
+    reportTitle: composedReport.reportTitle,
+    qualityGateLabel: qualityGate.label,
+    qualityGateScore: qualityGate.score,
+    handoffSteps,
+    finalOutputs: [
+      "Producer Brief",
+      "Client Update",
+      "Revision Checklist",
+    ],
+  };
+}
+
+function buildV42FinalReportHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 FINAL REPORT HANDOFF",
+    "",
+    `Report: ${handoff.reportTitle}`,
+    `Handoff score: ${handoff.handoffScore}/100`,
+    `Status: ${handoff.handoffStatus}`,
+    `Quality gate: ${handoff.qualityGateLabel} (${handoff.qualityGateScore}/100)`,
+    "",
+    "FINAL RECOMMENDATION",
+    handoff.finalRecommendation,
+    "",
+    "HANDOFF STEPS",
+    ...handoff.handoffSteps.map((step) => `- ${step.done ? "READY" : "REVIEW"}: ${step.label} — ${step.note}`),
+    "",
+    "FINAL OUTPUTS",
+    ...handoff.finalOutputs.map((item) => `- ${item}`),
+  ].join(newline);
+}
+
+function V42FinalReportHandoffPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Final Report Handoff"
+      subtitle="Turns the smarter report pack into a final producer handoff check before export, delivery, or client sharing."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.9: <span className="font-semibold text-zinc-100">Final Handoff</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Handoff Status</p>
+          <h3 className="mt-3 text-3xl font-semibold text-zinc-100">{handoff.handoffScore}/100</h3>
+          <p className="mt-3 text-lg font-semibold text-zinc-200">{handoff.handoffStatus}</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">{handoff.finalRecommendation}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Final Handoff Steps</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {handoff.handoffSteps.map((step) => (
+              <div key={step.label} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-sm font-semibold text-zinc-100">{step.done ? "READY" : "REVIEW"} · {step.label}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{step.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Final Outputs</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {handoff.finalOutputs.map((item) => (
+            <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4 text-sm font-semibold text-zinc-200">{item}</div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4895,6 +5031,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4921,7 +5058,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.8 Report Output Pack</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.9 Final Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
