@@ -1375,7 +1375,7 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V4.1 backend/API scaffold") &&
+    buildProductSummaryText().includes("V4.2 smarter humanization reports") &&
     typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
@@ -1392,8 +1392,11 @@ function runSoulFrameTests() {
     typeof V41AnalysisEngineSeparationPanel === "function" &&
     typeof V41MockApiResponsePanel === "function" &&
     typeof V41FrontendApiAdapterPanel === "function" &&
+    typeof V42SmarterReportRouterPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
+    buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
+    buildV42SmarterReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 SMARTER HUMANIZATION REPORT ROUTER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -1734,7 +1737,7 @@ function QuickStartGuide({ applyDemoPreset, setView }) {
 
 function DemoReadinessBanner() {
   const items = [
-    { label: "Prototype", value: "V4.1 backend/API scaffold" },
+    { label: "Prototype", value: "V4.2 smarter reports" },
     { label: "Analysis", value: "Browser-based audio review" },
     { label: "Demo", value: "Presets work without uploads" },
     { label: "Privacy", value: "Saved sessions stay local" },
@@ -2521,6 +2524,211 @@ function V41FrontendApiAdapterPanel({ projectSession, reviewMode, draftAnalysis,
             <p className="leading-6 text-zinc-500">{adapter.note}</p>
           </div>
         </div>
+      </div>
+    </Panel>
+  );
+}
+
+
+function normalizeV42Text(value) {
+  return String(value || "").toLowerCase();
+}
+
+function detectV42GenreFocus(projectSession = {}) {
+  const context = [
+    projectSession.projectName,
+    projectSession.trackType,
+    projectSession.clientGoal,
+    projectSession.mainConcern,
+    projectSession.producerNotes,
+  ].map(normalizeV42Text).join(" ");
+
+  if (context.includes("hip hop") || context.includes("hip-hop") || context.includes("trap") || context.includes("rap")) return "Hip-Hop / Rap";
+  if (context.includes("r&b") || context.includes("rnb") || context.includes("soul")) return "R&B / Soul";
+  if (context.includes("edm") || context.includes("dubstep") || context.includes("dance") || context.includes("electronic")) return "Electronic / EDM";
+  if (context.includes("rock") || context.includes("guitar") || context.includes("band")) return "Rock / Guitar-led";
+  if (context.includes("cinematic") || context.includes("score") || context.includes("film")) return "Cinematic / Score";
+  if (context.includes("lofi") || context.includes("lo-fi") || context.includes("ambient")) return "Lo-Fi / Ambient";
+  if (context.includes("pop")) return "Pop";
+  return "General music";
+}
+
+function detectV42ReportPath(projectSession = {}, reviewMode = "draft") {
+  const context = [
+    projectSession.projectName,
+    projectSession.trackType,
+    projectSession.clientGoal,
+    projectSession.mainConcern,
+    projectSession.producerNotes,
+  ].map(normalizeV42Text).join(" ");
+
+  if (reviewMode === "compare") return "Before / After Humanization Report";
+  if (context.includes("vocal") || context.includes("voice") || context.includes("singer") || context.includes("lyrics")) return "Vocal Humanization Report";
+  if (context.includes("instrumental") || context.includes("beat") || context.includes("score") || context.includes("loop")) return "Instrumental Humanization Report";
+  return "General AI Draft Humanization Report";
+}
+
+function buildV42SuggestedEditOrder(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return [
+      "Upload or load a demo track so SoulFrame can route the report around the active analysis.",
+      "Confirm the project type and main concern in Project Intake.",
+      "Generate the client update only after the analysis has a clear direction.",
+    ];
+  }
+
+  const moves = [];
+
+  if (analysis.clippingRisk === "Medium" || analysis.clippingRisk === "High") {
+    moves.push("Fix headroom and clipping risk first so every later decision is easier to judge.");
+  }
+
+  if (analysis.brightness === "Bright / Potentially Harsh") {
+    moves.push("Control brittle top-end and harsh shimmer before making emotional or mix-balance decisions.");
+  }
+
+  if (analysis.textureStability === "Unstable / Busy") {
+    moves.push("Smooth generated texture movement so the track feels less synthetic and more intentional.");
+  }
+
+  if (analysis.dynamics === "Compressed") {
+    moves.push("Restore movement and contrast so the performance feels less flat.");
+  }
+
+  moves.push("Check section transitions and add human variation where the arrangement feels too looped.");
+  moves.push("Convert the technical findings into a short client-safe revision note.");
+
+  return moves.slice(0, 5);
+}
+
+function estimateV42RevisionDifficulty(analysis) {
+  if (!analysis || analysis.status !== "Ready") {
+    return {
+      label: "Waiting for analysis",
+      note: "Difficulty will be estimated once an audio file or demo preset has active analysis data.",
+    };
+  }
+
+  const priorityScore = getHumanizationPriorityScore(analysis);
+
+  if (priorityScore >= 75) {
+    return {
+      label: "High difficulty",
+      note: "This needs a focused humanization pass before it should be presented as final.",
+    };
+  }
+
+  if (priorityScore >= 45) {
+    return {
+      label: "Medium difficulty",
+      note: "The draft is workable, but the report should guide one clear revision pass.",
+    };
+  }
+
+  return {
+    label: "Low difficulty",
+    note: "The draft is close enough for polish, client language, and final delivery checks.",
+  };
+}
+
+function buildV42ToneOptions(reportPath) {
+  return [
+    {
+      label: "Professional",
+      use: `Best for formal client updates connected to a ${reportPath.toLowerCase()}.`,
+    },
+    {
+      label: "Encouraging",
+      use: "Best when the client needs reassurance that the draft is moving in the right direction.",
+    },
+    {
+      label: "Direct",
+      use: "Best when the revision needs clear technical priorities without over-explaining.",
+    },
+  ];
+}
+
+function buildV42ReportContext(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const reportPath = detectV42ReportPath(projectSession, reviewMode);
+  const genreFocus = detectV42GenreFocus(projectSession);
+  const difficulty = estimateV42RevisionDifficulty(analysis);
+  const suggestedEditOrder = buildV42SuggestedEditOrder(analysis);
+  const priorityScore = analysis && analysis.status === "Ready" ? getHumanizationPriorityScore(analysis) : null;
+
+  return {
+    version: "v4.2",
+    feature: "Smarter Humanization Report Router",
+    reportPath,
+    genreFocus,
+    difficulty,
+    suggestedEditOrder,
+    toneOptions: buildV42ToneOptions(reportPath),
+    priorityScore,
+    clientSummaryFocus: suggestedEditOrder[suggestedEditOrder.length - 1],
+  };
+}
+
+function buildV42SmarterReportText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const newline = String.fromCharCode(10);
+  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
+
+  return [
+    "SOULFRAME V4.2 SMARTER HUMANIZATION REPORT ROUTER",
+    "",
+    `Version: ${context.version}`,
+    `Report path: ${context.reportPath}`,
+    `Genre focus: ${context.genreFocus}`,
+    `Revision difficulty: ${context.difficulty.label}`,
+    `Humanization priority: ${context.priorityScore === null ? "Waiting" : `${context.priorityScore}/100`}`,
+    "",
+    "SUGGESTED EDIT ORDER",
+    ...context.suggestedEditOrder.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "CLIENT TONE OPTIONS",
+    ...context.toneOptions.map((item) => `- ${item.label}: ${item.use}`),
+  ].join(newline);
+}
+
+function V42SmarterReportRouterPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Smarter Report Router"
+      subtitle="Routes the same analysis into a clearer report path before the app generates client-facing language."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.1: <span className="font-semibold text-zinc-100">Report Intelligence</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Report Path</p>
+          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{context.reportPath}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">Genre focus: {context.genreFocus}</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Revision difficulty: {context.difficulty.label}</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-500">{context.difficulty.note}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Suggested Edit Order</p>
+          <div className="mt-4 space-y-3">
+            {context.suggestedEditOrder.map((item, index) => (
+              <div key={item} className="flex gap-3 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-100">{index + 1}</span>
+                <p className="text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {context.toneOptions.map((tone) => (
+          <article key={tone.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Client Tone</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{tone.label}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{tone.use}</p>
+          </article>
+        ))}
       </div>
     </Panel>
   );
@@ -3358,7 +3566,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V4.1 backend/API scaffold prototype with browser-based audio analysis, V4 audio intelligence, mock API architecture, frontend adapter planning, and local project sessions.",
+    "V4.2 smarter humanization reports prototype with browser-based audio analysis, V4 audio intelligence, V4.1 backend/API scaffolding, report routing, and local project sessions.",
   ].join(newline);
 }
 
@@ -3479,7 +3687,7 @@ function AboutSoulFramePanel() {
         </article>
         <article className="rounded-3xl border border-zinc-800 bg-black p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V4.1 backend/API scaffold prototype</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V4.2 smarter humanization reports prototype</h3>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
             The app currently combines real browser-based audio inspection with V4 producer intelligence, report exports, client-safe summaries, revision planning, saved sessions, demo presets, mock API scaffolding, frontend adapter planning, and public demo readiness panels.
           </p>
@@ -3727,6 +3935,7 @@ export default function SoulFrameDraftReviewV2() {
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42SmarterReportRouterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -3753,7 +3962,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V3.5.0 Public Demo</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.1 Smarter Reports</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
