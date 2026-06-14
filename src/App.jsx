@@ -1394,12 +1394,15 @@ function runSoulFrameTests() {
     typeof V41FrontendApiAdapterPanel === "function" &&
     typeof V42SmarterReportRouterPanel === "function" &&
     typeof V42GenreRecommendationPanel === "function" &&
+    typeof V42PathSpecificReportPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
     buildV42SmarterReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 SMARTER HUMANIZATION REPORT ROUTER") &&
     buildV42GenreRecommendationProfile("R&B / Soul", "Vocal Humanization Report", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).title === "Vocal Humanization Focus" &&
     buildV42GenreRecommendationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 GENRE-AWARE RECOMMENDATION LAYER") &&
+    buildV42PathSpecificReportSections("Vocal Humanization Report", "R&B / Soul", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" })[0].title === "Vocal Realism" &&
+    buildV42PathSpecificReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 PATH-SPECIFIC REPORT BUILDER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -2941,6 +2944,147 @@ function V42GenreRecommendationPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV42PathSpecificReportSections(reportPath = "General AI Draft Humanization Report", genreFocus = "General music", analysis = null) {
+  const normalizedPath = normalizeV42Text(reportPath);
+  const isReady = analysis && analysis.status === "Ready";
+  const priorityLabel = isReady ? getHumanizationPriorityLabel(getHumanizationPriorityScore(analysis)) : "Waiting for analysis";
+  const artifactSentence = isReady ? buildArtifactClueSentence(analysis) : "SoulFrame is waiting for active analysis before writing path-specific artifact guidance.";
+
+  if (normalizedPath.includes("vocal")) {
+    return [
+      {
+        title: "Vocal Realism",
+        purpose: "Check whether the vocal feels emotionally present, believable, and connected to the track.",
+        reportFocus: "Mention vocal tone, phrase support, generated edges, breath, sibilance, and how naturally the vocal sits in the mix.",
+      },
+      {
+        title: "Emotional Delivery",
+        purpose: "Judge whether the performance feels like a human delivery rather than a rendered vocal layer.",
+        reportFocus: "Explain how the next pass should improve intimacy, expression, dynamic movement, and listener connection.",
+      },
+      {
+        title: "Technical Risk",
+        purpose: priorityLabel,
+        reportFocus: artifactSentence,
+      },
+    ];
+  }
+
+  if (normalizedPath.includes("instrumental")) {
+    return [
+      {
+        title: "Arrangement Movement",
+        purpose: "Check whether sections evolve naturally instead of feeling like repeated generated blocks.",
+        reportFocus: "Mention intro, verse, hook, breakdown, transitions, fills, automation, and musical variation.",
+      },
+      {
+        title: "Texture Depth",
+        purpose: "Judge whether the instrumental has enough depth, contrast, and believable production intention.",
+        reportFocus: "Explain how the next pass should shape groove, space, warmth, energy, and section contrast.",
+      },
+      {
+        title: "Technical Risk",
+        purpose: priorityLabel,
+        reportFocus: artifactSentence,
+      },
+    ];
+  }
+
+  if (normalizedPath.includes("before / after")) {
+    return [
+      {
+        title: "Improvement Check",
+        purpose: "Compare whether the humanized version clearly improves the original draft.",
+        reportFocus: "Mention what changed in feel, texture, clarity, movement, and client-readiness.",
+      },
+      {
+        title: "Remaining Gap",
+        purpose: "Identify what still needs attention after the humanized edit.",
+        reportFocus: "Explain whether the next pass should focus on polish, emotional movement, harshness control, or arrangement clarity.",
+      },
+      {
+        title: "Client Explanation",
+        purpose: priorityLabel,
+        reportFocus: "Use simple before/after language so the client understands the value of the humanized revision.",
+      },
+    ];
+  }
+
+  return [
+    {
+      title: "Overall Human Feel",
+      purpose: "Check whether the draft feels intentional, emotional, and trustworthy.",
+      reportFocus: `Use the ${genreFocus} context to explain the strongest humanization opportunity.`,
+    },
+    {
+      title: "Main Revision Direction",
+      purpose: "Turn the analysis into one clear next-pass direction.",
+      reportFocus: "Avoid overwhelming the client with every technical detail. Lead with the main fix.",
+    },
+    {
+      title: "Technical Risk",
+      purpose: priorityLabel,
+      reportFocus: artifactSentence,
+    },
+  ];
+}
+
+function buildV42PathSpecificReportText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
+  const newline = String.fromCharCode(10);
+  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
+  const sections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, analysis);
+
+  return [
+    "SOULFRAME V4.2 PATH-SPECIFIC REPORT BUILDER",
+    "",
+    `Report path: ${context.reportPath}`,
+    `Genre focus: ${context.genreFocus}`,
+    "",
+    "REPORT SECTIONS",
+    ...sections.flatMap((section, index) => [
+      `${index + 1}. ${section.title}`,
+      `Purpose: ${section.purpose}`,
+      `Report focus: ${section.reportFocus}`,
+      "",
+    ]),
+  ].join(newline);
+}
+
+function V42PathSpecificReportPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const sections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, activeAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Path-Specific Report Builder"
+      subtitle="Shapes the report differently depending on whether SoulFrame is reviewing vocals, instrumentals, before/after edits, or general AI drafts."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.3: <span className="font-semibold text-zinc-100">Report Paths</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Active Path</p>
+        <h3 className="mt-3 text-xl font-semibold text-zinc-100">{context.reportPath}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">SoulFrame will now structure the report around this path instead of treating every project the same way.</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {sections.map((section) => (
+          <article key={section.title} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Report Section</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{section.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{section.purpose}</p>
+            <div className="mt-4 rounded-2xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Report Focus</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{section.reportFocus}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4144,6 +4288,7 @@ export default function SoulFrameDraftReviewV2() {
       <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42SmarterReportRouterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42GenreRecommendationPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42PathSpecificReportPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4170,7 +4315,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.2 Genre Guidance</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.3 Report Paths</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
