@@ -1398,6 +1398,7 @@ function runSoulFrameTests() {
     typeof V42ClientToneDraftPanel === "function" &&
     typeof V42BeforeAfterExplanationPanel === "function" &&
     typeof V42SmartReportComposerPanel === "function" &&
+    typeof V42ReportQualityGatePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1412,6 +1413,8 @@ function runSoulFrameTests() {
     buildV42BeforeAfterExplanationText({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 BEFORE/AFTER EXPLANATION LAYER") &&
     buildV42SmartReportComposer(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Smart Report Composer" &&
     buildV42SmartReportComposerText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 SMART REPORT COMPOSER") &&
+    buildV42ReportQualityGate(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Quality Gate" &&
+    buildV42ReportQualityGateText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT QUALITY GATE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3448,6 +3451,138 @@ function V42SmartReportComposerPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV42ReportQualityGate(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+
+  const checks = [
+    {
+      label: "Analysis available",
+      passed: !!activeAnalysis && activeAnalysis.status === "Ready",
+      guidance: "Load a real audio file or demo preset before treating the report as final.",
+    },
+    {
+      label: "Report path selected",
+      passed: !!context.reportPath && context.reportPath !== "General AI Draft Humanization Report",
+      guidance: "Add clearer project intake details if the report path is still too general.",
+    },
+    {
+      label: "Genre focus detected",
+      passed: !!context.genreFocus && context.genreFocus !== "General music",
+      guidance: "Add genre language in Project Intake if the report needs more musical context.",
+    },
+    {
+      label: "Producer plan is focused",
+      passed: composedReport.producerPlan.length >= 3,
+      guidance: "The producer plan should include at least three usable revision priorities.",
+    },
+    {
+      label: "Client summary is ready",
+      passed: composedReport.clientReadySummary && composedReport.clientReadySummary.length > 120,
+      guidance: "The client summary should be clear enough to send without heavy rewriting.",
+    },
+    {
+      label: "Before/after explanation handled",
+      passed: reviewMode !== "compare" || beforeAfter.improvementLabel !== "Waiting",
+      guidance: "For comparison reports, make sure both original and humanized versions are available.",
+    },
+  ];
+
+  const passedCount = checks.filter((check) => check.passed).length;
+  const score = Math.round((passedCount / checks.length) * 100);
+
+  let label = "Needs setup";
+  let recommendation = "Complete the missing setup steps before presenting this as a finished SoulFrame report.";
+
+  if (score >= 85) {
+    label = "Client-ready";
+    recommendation = "The report is structured enough to share after a final producer read-through.";
+  } else if (score >= 60) {
+    label = "Producer-ready";
+    recommendation = "The report is useful internally, but one focused pass would make the client-facing version stronger.";
+  } else if (score >= 35) {
+    label = "Draft report";
+    recommendation = "The report has a direction, but it still needs better intake, analysis, or client wording.";
+  }
+
+  return {
+    version: "v4.2",
+    feature: "Report Quality Gate",
+    score,
+    label,
+    recommendation,
+    passedCount,
+    totalChecks: checks.length,
+    checks,
+    missingItems: checks.filter((check) => !check.passed).map((check) => check.guidance),
+  };
+}
+
+function buildV42ReportQualityGateText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const gate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 REPORT QUALITY GATE",
+    "",
+    `Score: ${gate.score}/100`,
+    `Status: ${gate.label}`,
+    `Passed: ${gate.passedCount}/${gate.totalChecks}`,
+    "",
+    "RECOMMENDATION",
+    gate.recommendation,
+    "",
+    "CHECKS",
+    ...gate.checks.map((check) => `- ${check.passed ? "PASS" : "REVIEW"}: ${check.label}`),
+    "",
+    "MISSING / REVIEW ITEMS",
+    ...(gate.missingItems.length ? gate.missingItems.map((item) => `- ${item}`) : ["- No major missing items detected."]),
+  ].join(newline);
+}
+
+function V42ReportQualityGatePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const gate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Report Quality Gate"
+      subtitle="Checks whether the smarter humanization report is ready for producer review, client sharing, or another setup pass."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.7: <span className="font-semibold text-zinc-100">Quality Gate</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Report Readiness</p>
+          <h3 className="mt-3 text-3xl font-semibold text-zinc-100">{gate.score}/100</h3>
+          <p className="mt-3 text-lg font-semibold text-zinc-200">{gate.label}</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">{gate.recommendation}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Quality Checks</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {gate.checks.map((check) => (
+              <div key={check.label} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-sm font-semibold text-zinc-100">{check.passed ? "PASS" : "REVIEW"} · {check.label}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{check.guidance}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Next Action</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">
+          {gate.missingItems.length ? gate.missingItems[0] : "Do a final producer read-through, then use the composed client summary as the clean report direction."}
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4655,6 +4790,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42ClientToneDraftPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4681,7 +4817,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.6 Report Composer</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.7 Quality Gate</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
