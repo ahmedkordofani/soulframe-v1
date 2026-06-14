@@ -38,6 +38,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 16. Provide share links and footer links to the live demo, GitHub, and ChordOfAnnie
 17. Use V4 audio intelligence to turn browser-based analysis into producer priorities, humanization confidence, revision moves, client-safe summaries, and final recommendations
 18. Prepare V4.1 backend/API architecture using a mock API layer and frontend adapter without uploading audio or requiring a live server
+19. Use V4.2 smarter humanization reports to route projects by genre, report path, client tone, before/after clarity, output pack, quality gate, and final handoff
 
 ---
 
@@ -184,6 +185,17 @@ SoulFrame is built around a practical AI-humanization workflow:
 - V4.1 Analysis Engine Separation Plan
 - V4.1 Mock API Response Layer
 - V4.1 Frontend API Adapter
+- V4.2 Smarter Report Router
+- V4.2 Genre-Aware Recommendations
+- V4.2 Path-Specific Report Builder
+- V4.2 Client Tone Drafts
+- V4.2 Before/After Explanation Layer
+- V4.2 Smart Report Composer
+- V4.2 Report Quality Gate
+- V4.2 Report Output Pack
+- V4.2 Final Report Handoff
+- V4.2 Report Export Manifest
+- V4.2 Report Control Center
 
 ---
 
@@ -214,13 +226,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V4.1.0: Backend/API Prototype Scaffold**
+**V4.2.0: Smarter Humanization Reports**
 
-SoulFrame V4.1 prepares the project for future backend/API integration while preserving the current browser-based public demo.
+SoulFrame V4.2 improves the way reports are structured, routed, explained, and prepared for producer or client use.
 
-This release adds architecture scaffolding, analysis-engine separation planning, a mock API response layer, and a frontend API adapter. These features make the app more structured and backend-ready without uploading audio, requiring authentication, or depending on a live server.
+This release adds smarter report routing, genre-aware recommendations, vocal/instrumental/before-after report paths, client tone drafts, clearer before/after explanations, a smart report composer, report quality gate, output pack, final handoff, export manifest, and report control center.
 
-The goal of V4.1 is to create a safe bridge between the current frontend-only prototype and a future scalable backend architecture.
+The goal of V4.2 is to make SoulFrame's analysis easier to turn into practical production decisions, cleaner client updates, and more usable report outputs.
 
 ---
 
@@ -278,6 +290,17 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - V4.1 Analysis Engine Separation Plan
 - V4.1 Mock API Response Layer
 - V4.1 Frontend API Adapter
+- V4.2 Smarter Report Router
+- V4.2 Genre-Aware Recommendations
+- V4.2 Path-Specific Report Builder
+- V4.2 Client Tone Drafts
+- V4.2 Before/After Explanation Layer
+- V4.2 Smart Report Composer
+- V4.2 Report Quality Gate
+- V4.2 Report Output Pack
+- V4.2 Final Report Handoff
+- V4.2 Report Export Manifest
+- V4.2 Report Control Center
   - Confirms which V4 sections are included in the full report export
 - V4 sections added into full report exports
 - Improved SoulFrame from a public prototype into a deeper producer decision-support workflow
@@ -300,11 +323,52 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
   - Local-only risk profile and communication preview
   - No real backend calls or audio uploads
 - V4.1 Frontend API Adapter
+- V4.2 Smarter Report Router
+- V4.2 Genre-Aware Recommendations
+- V4.2 Path-Specific Report Builder
+- V4.2 Client Tone Drafts
+- V4.2 Before/After Explanation Layer
+- V4.2 Smart Report Composer
+- V4.2 Report Quality Gate
+- V4.2 Report Output Pack
+- V4.2 Final Report Handoff
+- V4.2 Report Export Manifest
+- V4.2 Report Control Center
   - Local browser source
   - Mock API source
   - Future backend source
   - Adapter state and UI state handling
 - Preserves the current browser-safe demo while preparing for future server-side analysis
+
+---
+
+---
+
+## V4.2 Features
+
+- V4.2 Smarter Report Router
+  - Detects report path, genre focus, revision difficulty, suggested edit order, and client tone options
+- V4.2 Genre-Aware Recommendations
+  - Adds musical listening lenses and production moves for vocal, instrumental, before/after, and genre-specific workflows
+- V4.2 Path-Specific Report Builder
+  - Structures reports differently for Vocal, Instrumental, Before / After, and General AI Draft reviews
+- V4.2 Client Tone Drafts
+  - Generates Professional, Encouraging, and Direct client-facing update options
+- V4.2 Before/After Explanation Layer
+  - Explains whether a humanized edit improved, stayed similar, or needs another pass
+- V4.2 Smart Report Composer
+  - Combines report route, genre guidance, path-specific sections, client tone, and before/after clarity into one report preview
+- V4.2 Report Quality Gate
+  - Scores report readiness and labels outputs as Needs Setup, Draft Report, Producer-Ready, or Client-Ready
+- V4.2 Report Output Pack
+  - Packages Producer Brief, Client Update, and Revision Checklist outputs
+- V4.2 Final Report Handoff
+  - Checks producer direction, client tone, revision task order, before/after clarity, and final human read-through
+- V4.2 Report Export Manifest
+  - Maps report outputs into export-ready deliverables with suggested filenames
+- V4.2 Report Control Center
+  - Condenses route, quality gate, handoff, export readiness, warnings, and next move into one status view
+- Preserves the browser-safe public demo while making the report system more practical, focused, and client-ready
 
 ---
 
@@ -466,19 +530,30 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - Prepared SoulFrame for future backend/API architecture without breaking the current public prototype
 
 ---
+
+### V4.2.0 — Smarter Humanization Reports
+
+- Added V4.2 Smarter Report Router
+- Added genre-aware recommendation logic
+- Added path-specific report structures for Vocal, Instrumental, Before / After, and General AI Draft reviews
+- Added Professional, Encouraging, and Direct client tone drafts
+- Added clearer before/after explanation logic
+- Added Smart Report Composer
+- Added Report Quality Gate
+- Added Report Output Pack
+- Added Final Report Handoff
+- Added Report Export Manifest
+- Added Report Control Center
+- Improved SoulFrame's report workflow from analysis output into clearer producer/client-ready guidance
+- Preserved browser-only demo behavior with no audio upload to a server and no real backend calls
+
+---
 ## Future Roadmap
-
-### V4.2 — Smarter Humanization Reports
-
-- Genre-aware recommendations
-- Vocal vs instrumental report paths
-- Client tone selector
-- Suggested edit order
-- Revision difficulty estimates
-- Clearer before/after explanation
 
 ### V5.0 — Public Beta Direction
 
+- Product UX simplification into a cleaner dashboard / tabs workflow
+- Reduced long-scroll layout for a more presentable app experience
 - Shareable report links
 - Exportable PDF reports
 - User accounts
@@ -501,6 +576,7 @@ SoulFrame is currently a public prototype.
 - The tool supports producer judgement rather than replacing it
 - V4 analysis is a decision-support layer, not an automatic final verdict
 - V4.1 backend/API features are local mock architecture only, with no real server calls or audio uploads
+- V4.2 report features are local frontend report intelligence only, with no real backend processing or server-side audio analysis
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
