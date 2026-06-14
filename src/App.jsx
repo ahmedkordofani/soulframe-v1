@@ -1397,6 +1397,7 @@ function runSoulFrameTests() {
     typeof V42PathSpecificReportPanel === "function" &&
     typeof V42ClientToneDraftPanel === "function" &&
     typeof V42BeforeAfterExplanationPanel === "function" &&
+    typeof V42SmartReportComposerPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1409,6 +1410,8 @@ function runSoulFrameTests() {
     buildV42ClientToneDraftText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 CLIENT TONE DRAFT LAYER") &&
     buildV42BeforeAfterExplanation({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).improvementLabel === "Improved" &&
     buildV42BeforeAfterExplanationText({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 BEFORE/AFTER EXPLANATION LAYER") &&
+    buildV42SmartReportComposer(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Smart Report Composer" &&
+    buildV42SmartReportComposerText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 SMART REPORT COMPOSER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3325,6 +3328,126 @@ function V42BeforeAfterExplanationPanel({ draftAnalysis, humanizedAnalysis }) {
   );
 }
 
+
+function buildV42SmartReportComposer(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const genreProfile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, activeAnalysis);
+  const reportSections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, activeAnalysis);
+  const toneDrafts = buildV42ClientToneDrafts(projectSession, reviewMode, activeAnalysis);
+  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+  const selectedTone = toneDrafts.find((item) => item.tone === "Professional") || toneDrafts[0];
+
+  const reportTitle = `${context.reportPath} — ${context.genreFocus}`;
+  const confidenceLine = context.priorityScore === null
+    ? "SoulFrame is waiting for active analysis before giving a final humanization priority."
+    : `Humanization priority is ${context.priorityScore}/100, with a ${context.difficulty.label.toLowerCase()} revision profile.`;
+
+  return {
+    version: "v4.2",
+    feature: "Smart Report Composer",
+    reportTitle,
+    reportPath: context.reportPath,
+    genreFocus: context.genreFocus,
+    confidenceLine,
+    executiveSummary: `${genreProfile.title}: ${genreProfile.listeningLens}`,
+    producerPlan: context.suggestedEditOrder.slice(0, 4),
+    reportSections,
+    clientReadySummary: selectedTone.draft,
+    beforeAfterLine: beforeAfter.clientSafeLine,
+    exportReadiness: [
+      activeAnalysis && activeAnalysis.status === "Ready" ? "Audio analysis available" : "Waiting for audio analysis",
+      context.reportPath ? "Report path selected" : "Report path waiting",
+      context.genreFocus ? "Genre focus selected" : "Genre focus waiting",
+      reportSections.length >= 3 ? "Path-specific sections ready" : "Report sections incomplete",
+      selectedTone?.draft ? "Client tone draft ready" : "Client tone draft waiting",
+    ],
+  };
+}
+
+function buildV42SmartReportComposerText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const report = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 SMART REPORT COMPOSER",
+    "",
+    `Title: ${report.reportTitle}`,
+    `Version: ${report.version}`,
+    `Path: ${report.reportPath}`,
+    `Genre: ${report.genreFocus}`,
+    "",
+    "EXECUTIVE SUMMARY",
+    report.executiveSummary,
+    "",
+    "CONFIDENCE LINE",
+    report.confidenceLine,
+    "",
+    "PRODUCER PLAN",
+    ...report.producerPlan.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "CLIENT-READY SUMMARY",
+    report.clientReadySummary,
+    "",
+    "BEFORE/AFTER LINE",
+    report.beforeAfterLine,
+    "",
+    "EXPORT READINESS",
+    ...report.exportReadiness.map((item) => `- ${item}`),
+  ].join(newline);
+}
+
+function V42SmartReportComposerPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const report = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Smart Report Composer"
+      subtitle="Combines the V4.2 report route, genre guidance, path-specific sections, client tone, and before/after explanation into one cleaner report preview."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.6: <span className="font-semibold text-zinc-100">Report Composer</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Composed Report</p>
+        <h3 className="mt-3 text-xl font-semibold text-zinc-100">{report.reportTitle}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{report.executiveSummary}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">{report.confidenceLine}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Producer Plan</p>
+          <div className="mt-4 space-y-3">
+            {report.producerPlan.map((item, index) => (
+              <div key={`${item}-${index}`} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Step {index + 1}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Client-Ready Summary</p>
+          <p className="mt-4 text-sm leading-6 text-zinc-300">{report.clientReadySummary}</p>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-black p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Before / After Line</p>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">{report.beforeAfterLine}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Export Readiness</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+          {report.exportReadiness.map((item) => (
+            <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">{item}</div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4531,6 +4654,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42PathSpecificReportPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ClientToneDraftPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4557,7 +4681,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.5 Before/After Clarity</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.6 Report Composer</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
