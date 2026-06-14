@@ -1396,6 +1396,7 @@ function runSoulFrameTests() {
     typeof V42GenreRecommendationPanel === "function" &&
     typeof V42PathSpecificReportPanel === "function" &&
     typeof V42ClientToneDraftPanel === "function" &&
+    typeof V42BeforeAfterExplanationPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1406,6 +1407,8 @@ function runSoulFrameTests() {
     buildV42PathSpecificReportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 PATH-SPECIFIC REPORT BUILDER") &&
     buildV42ClientToneDrafts(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).length === 3 &&
     buildV42ClientToneDraftText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 CLIENT TONE DRAFT LAYER") &&
+    buildV42BeforeAfterExplanation({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).improvementLabel === "Improved" &&
+    buildV42BeforeAfterExplanationText({ status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "Medium" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V4.2 BEFORE/AFTER EXPLANATION LAYER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3166,6 +3169,162 @@ function V42ClientToneDraftPanel({ projectSession, reviewMode, draftAnalysis, hu
   );
 }
 
+
+function buildV42BeforeAfterExplanation(draftAnalysis = null, humanizedAnalysis = null) {
+  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
+  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
+
+  if (!draftReady && !humanizedReady) {
+    return {
+      mode: "Waiting for comparison",
+      headline: "SoulFrame needs an original draft and a humanized edit before it can explain the before/after difference.",
+      improvementLabel: "Waiting",
+      priorityChange: "Not available yet",
+      mainExplanation: "Use Before / After Review mode when both versions are ready.",
+      producerFocus: [
+        "Upload or load the original AI draft.",
+        "Upload or load the humanized edit.",
+        "Use the comparison to explain what changed in simple client-safe language.",
+      ],
+      clientSafeLine: "I will compare the original draft with the humanized version once both versions are available.",
+    };
+  }
+
+  if (draftReady && !humanizedReady) {
+    const draftScore = getHumanizationPriorityScore(draftAnalysis);
+
+    return {
+      mode: "Draft-only explanation",
+      headline: "SoulFrame has the original draft, but it still needs the humanized edit for a true comparison.",
+      improvementLabel: "Comparison incomplete",
+      priorityChange: `Original draft humanization priority: ${draftScore}/100`,
+      mainExplanation: "The current report can explain what needs work, but it cannot yet prove what improved.",
+      producerFocus: buildV42SuggestedEditOrder(draftAnalysis).slice(0, 3),
+      clientSafeLine: "The draft has been reviewed, and the next step is to compare it against the humanized edit once that version is ready.",
+    };
+  }
+
+  if (!draftReady && humanizedReady) {
+    const humanizedScore = getHumanizationPriorityScore(humanizedAnalysis);
+
+    return {
+      mode: "Humanized-only explanation",
+      headline: "SoulFrame has the humanized version, but it still needs the original draft to explain the improvement clearly.",
+      improvementLabel: "Comparison incomplete",
+      priorityChange: `Humanized edit humanization priority: ${humanizedScore}/100`,
+      mainExplanation: "The current report can describe the edited version, but it cannot show what changed from the original.",
+      producerFocus: buildV42SuggestedEditOrder(humanizedAnalysis).slice(0, 3),
+      clientSafeLine: "The humanized version is ready for review, and the original draft can be added if a clearer before/after explanation is needed.",
+    };
+  }
+
+  const draftScore = getHumanizationPriorityScore(draftAnalysis);
+  const humanizedScore = getHumanizationPriorityScore(humanizedAnalysis);
+  const scoreChange = draftScore - humanizedScore;
+  const improved = scoreChange > 0;
+  const unchanged = scoreChange === 0;
+
+  const brightnessImproved = draftAnalysis.brightness === "Bright / Potentially Harsh" && humanizedAnalysis.brightness !== "Bright / Potentially Harsh";
+  const textureImproved = draftAnalysis.textureStability === "Unstable / Busy" && humanizedAnalysis.textureStability !== "Unstable / Busy";
+  const dynamicsImproved = draftAnalysis.dynamics === "Compressed" && humanizedAnalysis.dynamics !== "Compressed";
+  const clippingImproved = (draftAnalysis.clippingRisk === "Medium" || draftAnalysis.clippingRisk === "High") && humanizedAnalysis.clippingRisk === "Low";
+
+  const improvements = [
+    brightnessImproved ? "Top-end harshness appears more controlled in the humanized edit." : null,
+    textureImproved ? "Generated texture movement appears more stable and intentional." : null,
+    dynamicsImproved ? "Dynamic movement appears less compressed and more natural." : null,
+    clippingImproved ? "Headroom and clipping risk appear cleaner in the humanized edit." : null,
+  ].filter(Boolean);
+
+  if (improvements.length === 0) {
+    improvements.push(
+      improved
+        ? "The humanized edit shows a better overall priority score, but the producer should still confirm the musical feel by ear."
+        : "The difference is subtle, so the report should focus on what still needs attention rather than overstating the improvement."
+    );
+  }
+
+  return {
+    mode: "Before / After explanation",
+    headline: improved
+      ? "The humanized edit appears to reduce the main humanization risk."
+      : unchanged
+        ? "The humanized edit appears close to the original in measured humanization priority."
+        : "The humanized edit may still need another pass before it clearly improves the original draft.",
+    improvementLabel: improved ? "Improved" : unchanged ? "Similar" : "Needs another pass",
+    priorityChange: `Original: ${draftScore}/100 → Humanized: ${humanizedScore}/100`,
+    mainExplanation: improvements[0],
+    producerFocus: improvements,
+    clientSafeLine: improved
+      ? "The humanized version improves the main listening risks while keeping the explanation client-safe and easy to understand."
+      : "The comparison shows that another focused pass may be needed before presenting the edit as a clear improvement.",
+  };
+}
+
+function buildV42BeforeAfterExplanationText(draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const explanation = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 BEFORE/AFTER EXPLANATION LAYER",
+    "",
+    `Mode: ${explanation.mode}`,
+    `Result: ${explanation.improvementLabel}`,
+    `Priority change: ${explanation.priorityChange}`,
+    "",
+    "HEADLINE",
+    explanation.headline,
+    "",
+    "MAIN EXPLANATION",
+    explanation.mainExplanation,
+    "",
+    "PRODUCER FOCUS",
+    ...explanation.producerFocus.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "CLIENT-SAFE LINE",
+    explanation.clientSafeLine,
+  ].join(newline);
+}
+
+function V42BeforeAfterExplanationPanel({ draftAnalysis, humanizedAnalysis }) {
+  const explanation = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Before/After Explanation Layer"
+      subtitle="Explains what actually changed between the original AI draft and the humanized edit without overwhelming the client."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.5: <span className="font-semibold text-zinc-100">Before/After Clarity</span></div>}
+    >
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Comparison Result</p>
+          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{explanation.improvementLabel}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{explanation.priorityChange}</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">{explanation.headline}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Producer Explanation</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-300">{explanation.mainExplanation}</p>
+          <div className="mt-4 space-y-3">
+            {explanation.producerFocus.map((item, index) => (
+              <div key={`${item}-${index}`} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Point {index + 1}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Client-Safe Line</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">{explanation.clientSafeLine}</p>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -4371,6 +4530,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42GenreRecommendationPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42PathSpecificReportPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ClientToneDraftPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -4397,7 +4557,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.4 Client Tone</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.5 Before/After Clarity</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
