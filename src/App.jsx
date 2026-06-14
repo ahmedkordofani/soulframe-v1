@@ -1401,6 +1401,7 @@ function runSoulFrameTests() {
     typeof V42ReportQualityGatePanel === "function" &&
     typeof V42ReportOutputPackPanel === "function" &&
     typeof V42FinalReportHandoffPanel === "function" &&
+    typeof V42ReportExportManifestPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1421,6 +1422,8 @@ function runSoulFrameTests() {
     buildV42ReportOutputPackText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT OUTPUT PACK") &&
     buildV42FinalReportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Final Report Handoff" &&
     buildV42FinalReportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 FINAL REPORT HANDOFF") &&
+    buildV42ReportExportManifest(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Export Manifest" &&
+    buildV42ReportExportManifestText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT EXPORT MANIFEST") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3822,6 +3825,127 @@ function V42FinalReportHandoffPanel({ projectSession, reviewMode, draftAnalysis,
   );
 }
 
+
+function buildV42ReportExportManifest(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const safeProjectName = (projectSession.projectName || "SoulFrame Project").trim();
+  const timestamp = new Date().toISOString();
+
+  const manifestItems = [
+    {
+      fileLabel: "Producer Brief",
+      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_producer_brief_v4_2.txt`,
+      source: "V4.2 Report Output Pack",
+      ready: outputPack.producerBrief.length > 120,
+      purpose: "Internal production direction for the next humanization pass.",
+    },
+    {
+      fileLabel: "Client Update",
+      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_client_update_v4_2.txt`,
+      source: "V4.2 Client Tone Drafts",
+      ready: outputPack.clientUpdate.length > 100,
+      purpose: "Client-safe communication explaining the revision direction.",
+    },
+    {
+      fileLabel: "Revision Checklist",
+      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_revision_checklist_v4_2.txt`,
+      source: "V4.2 Suggested Edit Order",
+      ready: outputPack.revisionChecklist.length > 100,
+      purpose: "Practical task list before final polish or delivery.",
+    },
+    {
+      fileLabel: "Full Smart Report",
+      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_smart_report_v4_2.txt`,
+      source: "V4.2 Smart Report Composer",
+      ready: composedReport.exportReadiness.filter((item) => !item.toLowerCase().includes("waiting")).length >= 3,
+      purpose: "Complete structured summary of the active SoulFrame report.",
+    },
+  ];
+
+  const readyCount = manifestItems.filter((item) => item.ready).length;
+
+  return {
+    version: "v4.2",
+    feature: "Report Export Manifest",
+    projectName: safeProjectName,
+    createdAt: timestamp,
+    reportTitle: composedReport.reportTitle,
+    qualityGate: `${qualityGate.label} (${qualityGate.score}/100)`,
+    handoffStatus: `${handoff.handoffStatus} (${handoff.handoffScore}/100)`,
+    readyCount,
+    totalItems: manifestItems.length,
+    manifestItems,
+    exportRecommendation: readyCount === manifestItems.length
+      ? "All V4.2 report outputs are structured and ready for a final human read-through before export."
+      : "Some report outputs still need review before the export pack should be treated as complete.",
+  };
+}
+
+function buildV42ReportExportManifestText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 REPORT EXPORT MANIFEST",
+    "",
+    `Project: ${manifest.projectName}`,
+    `Report: ${manifest.reportTitle}`,
+    `Created: ${manifest.createdAt}`,
+    `Quality gate: ${manifest.qualityGate}`,
+    `Handoff status: ${manifest.handoffStatus}`,
+    `Ready outputs: ${manifest.readyCount}/${manifest.totalItems}`,
+    "",
+    "EXPORT RECOMMENDATION",
+    manifest.exportRecommendation,
+    "",
+    "MANIFEST ITEMS",
+    ...manifest.manifestItems.flatMap((item) => [
+      `- ${item.ready ? "READY" : "REVIEW"}: ${item.fileLabel}`,
+      `  Filename: ${item.suggestedFilename}`,
+      `  Source: ${item.source}`,
+      `  Purpose: ${item.purpose}`,
+    ]),
+  ].join(newline);
+}
+
+function V42ReportExportManifestPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Report Export Manifest"
+      subtitle="Maps the smarter report into clear export-ready deliverables so the producer knows exactly what files or notes to prepare."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.10: <span className="font-semibold text-zinc-100">Export Manifest</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Export Pack</p>
+        <h3 className="mt-3 text-xl font-semibold text-zinc-100">{manifest.reportTitle}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">Ready outputs: {manifest.readyCount}/{manifest.totalItems}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">{manifest.exportRecommendation}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {manifest.manifestItems.map((item) => (
+          <article key={item.fileLabel} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.ready ? "Ready" : "Review"}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{item.fileLabel}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.purpose}</p>
+            <div className="mt-4 rounded-2xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Suggested Filename</p>
+              <p className="mt-2 break-all text-xs leading-5 text-zinc-300">{item.suggestedFilename}</p>
+              <p className="mt-3 text-xs leading-5 text-zinc-500">Source: {item.source}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5032,6 +5156,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -5058,7 +5183,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.9 Final Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.10 Export Manifest</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
