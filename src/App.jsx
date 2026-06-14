@@ -1402,6 +1402,7 @@ function runSoulFrameTests() {
     typeof V42ReportOutputPackPanel === "function" &&
     typeof V42FinalReportHandoffPanel === "function" &&
     typeof V42ReportExportManifestPanel === "function" &&
+    typeof V42ReportControlCenterPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1424,6 +1425,8 @@ function runSoulFrameTests() {
     buildV42FinalReportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 FINAL REPORT HANDOFF") &&
     buildV42ReportExportManifest(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Export Manifest" &&
     buildV42ReportExportManifestText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT EXPORT MANIFEST") &&
+    buildV42ReportControlCenter(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Control Center" &&
+    buildV42ReportControlCenterText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT CONTROL CENTER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -3946,6 +3949,143 @@ function V42ReportExportManifestPanel({ projectSession, reviewMode, draftAnalysi
   );
 }
 
+
+function buildV42ReportControlCenter(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  let nextMove = "Load or analyze audio before using the report outputs.";
+  if (qualityGate.score >= 85 && handoff.handoffScore >= 80) {
+    nextMove = "Do a final human read-through, then use the client update or export pack.";
+  } else if (qualityGate.score >= 60) {
+    nextMove = "Use the producer brief internally, then tighten client wording before sharing.";
+  } else if (activeAnalysis && activeAnalysis.status === "Ready") {
+    nextMove = "Improve project intake details so SoulFrame can route the report more precisely.";
+  }
+
+  const recommendedOutput = qualityGate.score >= 80
+    ? "Client Update"
+    : qualityGate.score >= 60
+      ? "Producer Brief"
+      : "Revision Checklist";
+
+  const controlCards = [
+    {
+      label: "Report Route",
+      value: context.reportPath,
+      note: `Genre focus: ${context.genreFocus}`,
+    },
+    {
+      label: "Quality Gate",
+      value: `${qualityGate.score}/100`,
+      note: qualityGate.label,
+    },
+    {
+      label: "Handoff",
+      value: `${handoff.handoffScore}/100`,
+      note: handoff.handoffStatus,
+    },
+    {
+      label: "Exports Ready",
+      value: `${manifest.readyCount}/${manifest.totalItems}`,
+      note: manifest.exportRecommendation,
+    },
+  ];
+
+  const warnings = [
+    ...(qualityGate.missingItems || []),
+    ...(manifest.manifestItems || []).filter((item) => !item.ready).map((item) => `${item.fileLabel} still needs review before export.`),
+  ].slice(0, 4);
+
+  return {
+    version: "v4.2",
+    feature: "Report Control Center",
+    nextMove,
+    recommendedOutput,
+    reportPath: context.reportPath,
+    genreFocus: context.genreFocus,
+    controlCards,
+    warnings,
+    clientUpdatePreview: outputPack.clientUpdate,
+    statusLabel: qualityGate.score >= 85 ? "Ready for final review" : qualityGate.score >= 60 ? "Usable with producer review" : "Needs setup",
+  };
+}
+
+function buildV42ReportControlCenterText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const center = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V4.2 REPORT CONTROL CENTER",
+    "",
+    `Status: ${center.statusLabel}`,
+    `Report path: ${center.reportPath}`,
+    `Genre focus: ${center.genreFocus}`,
+    `Recommended output: ${center.recommendedOutput}`,
+    "",
+    "NEXT MOVE",
+    center.nextMove,
+    "",
+    "CONTROL CARDS",
+    ...center.controlCards.map((card) => `- ${card.label}: ${card.value} — ${card.note}`),
+    "",
+    "WARNINGS",
+    ...(center.warnings.length ? center.warnings.map((item) => `- ${item}`) : ["- No major warnings detected."]),
+  ].join(newline);
+}
+
+function V42ReportControlCenterPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const center = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V4.2 Report Control Center"
+      subtitle="Condenses the smarter report system into one practical status view: route, quality, handoff, exports, and next move."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V4.2.11: <span className="font-semibold text-zinc-100">Report Control</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Status</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{center.statusLabel}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">Recommended output: {center.recommendedOutput}</p>
+        <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Next Move</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-300">{center.nextMove}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {center.controlCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.note}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Review Warnings</p>
+          <div className="mt-4 space-y-3">
+            {(center.warnings.length ? center.warnings : ["No major warnings detected."]).map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm leading-6 text-zinc-300">{item}</div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Client Update Preview</p>
+          <p className="mt-4 text-sm leading-6 text-zinc-300">{center.clientUpdatePreview}</p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5157,6 +5297,7 @@ export default function SoulFrameDraftReviewV2() {
       <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <DemoUseCasesPanel />
       <PublicLaunchChecklist />
       <PublicDemoStats savedProjectsCount={savedProjects.length} />
@@ -5183,7 +5324,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.10 Export Manifest</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.11 Report Control</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
