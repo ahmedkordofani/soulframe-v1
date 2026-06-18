@@ -1409,6 +1409,7 @@ function runSoulFrameTests() {
     typeof V50TabbedWorkflowShellPanel === "function" &&
     typeof V50CleanDashboardPriorityPanel === "function" &&
     typeof V50AdvancedPanelCollapseStrategyPanel === "function" &&
+    typeof V50PublicBetaUxHandoffPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1445,6 +1446,8 @@ function runSoulFrameTests() {
     buildV50CleanDashboardPriorityText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 CLEAN DASHBOARD PRIORITY SUMMARY") &&
     buildV50AdvancedPanelCollapseStrategy(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Advanced Panel Collapse Strategy" &&
     buildV50AdvancedPanelCollapseText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 ADVANCED PANEL COLLAPSE STRATEGY") &&
+    buildV50PublicBetaUxHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta UX Handoff" &&
+    buildV50PublicBetaUxHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PUBLIC BETA UX HANDOFF") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4944,6 +4947,148 @@ function V50AdvancedPanelCollapseStrategyPanel({ projectSession, reviewMode, dra
   );
 }
 
+
+function buildV50PublicBetaUxHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const navigation = buildV50ProductNavigationBlueprint(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const progressive = buildV50ProgressiveDisclosureMap(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const tabbedShell = buildV50TabbedWorkflowShell(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const cleanSummary = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const collapseStrategy = buildV50AdvancedPanelCollapseStrategy(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const betaReadinessChecks = [
+    {
+      label: "Clear first screen",
+      ready: cleanSummary.priorityCards.length === 4,
+      note: "The product has a dashboard summary direction with a small number of priority cards.",
+    },
+    {
+      label: "Simple workflow path",
+      ready: navigation.simplifiedFlow.length >= 4,
+      note: "The main flow is defined as Dashboard, Analyze, Report, and Output.",
+    },
+    {
+      label: "Tabbed product shell",
+      ready: tabbedShell.tabs.length >= 5,
+      note: "The future layout can be shaped into Dashboard, Analyze, Report, Output, and Advanced.",
+    },
+    {
+      label: "Complexity hidden by default",
+      ready: progressive.collapsedByDefault.length >= 3 && collapseStrategy.advancedGroups.length >= 3,
+      note: "Advanced panels can be grouped and collapsed instead of shown as one long stack.",
+    },
+    {
+      label: "Actionable next move",
+      ready: Boolean(dashboard.mainRecommendation),
+      note: "The dashboard can lead with one practical next action.",
+    },
+    {
+      label: "Human-led final review",
+      ready: true,
+      note: "V5 keeps the producer as the final decision-maker before client sharing or export.",
+    },
+  ];
+
+  const readyCount = betaReadinessChecks.filter((check) => check.ready).length;
+  const readinessScore = Math.round((readyCount / betaReadinessChecks.length) * 100);
+
+  const finalUxDirection = [
+    "Keep the first screen calm and summary-led.",
+    "Move the long report stack into tabs or collapsible sections.",
+    "Show the recommended output before showing every technical panel.",
+    "Keep Advanced available for producers and developers, but not as the default user path.",
+    "Treat V5 as a product simplification milestone, not a feature-bloat milestone.",
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Public Beta UX Handoff",
+    readinessScore,
+    readyCount,
+    totalChecks: betaReadinessChecks.length,
+    status: readinessScore >= 85 ? "Ready for V5 release prep" : readinessScore >= 60 ? "Needs one UX cleanup pass" : "Needs more product structure",
+    betaReadinessChecks,
+    finalUxDirection,
+    recommendedNextMilestone: "V5.0 README update, release notes, merge, tag, and then pause before any real layout refactor.",
+    releasePositioning: "V5.0 turns SoulFrame from a feature-heavy prototype into a clearer product direction for public beta presentation.",
+  };
+}
+
+function buildV50PublicBetaUxHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV50PublicBetaUxHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 PUBLIC BETA UX HANDOFF",
+    "",
+    `Status: ${handoff.status}`,
+    `Readiness: ${handoff.readinessScore}/100`,
+    `Checks ready: ${handoff.readyCount}/${handoff.totalChecks}`,
+    "",
+    "RELEASE POSITIONING",
+    handoff.releasePositioning,
+    "",
+    "FINAL UX DIRECTION",
+    ...handoff.finalUxDirection.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "READINESS CHECKS",
+    ...handoff.betaReadinessChecks.map((check) => `- ${check.ready ? "READY" : "REVIEW"}: ${check.label} — ${check.note}`),
+    "",
+    "NEXT MILESTONE",
+    handoff.recommendedNextMilestone,
+  ].join(newline);
+}
+
+function V50PublicBetaUxHandoffPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const handoff = buildV50PublicBetaUxHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Public Beta UX Handoff"
+      subtitle="Wraps the V5 simplification direction into a release-ready product UX handoff before README, merge, tag, and release."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.7: <span className="font-semibold text-zinc-100">Beta UX Handoff</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V5 Release Readiness</p>
+        <h3 className="mt-3 text-3xl font-semibold text-zinc-100">{handoff.readinessScore}/100</h3>
+        <p className="mt-3 text-lg font-semibold text-zinc-200">{handoff.status}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">{handoff.releasePositioning}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Final UX Direction</p>
+          <div className="mt-4 space-y-3">
+            {handoff.finalUxDirection.map((item, index) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Direction {index + 1}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Beta Readiness Checks</p>
+          <div className="mt-4 space-y-3">
+            {handoff.betaReadinessChecks.map((check) => (
+              <div key={check.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm font-semibold text-zinc-100">{check.ready ? "READY" : "REVIEW"} · {check.label}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{check.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Recommended Next Milestone</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">{handoff.recommendedNextMilestone}</p>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -6147,6 +6292,7 @@ export default function SoulFrameDraftReviewV2() {
       <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50CleanDashboardPriorityPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V50PublicBetaUxHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -6188,7 +6334,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.6 Advanced Collapse</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.7 Beta UX Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
