@@ -39,6 +39,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 17. Use V4 audio intelligence to turn browser-based analysis into producer priorities, humanization confidence, revision moves, client-safe summaries, and final recommendations
 18. Prepare V4.1 backend/API architecture using a mock API layer and frontend adapter without uploading audio or requiring a live server
 19. Use V4.2 smarter humanization reports to route projects by genre, report path, client tone, before/after clarity, output pack, quality gate, and final handoff
+20. Use V5 product UX simplification to guide the app toward a cleaner dashboard, navigation, tabbed workflow, progressive layout, advanced collapse strategy, and public beta handoff
 
 ---
 
@@ -196,6 +197,13 @@ SoulFrame is built around a practical AI-humanization workflow:
 - V4.2 Final Report Handoff
 - V4.2 Report Export Manifest
 - V4.2 Report Control Center
+- V5 Product Dashboard Preview
+- V5 Product Navigation Blueprint
+- V5 Progressive Disclosure Layout
+- V5 Tabbed Workflow Shell
+- V5 Clean Dashboard Priority Summary
+- V5 Advanced Panel Collapse Strategy
+- V5 Public Beta UX Handoff
 
 ---
 
@@ -226,13 +234,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V4.2.0: Smarter Humanization Reports**
+**V5.0.0: Product UX Simplification / Public Beta Direction**
 
-SoulFrame V4.2 improves the way reports are structured, routed, explained, and prepared for producer or client use.
+SoulFrame V5.0 begins the transition from a feature-heavy prototype into a cleaner product experience.
 
-This release adds smarter report routing, genre-aware recommendations, vocal/instrumental/before-after report paths, client tone drafts, clearer before/after explanations, a smart report composer, report quality gate, output pack, final handoff, export manifest, and report control center.
+This release adds a product dashboard preview, navigation blueprint, progressive disclosure layout, tabbed workflow shell, clean dashboard priority summary, advanced panel collapse strategy, and public beta UX handoff.
 
-The goal of V4.2 is to make SoulFrame's analysis easier to turn into practical production decisions, cleaner client updates, and more usable report outputs.
+The goal of V5.0 is to keep SoulFrame's deeper intelligence intact while making the app feel simpler, calmer, easier to present, and more suitable for public beta direction.
 
 ---
 
@@ -286,21 +294,6 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - V4 Executive Summary
   - Summarizes the full V4 review in a clean producer-facing overview
 - V4 Export Completeness Checklist
-- V4.1 Backend/API Scaffold
-- V4.1 Analysis Engine Separation Plan
-- V4.1 Mock API Response Layer
-- V4.1 Frontend API Adapter
-- V4.2 Smarter Report Router
-- V4.2 Genre-Aware Recommendations
-- V4.2 Path-Specific Report Builder
-- V4.2 Client Tone Drafts
-- V4.2 Before/After Explanation Layer
-- V4.2 Smart Report Composer
-- V4.2 Report Quality Gate
-- V4.2 Report Output Pack
-- V4.2 Final Report Handoff
-- V4.2 Report Export Manifest
-- V4.2 Report Control Center
   - Confirms which V4 sections are included in the full report export
 - V4 sections added into full report exports
 - Improved SoulFrame from a public prototype into a deeper producer decision-support workflow
@@ -323,24 +316,11 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
   - Local-only risk profile and communication preview
   - No real backend calls or audio uploads
 - V4.1 Frontend API Adapter
-- V4.2 Smarter Report Router
-- V4.2 Genre-Aware Recommendations
-- V4.2 Path-Specific Report Builder
-- V4.2 Client Tone Drafts
-- V4.2 Before/After Explanation Layer
-- V4.2 Smart Report Composer
-- V4.2 Report Quality Gate
-- V4.2 Report Output Pack
-- V4.2 Final Report Handoff
-- V4.2 Report Export Manifest
-- V4.2 Report Control Center
   - Local browser source
   - Mock API source
   - Future backend source
   - Adapter state and UI state handling
 - Preserves the current browser-safe demo while preparing for future server-side analysis
-
----
 
 ---
 
@@ -369,6 +349,30 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - V4.2 Report Control Center
   - Condenses route, quality gate, handoff, export readiness, warnings, and next move into one status view
 - Preserves the browser-safe public demo while making the report system more practical, focused, and client-ready
+
+---
+
+---
+
+## V5.0 Features
+
+- V5 Product Dashboard Preview
+  - Introduces a cleaner dashboard direction near the top of the app
+  - Summarizes the workflow into Start Project, Analyze Audio, Review Report, and Prepare Output
+- V5 Product Navigation Blueprint
+  - Defines future app areas: Dashboard, Analyze, Report, Output, and Advanced
+  - Moves deeper technical systems out of the first-time user path
+- V5 Progressive Disclosure Layout
+  - Defines what should appear first, what should collapse, and when deeper intelligence should be revealed
+- V5 Tabbed Workflow Shell
+  - Maps SoulFrame into a future tab-style workflow while preserving the intelligence already built
+- V5 Clean Dashboard Priority Summary
+  - Condenses the product into clear priority cards for status, report path, quality, and handoff
+- V5 Advanced Panel Collapse Strategy
+  - Groups audio intelligence, report subsystems, backend/API planning, and developer/safety checks into advanced sections
+- V5 Public Beta UX Handoff
+  - Scores public beta UX readiness and defines the final V5 product simplification direction
+- Preserves all existing V4 intelligence while shifting the user experience toward a cleaner, calmer, and more presentable product layout
 
 ---
 
@@ -548,20 +552,49 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - Preserved browser-only demo behavior with no audio upload to a server and no real backend calls
 
 ---
+
+### V5.0.0 — Product UX Simplification / Public Beta Direction
+
+- Added V5 Product Dashboard Preview
+- Added V5 Product Navigation Blueprint
+- Added V5 Progressive Disclosure Layout
+- Added V5 Tabbed Workflow Shell
+- Added V5 Clean Dashboard Priority Summary
+- Added V5 Advanced Panel Collapse Strategy
+- Added V5 Public Beta UX Handoff
+- Defined a cleaner future app structure around Dashboard, Analyze, Report, Output, and Advanced areas
+- Established progressive disclosure rules to reduce long-scroll complexity
+- Grouped deeper technical systems into advanced sections while preserving their value
+- Positioned SoulFrame for a more presentable public beta direction
+- Preserved browser-only demo behavior with no server-side audio upload or real backend calls
+
+---
 ## Future Roadmap
 
-### V5.0 — Public Beta Direction
+### V5.1 — Real Layout Refactor
 
-- Product UX simplification into a cleaner dashboard / tabs workflow
-- Reduced long-scroll layout for a more presentable app experience
-- Shareable report links
-- Exportable PDF reports
-- User accounts
-- Cloud-based saved sessions
-- Upload history
-- Stronger branding polish
-- Pricing or waitlist direction
+- Convert V5 dashboard, navigation, and tab blueprint into the actual app layout
+- Reduce the current long-scroll interface
+- Move advanced technical panels behind collapsible sections or an Advanced tab
+- Keep the main workflow focused on upload, analysis, report, and output
+
+### V5.2 — Public Beta Polish
+
+- Stronger landing page presentation
+- Better sample/demo project flow
+- Clearer product copy and onboarding
+- Shareable report direction
+- Exportable PDF report direction
 - Case studies and public examples
+
+### V6.0 — Real Backend/API Implementation
+
+- Secure file upload pipeline
+- Server-side audio processing
+- Database-backed saved projects
+- User accounts
+- Cloud saved sessions and upload history
+- Shareable cloud report links
 
 ---
 
@@ -577,6 +610,7 @@ SoulFrame is currently a public prototype.
 - V4 analysis is a decision-support layer, not an automatic final verdict
 - V4.1 backend/API features are local mock architecture only, with no real server calls or audio uploads
 - V4.2 report features are local frontend report intelligence only, with no real backend processing or server-side audio analysis
+- V5 product UX features are product-structure previews and simplification planning layers, not a full layout refactor yet
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
