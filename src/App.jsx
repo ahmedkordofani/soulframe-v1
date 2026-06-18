@@ -1405,6 +1405,7 @@ function runSoulFrameTests() {
     typeof V42ReportControlCenterPanel === "function" &&
     typeof V50ProductDashboardPreviewPanel === "function" &&
     typeof V50ProductNavigationBlueprintPanel === "function" &&
+    typeof V50ProgressiveDisclosurePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1433,6 +1434,8 @@ function runSoulFrameTests() {
     buildV50ProductDashboardText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT DASHBOARD PREVIEW") &&
     buildV50ProductNavigationBlueprint(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Product Navigation Blueprint" &&
     buildV50ProductNavigationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT NAVIGATION BLUEPRINT") &&
+    buildV50ProgressiveDisclosureMap(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Progressive Disclosure Layout" &&
+    buildV50ProgressiveDisclosureText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PROGRESSIVE DISCLOSURE LAYOUT") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4342,6 +4345,168 @@ function V50ProductNavigationBlueprintPanel({ projectSession, reviewMode, draftA
   );
 }
 
+
+function buildV50ProgressiveDisclosureMap(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const navigation = buildV50ProductNavigationBlueprint(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const visibleFirst = [
+    {
+      label: "Project Status",
+      reason: "The user needs to know where they are before seeing technical detail.",
+      source: "V5 Dashboard",
+    },
+    {
+      label: "Next Move",
+      reason: "The app should lead with the single most useful action.",
+      source: dashboard.mainRecommendation,
+    },
+    {
+      label: "Recommended Output",
+      reason: "The user should know whether to use a Producer Brief, Client Update, or Revision Checklist.",
+      source: dashboard.recommendedOutput,
+    },
+    {
+      label: "Upload / Analyze",
+      reason: activeAnalysis && activeAnalysis.status === "Ready" ? "Analysis is ready, so this can become a compact status card." : "Audio is not ready, so upload guidance should stay visible.",
+      source: activeAnalysis && activeAnalysis.status === "Ready" ? "Ready" : "Waiting",
+    },
+  ];
+
+  const collapsedByDefault = [
+    {
+      label: "V4 Audio Intelligence Details",
+      reason: "Useful for producers, but too dense for the first screen.",
+    },
+    {
+      label: "V4.1 Backend/API Architecture",
+      reason: "Important for development, but not necessary for most product users.",
+    },
+    {
+      label: "V4.2 Report Subsystems",
+      reason: "Router, genre guidance, quality gate, manifest, and handoff should feed the dashboard instead of appearing as a long stack.",
+    },
+    {
+      label: "Internal Self-Tests",
+      reason: "Useful for confidence, but should sit inside an advanced/developer area.",
+    },
+  ];
+
+  const revealRules = [
+    {
+      trigger: "User wants detail",
+      behavior: "Open the relevant panel from the dashboard instead of forcing it into the main scroll.",
+    },
+    {
+      trigger: "Report quality is below 60",
+      behavior: "Reveal missing setup steps and quality warnings first.",
+    },
+    {
+      trigger: "Before / After mode is active",
+      behavior: "Reveal comparison explanation and client-safe before/after line.",
+    },
+    {
+      trigger: "Export is requested",
+      behavior: "Reveal output pack, export manifest, and final handoff only at the end of the workflow.",
+    },
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Progressive Disclosure Layout",
+    goal: "Reduce the long-scroll feeling by showing summary first and revealing deeper intelligence only when needed.",
+    recommendedLayout: navigation.simplifiedFlow,
+    qualityStatus: `${qualityGate.label} (${qualityGate.score}/100)`,
+    visibleFirst,
+    collapsedByDefault,
+    revealRules,
+    productPrinciple: "Do not delete the intelligence. Hide complexity until it helps the user.",
+  };
+}
+
+function buildV50ProgressiveDisclosureText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const map = buildV50ProgressiveDisclosureMap(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 PROGRESSIVE DISCLOSURE LAYOUT",
+    "",
+    `Goal: ${map.goal}`,
+    `Quality status: ${map.qualityStatus}`,
+    "",
+    "VISIBLE FIRST",
+    ...map.visibleFirst.map((item) => `- ${item.label}: ${item.reason}`),
+    "",
+    "COLLAPSED BY DEFAULT",
+    ...map.collapsedByDefault.map((item) => `- ${item.label}: ${item.reason}`),
+    "",
+    "REVEAL RULES",
+    ...map.revealRules.map((item) => `- ${item.trigger}: ${item.behavior}`),
+    "",
+    "PRODUCT PRINCIPLE",
+    map.productPrinciple,
+  ].join(newline);
+}
+
+function V50ProgressiveDisclosurePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const map = buildV50ProgressiveDisclosureMap(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Progressive Disclosure Layout"
+      subtitle="Defines what should appear first, what should collapse, and when deeper SoulFrame intelligence should be revealed."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.3: <span className="font-semibold text-zinc-100">Progressive Layout</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Principle</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{map.productPrinciple}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{map.goal}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Visible First</p>
+          <div className="mt-4 space-y-3">
+            {map.visibleFirst.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{item.reason}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-600">Source: {item.source}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Collapsed By Default</p>
+          <div className="mt-4 space-y-3">
+            {map.collapsedByDefault.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Reveal Rules</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+          {map.revealRules.map((rule) => (
+            <div key={rule.trigger} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+              <p className="text-sm font-semibold text-zinc-100">{rule.trigger}</p>
+              <p className="mt-2 text-xs leading-5 text-zinc-500">{rule.behavior}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5541,6 +5706,7 @@ export default function SoulFrameDraftReviewV2() {
       <PublicDemoNotice />
       <V50ProductDashboardPreviewPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -5582,7 +5748,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.2 Product Navigation</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.3 Progressive Layout</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
