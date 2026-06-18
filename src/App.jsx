@@ -1407,6 +1407,7 @@ function runSoulFrameTests() {
     typeof V50ProductNavigationBlueprintPanel === "function" &&
     typeof V50ProgressiveDisclosurePanel === "function" &&
     typeof V50TabbedWorkflowShellPanel === "function" &&
+    typeof V50CleanDashboardPriorityPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1439,6 +1440,8 @@ function runSoulFrameTests() {
     buildV50ProgressiveDisclosureText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PROGRESSIVE DISCLOSURE LAYOUT") &&
     buildV50TabbedWorkflowShell(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Tabbed Workflow Shell" &&
     buildV50TabbedWorkflowText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 TABBED WORKFLOW SHELL") &&
+    buildV50CleanDashboardPrioritySummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Clean Dashboard Priority Summary" &&
+    buildV50CleanDashboardPriorityText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 CLEAN DASHBOARD PRIORITY SUMMARY") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4651,6 +4654,133 @@ function V50TabbedWorkflowShellPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV50CleanDashboardPrioritySummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+
+  let mainStatus = "Waiting for audio";
+  if (activeAnalysis && activeAnalysis.status === "Ready" && qualityGate.score >= 85) {
+    mainStatus = "Client-ready after final read-through";
+  } else if (activeAnalysis && activeAnalysis.status === "Ready" && qualityGate.score >= 60) {
+    mainStatus = "Producer-ready";
+  } else if (activeAnalysis && activeAnalysis.status === "Ready") {
+    mainStatus = "Needs report setup";
+  }
+
+  const priorityCards = [
+    {
+      label: "Main Status",
+      value: mainStatus,
+      detail: reportControl.nextMove,
+    },
+    {
+      label: "Report Path",
+      value: context.reportPath,
+      detail: `Genre focus: ${context.genreFocus}`,
+    },
+    {
+      label: "Quality",
+      value: `${qualityGate.score}/100`,
+      detail: qualityGate.label,
+    },
+    {
+      label: "Handoff",
+      value: `${handoff.handoffScore}/100`,
+      detail: handoff.handoffStatus,
+    },
+  ];
+
+  const cleanSummaryLines = [
+    `Status: ${mainStatus}`,
+    `Next move: ${reportControl.nextMove}`,
+    `Recommended output: ${dashboard.recommendedOutput}`,
+    `Route: ${context.reportPath}`,
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Clean Dashboard Priority Summary",
+    headline: mainStatus,
+    subheadline: dashboard.headline,
+    nextMove: reportControl.nextMove,
+    recommendedOutput: dashboard.recommendedOutput,
+    priorityCards,
+    cleanSummaryLines,
+    displayRule: "The dashboard should show a small set of priority cards first, then let the user open deeper report sections only when needed.",
+  };
+}
+
+function buildV50CleanDashboardPriorityText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 CLEAN DASHBOARD PRIORITY SUMMARY",
+    "",
+    `Headline: ${summary.headline}`,
+    `Recommended output: ${summary.recommendedOutput}`,
+    "",
+    "CLEAN SUMMARY",
+    ...summary.cleanSummaryLines.map((line) => `- ${line}`),
+    "",
+    "PRIORITY CARDS",
+    ...summary.priorityCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "DISPLAY RULE",
+    summary.displayRule,
+  ].join(newline);
+}
+
+function V50CleanDashboardPriorityPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const summary = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Clean Dashboard Priority Summary"
+      subtitle="Condenses the app into a small set of high-value cards so the first screen feels calm, useful, and product-ready."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.5: <span className="font-semibold text-zinc-100">Clean Summary</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Dashboard Headline</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.nextMove}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.priorityCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Clean Summary Lines</p>
+          <div className="mt-4 space-y-3">
+            {summary.cleanSummaryLines.map((line) => (
+              <div key={line} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">{line}</div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Recommended Output</p>
+          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{summary.recommendedOutput}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.displayRule}</p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5852,6 +5982,7 @@ export default function SoulFrameDraftReviewV2() {
       <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V50CleanDashboardPriorityPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -5893,7 +6024,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.4 Tabbed Workflow</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.5 Clean Summary</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
