@@ -1404,6 +1404,7 @@ function runSoulFrameTests() {
     typeof V42ReportExportManifestPanel === "function" &&
     typeof V42ReportControlCenterPanel === "function" &&
     typeof V50ProductDashboardPreviewPanel === "function" &&
+    typeof V50ProductNavigationBlueprintPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1430,6 +1431,8 @@ function runSoulFrameTests() {
     buildV42ReportControlCenterText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT CONTROL CENTER") &&
     buildV50ProductDashboardSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Product Dashboard Preview" &&
     buildV50ProductDashboardText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT DASHBOARD PREVIEW") &&
+    buildV50ProductNavigationBlueprint(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Product Navigation Blueprint" &&
+    buildV50ProductNavigationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT NAVIGATION BLUEPRINT") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4212,6 +4215,133 @@ function V50ProductDashboardPreviewPanel({ projectSession, reviewMode, draftAnal
   );
 }
 
+
+function buildV50ProductNavigationBlueprint(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const navItems = [
+    {
+      label: "Dashboard",
+      purpose: "Show the simple project overview, next move, and recommended output.",
+      status: "Primary",
+      visibleByDefault: true,
+    },
+    {
+      label: "Analyze",
+      purpose: "Keep upload, waveform, metadata, and audio health checks in one focused area.",
+      status: activeAnalysis && activeAnalysis.status === "Ready" ? "Ready" : "Waiting",
+      visibleByDefault: true,
+    },
+    {
+      label: "Report",
+      purpose: "Group V4 and V4.2 intelligence into one smarter report workspace.",
+      status: reportControl.statusLabel,
+      visibleByDefault: true,
+    },
+    {
+      label: "Output",
+      purpose: "Place producer brief, client update, revision checklist, and export manifest together.",
+      status: dashboard.recommendedOutput,
+      visibleByDefault: true,
+    },
+    {
+      label: "Advanced",
+      purpose: "Move deeper technical panels, architecture notes, and internal checks out of the main scroll.",
+      status: "Collapsed",
+      visibleByDefault: false,
+    },
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Product Navigation Blueprint",
+    goal: "Turn the long prototype scroll into a calmer tab-style product structure.",
+    recommendedDefaultTab: "Dashboard",
+    navItems,
+    simplifiedFlow: navItems.filter((item) => item.visibleByDefault).map((item) => item.label),
+    advancedFlow: navItems.filter((item) => !item.visibleByDefault).map((item) => item.label),
+    productRule: "Show only what the user needs first. Keep deeper intelligence available, but not always visible.",
+  };
+}
+
+function buildV50ProductNavigationText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const blueprint = buildV50ProductNavigationBlueprint(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 PRODUCT NAVIGATION BLUEPRINT",
+    "",
+    `Goal: ${blueprint.goal}`,
+    `Default tab: ${blueprint.recommendedDefaultTab}`,
+    "",
+    "MAIN FLOW",
+    ...blueprint.simplifiedFlow.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "ADVANCED FLOW",
+    ...blueprint.advancedFlow.map((item) => `- ${item}`),
+    "",
+    "NAVIGATION ITEMS",
+    ...blueprint.navItems.map((item) => `- ${item.label}: ${item.purpose} Status: ${item.status}`),
+    "",
+    "PRODUCT RULE",
+    blueprint.productRule,
+  ].join(newline);
+}
+
+function V50ProductNavigationBlueprintPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const blueprint = buildV50ProductNavigationBlueprint(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Product Navigation Blueprint"
+      subtitle="Defines how SoulFrame can move from a long stacked prototype into a cleaner tabbed product experience."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.2: <span className="font-semibold text-zinc-100">Product Navigation</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Navigation Goal</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{blueprint.goal}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{blueprint.productRule}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {blueprint.navItems.map((item) => (
+          <article key={item.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.visibleByDefault ? "Main" : "Hidden First"}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{item.label}</h3>
+            <p className="mt-3 text-sm font-semibold text-zinc-300">{item.status}</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">{item.purpose}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Simplified Main Flow</p>
+          <div className="mt-4 space-y-3">
+            {blueprint.simplifiedFlow.map((item, index) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+                {index + 1}. {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Advanced Area</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">Technical details stay available, but move out of the first-time user path.</p>
+          <div className="mt-4 space-y-3">
+            {blueprint.advancedFlow.map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">{item}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5410,6 +5540,7 @@ export default function SoulFrameDraftReviewV2() {
       <DemoReadinessBanner />
       <PublicDemoNotice />
       <V50ProductDashboardPreviewPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -5451,7 +5582,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.1 Product Dashboard</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.2 Product Navigation</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
