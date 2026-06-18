@@ -1406,6 +1406,7 @@ function runSoulFrameTests() {
     typeof V50ProductDashboardPreviewPanel === "function" &&
     typeof V50ProductNavigationBlueprintPanel === "function" &&
     typeof V50ProgressiveDisclosurePanel === "function" &&
+    typeof V50TabbedWorkflowShellPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1436,6 +1437,8 @@ function runSoulFrameTests() {
     buildV50ProductNavigationText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT NAVIGATION BLUEPRINT") &&
     buildV50ProgressiveDisclosureMap(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Progressive Disclosure Layout" &&
     buildV50ProgressiveDisclosureText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PROGRESSIVE DISCLOSURE LAYOUT") &&
+    buildV50TabbedWorkflowShell(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Tabbed Workflow Shell" &&
+    buildV50TabbedWorkflowText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 TABBED WORKFLOW SHELL") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4507,6 +4510,147 @@ function V50ProgressiveDisclosurePanel({ projectSession, reviewMode, draftAnalys
   );
 }
 
+
+function buildV50TabbedWorkflowShell(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const navigation = buildV50ProductNavigationBlueprint(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const disclosure = buildV50ProgressiveDisclosureMap(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+
+  const tabs = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      role: "Default landing view",
+      summary: "Shows project status, next move, and recommended output.",
+      shouldShowFirst: true,
+      contentSource: "V5 dashboard summary",
+    },
+    {
+      id: "analyze",
+      label: "Analyze",
+      role: "Audio review workspace",
+      summary: activeAnalysis && activeAnalysis.status === "Ready"
+        ? "Audio analysis is ready and can be shown as compact cards."
+        : "Upload and demo guidance should remain visible until analysis is ready.",
+      shouldShowFirst: true,
+      contentSource: "Audio upload, metadata, waveform, health check, and V4 audio intelligence",
+    },
+    {
+      id: "report",
+      label: "Report",
+      role: "Humanization intelligence workspace",
+      summary: "Groups report route, genre guidance, path-specific sections, client tone, and report composer.",
+      shouldShowFirst: true,
+      contentSource: "V4.2 smarter report system",
+    },
+    {
+      id: "output",
+      label: "Output",
+      role: "Export and delivery workspace",
+      summary: `Prioritizes the ${dashboard.recommendedOutput} based on the current report state.`,
+      shouldShowFirst: true,
+      contentSource: "Output pack, handoff, export manifest, and client update",
+    },
+    {
+      id: "advanced",
+      label: "Advanced",
+      role: "Developer and technical detail workspace",
+      summary: "Keeps backend/API scaffold, internal checks, and deeper diagnostic panels available without dominating the user flow.",
+      shouldShowFirst: false,
+      contentSource: "V4.1 backend scaffold, internal tests, architecture notes, and technical panels",
+    },
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Tabbed Workflow Shell",
+    defaultTab: navigation.recommendedDefaultTab,
+    productGoal: "Convert the prototype into a tab-style workflow without removing the intelligence already built.",
+    dashboardHeadline: dashboard.headline,
+    disclosurePrinciple: disclosure.productPrinciple,
+    tabs,
+    firstUserPath: tabs.filter((tab) => tab.shouldShowFirst).map((tab) => tab.label),
+    hiddenUntilNeeded: tabs.filter((tab) => !tab.shouldShowFirst).map((tab) => tab.label),
+  };
+}
+
+function buildV50TabbedWorkflowText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const shell = buildV50TabbedWorkflowShell(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 TABBED WORKFLOW SHELL",
+    "",
+    `Default tab: ${shell.defaultTab}`,
+    `Product goal: ${shell.productGoal}`,
+    "",
+    "FIRST USER PATH",
+    ...shell.firstUserPath.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "HIDDEN UNTIL NEEDED",
+    ...shell.hiddenUntilNeeded.map((item) => `- ${item}`),
+    "",
+    "TABS",
+    ...shell.tabs.map((tab) => `- ${tab.label}: ${tab.role} — ${tab.summary}`),
+    "",
+    "DISCLOSURE PRINCIPLE",
+    shell.disclosurePrinciple,
+  ].join(newline);
+}
+
+function V50TabbedWorkflowShellPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const shell = buildV50TabbedWorkflowShell(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Tabbed Workflow Shell"
+      subtitle="Maps SoulFrame into a future tab-style product structure so users are guided through the workflow instead of scrolling through every system at once."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.4: <span className="font-semibold text-zinc-100">Tabbed Workflow</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Shell Goal</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{shell.productGoal}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{shell.dashboardHeadline}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {shell.tabs.map((tab) => (
+          <article key={tab.id} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{tab.shouldShowFirst ? "Main Tab" : "Advanced Tab"}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{tab.label}</h3>
+            <p className="mt-3 text-sm font-semibold text-zinc-300">{tab.role}</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">{tab.summary}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">First User Path</p>
+          <div className="mt-4 space-y-3">
+            {shell.firstUserPath.map((item, index) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+                {index + 1}. {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Hidden Until Needed</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{shell.disclosurePrinciple}</p>
+          <div className="mt-4 space-y-3">
+            {shell.hiddenUntilNeeded.map((item) => (
+              <div key={item} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">{item}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5707,6 +5851,7 @@ export default function SoulFrameDraftReviewV2() {
       <V50ProductDashboardPreviewPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+      <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -5748,7 +5893,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.3 Progressive Layout</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.4 Tabbed Workflow</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
