@@ -1403,6 +1403,7 @@ function runSoulFrameTests() {
     typeof V42FinalReportHandoffPanel === "function" &&
     typeof V42ReportExportManifestPanel === "function" &&
     typeof V42ReportControlCenterPanel === "function" &&
+    typeof V50ProductDashboardPreviewPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1427,6 +1428,8 @@ function runSoulFrameTests() {
     buildV42ReportExportManifestText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT EXPORT MANIFEST") &&
     buildV42ReportControlCenter(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Control Center" &&
     buildV42ReportControlCenterText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.2 REPORT CONTROL CENTER") &&
+    buildV50ProductDashboardSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Product Dashboard Preview" &&
+    buildV50ProductDashboardText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PRODUCT DASHBOARD PREVIEW") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -4086,6 +4089,129 @@ function V42ReportControlCenterPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV50ProductDashboardSummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const reportContext = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const smartReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const workflowSteps = [
+    {
+      label: "Start Project",
+      status: projectSession?.projectName ? "Ready" : "Needs intake",
+      note: projectSession?.projectName ? `Project: ${projectSession.projectName}` : "Add project name and client goal.",
+    },
+    {
+      label: "Analyze Audio",
+      status: activeAnalysis && activeAnalysis.status === "Ready" ? "Ready" : "Waiting",
+      note: activeAnalysis && activeAnalysis.status === "Ready" ? "Audio analysis is available." : "Upload audio or load a demo preset.",
+    },
+    {
+      label: "Review Report",
+      status: reportControl.statusLabel,
+      note: reportControl.nextMove,
+    },
+    {
+      label: "Prepare Output",
+      status: reportControl.recommendedOutput,
+      note: "Use the strongest output for the current project state.",
+    },
+  ];
+
+  return {
+    version: "v5.0",
+    feature: "Product Dashboard Preview",
+    headline: "Simple experience on top. Complex intelligence underneath.",
+    currentRoute: reportContext.reportPath,
+    currentGenre: reportContext.genreFocus,
+    mainRecommendation: reportControl.nextMove,
+    recommendedOutput: reportControl.recommendedOutput,
+    reportTitle: smartReport.reportTitle,
+    workflowSteps,
+    primaryActions: [
+      "Upload or choose a demo",
+      "Review the summary",
+      "Open details only when needed",
+      "Export the right client or producer output",
+    ],
+  };
+}
+
+function buildV50ProductDashboardText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.0 PRODUCT DASHBOARD PREVIEW",
+    "",
+    dashboard.headline,
+    "",
+    `Report: ${dashboard.reportTitle}`,
+    `Route: ${dashboard.currentRoute}`,
+    `Genre: ${dashboard.currentGenre}`,
+    `Recommended output: ${dashboard.recommendedOutput}`,
+    "",
+    "MAIN RECOMMENDATION",
+    dashboard.mainRecommendation,
+    "",
+    "WORKFLOW",
+    ...dashboard.workflowSteps.map((step, index) => `${index + 1}. ${step.label} — ${step.status}: ${step.note}`),
+    "",
+    "PRIMARY ACTIONS",
+    ...dashboard.primaryActions.map((action) => `- ${action}`),
+  ].join(newline);
+}
+
+function V50ProductDashboardPreviewPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const dashboard = buildV50ProductDashboardSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.0 Product Dashboard Preview"
+      subtitle="The first V5 step: stop presenting SoulFrame as one long technical scroll and start shaping it into a cleaner product dashboard."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.0.1: <span className="font-semibold text-zinc-100">Product Dashboard</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Direction</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{dashboard.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">V5 starts by turning the existing intelligence layers into a calmer workflow: start, analyze, review, prepare output.</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-4">
+        {dashboard.workflowSteps.map((step, index) => (
+          <article key={step.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Step {index + 1}</p>
+            <h3 className="mt-3 font-semibold text-zinc-100">{step.label}</h3>
+            <p className="mt-3 text-sm font-semibold text-zinc-300">{step.status}</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-500">{step.note}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Dashboard Summary</p>
+          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{dashboard.reportTitle}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">Route: {dashboard.currentRoute}</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Genre: {dashboard.currentGenre}</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Recommended output: {dashboard.recommendedOutput}</p>
+        </div>
+
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Next Move</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-300">{dashboard.mainRecommendation}</p>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {dashboard.primaryActions.map((action) => (
+              <div key={action} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">{action}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5283,6 +5409,7 @@ export default function SoulFrameDraftReviewV2() {
       <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
       <DemoReadinessBanner />
       <PublicDemoNotice />
+      <V50ProductDashboardPreviewPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
       <V41BackendScaffoldPanel />
       <V41AnalysisEngineSeparationPanel />
       <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -5324,7 +5451,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V4.2.11 Report Control</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.1 Product Dashboard</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
