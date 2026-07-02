@@ -1412,6 +1412,7 @@ function runSoulFrameTests() {
     typeof V50PublicBetaUxHandoffPanel === "function" &&
     typeof V51ProductWorkspace === "function" &&
     typeof V51FocusedWorkspaceHeader === "function" &&
+    typeof V51DashboardActionCardsPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1454,6 +1455,8 @@ function runSoulFrameTests() {
     buildV51DashboardShellText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD LAYOUT SHELL") &&
     buildV51WorkspaceHeaderState("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Workspace Header" &&
     buildV51WorkspaceHeaderText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED WORKSPACE HEADER") &&
+    buildV51DashboardActionCards(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Action Cards" &&
+    buildV51DashboardActionCardsText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD ACTION CARDS") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5186,7 +5189,7 @@ function V51ProductWorkspace({
   const [activeTab, setActiveTab] = useState(shell.defaultTab);
 
   const contentMap = {
-    dashboard: dashboardContent,
+    dashboard: typeof dashboardContent === "function" ? dashboardContent({ setActiveTab }) : dashboardContent,
     analyze: analyzeContent,
     report: reportContent,
     output: outputContent,
@@ -5319,6 +5322,112 @@ function V51FocusedWorkspaceHeader({ activeTab, projectSession, reviewMode, draf
         </div>
       </div>
     </div>
+  );
+}
+
+
+function buildV51DashboardActionCards(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const dashboard = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const cards = [
+    {
+      label: "Project",
+      value: projectSession?.projectName || "Untitled project",
+      detail: projectSession?.clientGoal || "Add a client goal to improve report routing.",
+      action: "Review intake",
+      targetTab: "analyze",
+    },
+    {
+      label: "Audio",
+      value: activeAnalysis && activeAnalysis.status === "Ready" ? "Analysis ready" : "Waiting for audio",
+      detail: activeAnalysis && activeAnalysis.status === "Ready" ? "SoulFrame can now summarize the analysis." : "Upload audio or load a demo preset.",
+      action: activeAnalysis && activeAnalysis.status === "Ready" ? "Open analysis" : "Add audio",
+      targetTab: "analyze",
+    },
+    {
+      label: "Report",
+      value: qualityGate.label,
+      detail: reportControl.nextMove,
+      action: "Open report",
+      targetTab: "report",
+    },
+    {
+      label: "Output",
+      value: dashboard.recommendedOutput,
+      detail: "Use the output workspace when the producer direction is clear.",
+      action: "Prepare output",
+      targetTab: "output",
+    },
+  ];
+
+  return {
+    version: "v5.1",
+    feature: "Dashboard Action Cards",
+    headline: dashboard.headline,
+    nextMove: reportControl.nextMove,
+    recommendedOutput: dashboard.recommendedOutput,
+    cards,
+    layoutChange: "The dashboard now leads with four practical action cards instead of stacking multiple full report panels on the first screen.",
+  };
+}
+
+function buildV51DashboardActionCardsText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 DASHBOARD ACTION CARDS",
+    "",
+    `Headline: ${summary.headline}`,
+    `Recommended output: ${summary.recommendedOutput}`,
+    "",
+    "LAYOUT CHANGE",
+    summary.layoutChange,
+    "",
+    "ACTION CARDS",
+    ...summary.cards.map((card) => `- ${card.label}: ${card.value} — ${card.action} -> ${card.targetTab}`),
+    "",
+    "NEXT MOVE",
+    summary.nextMove,
+  ].join(newline);
+}
+
+function V51DashboardActionCardsPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const summary = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.1 Dashboard Action Cards"
+      subtitle="Turns the Product dashboard into a practical first screen with clear next actions instead of a long stack of panels."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.3: <span className="font-semibold text-zinc-100">Action Cards</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Dashboard Focus</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.nextMove}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{summary.layoutChange}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.cards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 min-h-16 text-xs leading-5 text-zinc-500">{card.detail}</p>
+            <button
+              type="button"
+              onClick={() => setActiveTab(card.targetTab)}
+              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
+            >
+              {card.action}
+            </button>
+          </article>
+        ))}
+      </div>
+    </Panel>
   );
 }
 
@@ -6520,13 +6629,12 @@ export default function SoulFrameDraftReviewV2() {
       reviewMode={reviewMode}
       draftAnalysis={draftAudioAnalysis}
       humanizedAnalysis={humanizedAudioAnalysis}
-      dashboardContent={
+      dashboardContent={({ setActiveTab }) => (
         <div className="space-y-6">
+          <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
-          <V50CleanDashboardPriorityPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
         </div>
-      }
+      )}
       analyzeContent={
         <div className="space-y-6">
           <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
@@ -6538,6 +6646,7 @@ export default function SoulFrameDraftReviewV2() {
       }
       reportContent={
         <div className="space-y-6">
+          <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -6622,7 +6731,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.2 Workspace Header</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.3 Action Cards</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
