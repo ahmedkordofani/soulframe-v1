@@ -1413,6 +1413,7 @@ function runSoulFrameTests() {
     typeof V51ProductWorkspace === "function" &&
     typeof V51FocusedWorkspaceHeader === "function" &&
     typeof V51DashboardActionCardsPanel === "function" &&
+    typeof V51FocusedAnalyzeWorkspacePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1457,6 +1458,8 @@ function runSoulFrameTests() {
     buildV51WorkspaceHeaderText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED WORKSPACE HEADER") &&
     buildV51DashboardActionCards(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Action Cards" &&
     buildV51DashboardActionCardsText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD ACTION CARDS") &&
+    buildV51AnalyzeWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Analyze Workspace" &&
+    buildV51AnalyzeWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ANALYZE WORKSPACE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5190,10 +5193,10 @@ function V51ProductWorkspace({
 
   const contentMap = {
     dashboard: typeof dashboardContent === "function" ? dashboardContent({ setActiveTab }) : dashboardContent,
-    analyze: analyzeContent,
-    report: reportContent,
-    output: outputContent,
-    advanced: advancedContent,
+    analyze: typeof analyzeContent === "function" ? analyzeContent({ setActiveTab }) : analyzeContent,
+    report: typeof reportContent === "function" ? reportContent({ setActiveTab }) : reportContent,
+    output: typeof outputContent === "function" ? outputContent({ setActiveTab }) : outputContent,
+    advanced: typeof advancedContent === "function" ? advancedContent({ setActiveTab }) : advancedContent,
   };
 
   return (
@@ -5426,6 +5429,129 @@ function V51DashboardActionCardsPanel({ projectSession, reviewMode, draftAnalysi
             </button>
           </article>
         ))}
+      </div>
+    </Panel>
+  );
+}
+
+
+function buildV51AnalyzeWorkspaceSummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
+  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const uploadState = reviewMode === "compare"
+    ? draftReady && humanizedReady
+      ? "Both versions ready"
+      : draftReady || humanizedReady
+        ? "Comparison incomplete"
+        : "Waiting for both versions"
+    : draftReady
+      ? "Draft ready"
+      : "Waiting for draft";
+
+  const analysisCards = [
+    {
+      label: "Review Mode",
+      value: reviewMode === "compare" ? "Before / After" : "Draft Review",
+      detail: reviewMode === "compare" ? "Compare the AI draft against the humanized edit." : "Review one AI draft and prepare the next humanization direction.",
+    },
+    {
+      label: "Upload State",
+      value: uploadState,
+      detail: activeAnalysis && activeAnalysis.status === "Ready" ? "Analysis data is available for the active version." : "Upload audio or load a demo preset to activate analysis.",
+    },
+    {
+      label: "Report Route",
+      value: context.reportPath,
+      detail: `Genre focus: ${context.genreFocus}`,
+    },
+    {
+      label: "Quality Preview",
+      value: `${qualityGate.score}/100`,
+      detail: qualityGate.label,
+    },
+  ];
+
+  const nextAnalyzeAction = activeAnalysis && activeAnalysis.status === "Ready"
+    ? "Review the analysis cards, then move to the Report tab for the smarter humanization direction."
+    : "Use Project Intake and Upload Setup below to load a track or demo preset.";
+
+  return {
+    version: "v5.1",
+    feature: "Focused Analyze Workspace",
+    uploadState,
+    nextAnalyzeAction,
+    analysisCards,
+    layoutChange: "The Analyze tab now starts with a compact status summary before showing intake, upload, waveform, and analysis controls.",
+  };
+}
+
+function buildV51AnalyzeWorkspaceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV51AnalyzeWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 FOCUSED ANALYZE WORKSPACE",
+    "",
+    `Upload state: ${summary.uploadState}`,
+    "",
+    "NEXT ANALYZE ACTION",
+    summary.nextAnalyzeAction,
+    "",
+    "ANALYZE CARDS",
+    ...summary.analysisCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "LAYOUT CHANGE",
+    summary.layoutChange,
+  ].join(newline);
+}
+
+function V51FocusedAnalyzeWorkspacePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const summary = buildV51AnalyzeWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+
+  return (
+    <Panel
+      title="V5.1 Focused Analyze Workspace"
+      subtitle="Gives the Analyze tab a clearer status layer before the user reaches upload controls and technical analysis panels."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.4: <span className="font-semibold text-zinc-100">Analyze Workspace</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Analyze Status</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.uploadState}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.nextAnalyzeAction}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{summary.layoutChange}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.analysisCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => setActiveTab("report")}
+          className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!activeAnalysis || activeAnalysis.status !== "Ready"}
+        >
+          Continue to Report
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("dashboard")}
+          className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
+        >
+          Back to Dashboard
+        </button>
       </div>
     </Panel>
   );
@@ -6635,15 +6761,16 @@ export default function SoulFrameDraftReviewV2() {
           <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
         </div>
       )}
-      analyzeContent={
+      analyzeContent={({ setActiveTab }) => (
         <div className="space-y-6">
+          <V51FocusedAnalyzeWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
             {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} selectedPreset={selectedPreset} />}
           </div>
         </div>
-      }
+      )}
       reportContent={
         <div className="space-y-6">
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -6731,7 +6858,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.3 Action Cards</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.4 Analyze Workspace</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
