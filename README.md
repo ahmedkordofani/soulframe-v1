@@ -40,6 +40,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 18. Prepare V4.1 backend/API architecture using a mock API layer and frontend adapter without uploading audio or requiring a live server
 19. Use V4.2 smarter humanization reports to route projects by genre, report path, client tone, before/after clarity, output pack, quality gate, and final handoff
 20. Use V5 product UX simplification to guide the app toward a cleaner dashboard, navigation, tabbed workflow, progressive layout, advanced collapse strategy, and public beta handoff
+21. Use V5.1 real layout refactor to open into a Product workspace with Dashboard, Analyze, Report, Output, and Advanced tabs while preserving the Classic Demo view
 
 ---
 
@@ -204,6 +205,16 @@ SoulFrame is built around a practical AI-humanization workflow:
 - V5 Clean Dashboard Priority Summary
 - V5 Advanced Panel Collapse Strategy
 - V5 Public Beta UX Handoff
+- V5.1 Dashboard Layout Shell
+- V5.1 Focused Workspace Header
+- V5.1 Dashboard Action Cards
+- V5.1 Focused Analyze Workspace
+- V5.1 Focused Report Workspace
+- V5.1 Focused Output Workspace
+- V5.1 Focused Advanced Workspace
+- V5.1 Workspace Progress Rail
+- V5.1 Layout Refactor Handoff
+- V5.1 About Current Stage Refresh
 
 ---
 
@@ -234,13 +245,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V5.0.0: Product UX Simplification / Public Beta Direction**
+**V5.1.0: Real Layout Refactor**
 
-SoulFrame V5.0 begins the transition from a feature-heavy prototype into a cleaner product experience.
+SoulFrame V5.1 turns the V5 product UX plan into an actual dashboard-first workspace.
 
-This release adds a product dashboard preview, navigation blueprint, progressive disclosure layout, tabbed workflow shell, clean dashboard priority summary, advanced panel collapse strategy, and public beta UX handoff.
+This release adds the Product view as the default experience, introduces Dashboard, Analyze, Report, Output, and Advanced tabs, adds focused workspace headers, action cards, tab-specific summaries, progress navigation, and a final layout refactor handoff.
 
-The goal of V5.0 is to keep SoulFrame's deeper intelligence intact while making the app feel simpler, calmer, easier to present, and more suitable for public beta direction.
+The goal of V5.1 is to reduce the long-scroll prototype feeling while preserving the deeper V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and the older Classic Demo view.
 
 ---
 
@@ -373,6 +384,42 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - V5 Public Beta UX Handoff
   - Scores public beta UX readiness and defines the final V5 product simplification direction
 - Preserves all existing V4 intelligence while shifting the user experience toward a cleaner, calmer, and more presentable product layout
+
+---
+
+## V5.1 Features
+
+- V5.1 Dashboard Layout Shell
+  - Makes the Product view the default app experience
+  - Introduces Dashboard, Analyze, Report, Output, and Advanced tabs
+  - Preserves the older long-scroll experience as Classic Demo
+- V5.1 Focused Workspace Header
+  - Adds contextual headings and primary actions for each workspace tab
+- V5.1 Dashboard Action Cards
+  - Adds Project, Audio, Report, and Output cards to the Dashboard tab
+  - Lets users move into the right tab from the first screen
+- V5.1 Focused Analyze Workspace
+  - Adds Analyze status cards for review mode, upload state, report route, and quality preview
+  - Adds Continue to Report and Back to Dashboard actions
+- V5.1 Focused Report Workspace
+  - Adds report summary cards for route, quality, composer, and comparison
+  - Adds Continue to Output and Back to Analyze actions
+- V5.1 Focused Output Workspace
+  - Adds output summary cards for recommended output, producer brief, client update, and export pack
+  - Adds Back to Report and Review Advanced Details actions
+- V5.1 Focused Advanced Workspace
+  - Gives technical architecture, backend/API planning, and product planning a clearer Advanced area
+  - Keeps deeper systems available without making them the main user path
+- V5.1 Workspace Progress Rail
+  - Shows the main route: Dashboard → Analyze → Report → Output
+  - Keeps Advanced visible as an optional inspection space
+  - Adds Previous and Next navigation through the product flow
+- V5.1 Layout Refactor Handoff
+  - Scores layout refactor readiness and confirms the new workspace structure
+- V5.1 About Current Stage Refresh
+  - Updates the About section to describe the current stage as a V5.1 real layout refactor prototype
+  - Updates the product arc to Dashboard → Analyze → Report → Output → Advanced
+- Preserves all existing V4/V5 intelligence while making SoulFrame feel more like a guided product and less like a long technical prototype
 
 ---
 
@@ -569,23 +616,45 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - Preserved browser-only demo behavior with no server-side audio upload or real backend calls
 
 ---
+### V5.1.0 — Real Layout Refactor
+
+- Added V5.1 Dashboard Layout Shell
+- Added Product view as the default app experience
+- Added Dashboard, Analyze, Report, Output, and Advanced tabs
+- Preserved the older long-scroll experience as Classic Demo
+- Added V5.1 Focused Workspace Header
+- Added V5.1 Dashboard Action Cards
+- Added V5.1 Focused Analyze Workspace
+- Added V5.1 Focused Report Workspace
+- Added V5.1 Focused Output Workspace
+- Added V5.1 Focused Advanced Workspace
+- Added V5.1 Workspace Progress Rail
+- Added V5.1 Layout Refactor Handoff
+- Updated the About section current stage to V5.1 real layout refactor prototype
+- Updated the product arc to Dashboard → Analyze → Report → Output → Advanced
+- Reduced the long-scroll prototype feeling by giving each major workflow area a clearer home
+- Preserved V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and browser-only demo behavior
+
+---
 ## Future Roadmap
 
-### V5.1 — Real Layout Refactor
+### V5.2 — Visual Polish and Public Beta Presentation
 
-- Convert V5 dashboard, navigation, and tab blueprint into the actual app layout
-- Reduce the current long-scroll interface
-- Move advanced technical panels behind collapsible sections or an Advanced tab
-- Keep the main workflow focused on upload, analysis, report, and output
+- Refine the new Product workspace visually
+- Reduce duplicated explanatory panels now that tabs exist
+- Improve the first-screen demo experience
+- Strengthen landing-page style presentation inside the app
+- Improve sample/demo project flow
+- Tighten product copy and onboarding
+- Prepare clearer screenshots, walkthroughs, and public examples
 
-### V5.2 — Public Beta Polish
+### V5.3 — Report Sharing and Export Direction
 
-- Stronger landing page presentation
-- Better sample/demo project flow
-- Clearer product copy and onboarding
-- Shareable report direction
+- Shareable report link direction
 - Exportable PDF report direction
-- Case studies and public examples
+- Cleaner report download formats
+- Better public/client-facing report examples
+- Case studies and before/after walkthroughs
 
 ### V6.0 — Real Backend/API Implementation
 
@@ -610,7 +679,8 @@ SoulFrame is currently a public prototype.
 - V4 analysis is a decision-support layer, not an automatic final verdict
 - V4.1 backend/API features are local mock architecture only, with no real server calls or audio uploads
 - V4.2 report features are local frontend report intelligence only, with no real backend processing or server-side audio analysis
-- V5 product UX features are product-structure previews and simplification planning layers, not a full layout refactor yet
+- V5 product UX features are product-structure previews and simplification planning layers
+- V5.1 layout features turn that product direction into a real dashboard-first workspace while preserving Classic Demo and browser-only behavior
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
