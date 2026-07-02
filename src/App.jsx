@@ -1418,6 +1418,7 @@ function runSoulFrameTests() {
     typeof V51FocusedOutputWorkspacePanel === "function" &&
     typeof V51FocusedAdvancedWorkspacePanel === "function" &&
     typeof V51WorkspaceProgressRail === "function" &&
+    typeof V51LayoutRefactorHandoffPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1472,6 +1473,8 @@ function runSoulFrameTests() {
     buildV51AdvancedWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ADVANCED WORKSPACE") &&
     buildV51WorkspaceProgressRailState("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Workspace Progress Rail" &&
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
+    buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
+    buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -6029,6 +6032,138 @@ function V51WorkspaceProgressRail({ activeTab, setActiveTab, projectSession, rev
   );
 }
 
+
+function buildV51LayoutRefactorHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const progressRail = buildV51WorkspaceProgressRailState("dashboard", projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const dashboardCards = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const analyzeWorkspace = buildV51AnalyzeWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const reportWorkspace = buildV51ReportWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputWorkspace = buildV51OutputWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const advancedWorkspace = buildV51AdvancedWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const handoffChecks = [
+    {
+      label: "Product view is default",
+      ready: true,
+      note: "SoulFrame now opens into the Product workspace instead of the older Classic Demo view.",
+    },
+    {
+      label: "Main tabs exist",
+      ready: shell.tabCount === 5,
+      note: "Dashboard, Analyze, Report, Output, and Advanced are defined as the main workspace areas.",
+    },
+    {
+      label: "Dashboard has action cards",
+      ready: dashboardCards.cards.length === 4,
+      note: "The first screen now gives practical actions instead of leading with stacked report panels.",
+    },
+    {
+      label: "Analyze workspace is focused",
+      ready: analyzeWorkspace.analysisCards.length === 4,
+      note: "The Analyze tab has its own compact status layer before upload and analysis controls.",
+    },
+    {
+      label: "Report workspace is focused",
+      ready: reportWorkspace.reportCards.length === 4,
+      note: "The Report tab has its own summary before deeper V4.2 report intelligence.",
+    },
+    {
+      label: "Output workspace is focused",
+      ready: outputWorkspace.outputCards.length === 4,
+      note: "The Output tab now begins with delivery status before handoff and export tools.",
+    },
+    {
+      label: "Advanced workspace is contained",
+      ready: advancedWorkspace.advancedCards.length === 4,
+      note: "Technical planning and backend/API panels have a clearer home outside the main route.",
+    },
+    {
+      label: "Progress route is visible",
+      ready: progressRail.routeLabel.includes("Dashboard") && progressRail.routeLabel.includes("Output"),
+      note: "The user can see the route through Dashboard, Analyze, Report, and Output.",
+    },
+  ];
+
+  const readyCount = handoffChecks.filter((check) => check.ready).length;
+  const readinessScore = Math.round((readyCount / handoffChecks.length) * 100);
+
+  return {
+    version: "v5.1",
+    feature: "Layout Refactor Handoff",
+    readinessScore,
+    readyCount,
+    totalChecks: handoffChecks.length,
+    status: readinessScore >= 90 ? "V5.1 layout refactor ready for release prep" : "Needs final layout review",
+    handoffChecks,
+    productRoute: progressRail.routeLabel,
+    finalSummary: "V5.1 turns the V5 product plan into a real dashboard-first workspace with focused tabs, guided headers, action cards, progress navigation, and contained advanced details.",
+    recommendedNextMilestone: "Update README for V5.1, merge the layout refactor branch, tag v5.1.0, and then pause before deeper visual redesign or backend implementation.",
+  };
+}
+
+function buildV51LayoutRefactorHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF",
+    "",
+    `Status: ${handoff.status}`,
+    `Readiness: ${handoff.readinessScore}/100`,
+    `Checks ready: ${handoff.readyCount}/${handoff.totalChecks}`,
+    `Route: ${handoff.productRoute}`,
+    "",
+    "FINAL SUMMARY",
+    handoff.finalSummary,
+    "",
+    "HANDOFF CHECKS",
+    ...handoff.handoffChecks.map((check) => `- ${check.ready ? "READY" : "REVIEW"}: ${check.label} — ${check.note}`),
+    "",
+    "NEXT MILESTONE",
+    handoff.recommendedNextMilestone,
+  ].join(newline);
+}
+
+function V51LayoutRefactorHandoffPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.1 Layout Refactor Handoff"
+      subtitle="Wraps the V5.1 layout refactor into a release-ready handoff before README, merge, tag, and release prep."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.9: <span className="font-semibold text-zinc-100">Layout Handoff</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Layout Refactor Status</p>
+        <h3 className="mt-3 text-3xl font-semibold text-zinc-100">{handoff.readinessScore}/100</h3>
+        <p className="mt-3 text-lg font-semibold text-zinc-200">{handoff.status}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">{handoff.finalSummary}</p>
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Route</p>
+        <h3 className="mt-3 text-xl font-semibold text-zinc-100">{handoff.productRoute}</h3>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {handoff.handoffChecks.map((check) => (
+          <article key={check.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{check.ready ? "Ready" : "Review"}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{check.label}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-500">{check.note}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Recommended Next Milestone</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-300">{handoff.recommendedNextMilestone}</p>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7230,6 +7365,7 @@ export default function SoulFrameDraftReviewV2() {
       dashboardContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
         </div>
       )}
@@ -7333,7 +7469,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.8 Progress Rail</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.9 Layout Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
