@@ -1411,6 +1411,7 @@ function runSoulFrameTests() {
     typeof V50AdvancedPanelCollapseStrategyPanel === "function" &&
     typeof V50PublicBetaUxHandoffPanel === "function" &&
     typeof V51ProductWorkspace === "function" &&
+    typeof V51FocusedWorkspaceHeader === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1451,6 +1452,8 @@ function runSoulFrameTests() {
     buildV50PublicBetaUxHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PUBLIC BETA UX HANDOFF") &&
     buildV51DashboardShellState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Layout Shell" &&
     buildV51DashboardShellText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD LAYOUT SHELL") &&
+    buildV51WorkspaceHeaderState("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Workspace Header" &&
+    buildV51WorkspaceHeaderText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED WORKSPACE HEADER") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5220,7 +5223,100 @@ function V51ProductWorkspace({
       </Panel>
 
       <div className="space-y-6">
+        <V51FocusedWorkspaceHeader activeTab={activeTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
         {contentMap[activeTab] || dashboardContent}
+      </div>
+    </div>
+  );
+}
+
+
+function buildV51WorkspaceHeaderState(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const dashboard = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const tabCopy = {
+    dashboard: {
+      eyebrow: "Project Overview",
+      title: dashboard.headline,
+      description: "Start with the cleanest summary before opening deeper SoulFrame systems.",
+      primaryAction: dashboard.recommendedOutput,
+    },
+    analyze: {
+      eyebrow: "Audio Workspace",
+      title: "Analyze the track",
+      description: "Use this space for intake, upload, waveform, metadata, and core audio review.",
+      primaryAction: "Run or review analysis",
+    },
+    report: {
+      eyebrow: "Report Workspace",
+      title: "Review the humanization direction",
+      description: "Use V4.2 report intelligence without making the first screen feel crowded.",
+      primaryAction: reportControl.recommendedOutput,
+    },
+    output: {
+      eyebrow: "Delivery Workspace",
+      title: "Prepare the right output",
+      description: "Group client update, producer brief, checklist, handoff, and export readiness.",
+      primaryAction: dashboard.recommendedOutput,
+    },
+    advanced: {
+      eyebrow: "Advanced Details",
+      title: "Inspect deeper systems",
+      description: "Keep backend/API planning, internal logic, and technical panels available when needed.",
+      primaryAction: "Open technical details",
+    },
+  };
+
+  const current = tabCopy[activeTab] || tabCopy.dashboard;
+
+  return {
+    version: "v5.1",
+    feature: "Focused Workspace Header",
+    activeTab,
+    tabLabel: shell.tabs.find((tab) => tab.id === activeTab)?.label || "Dashboard",
+    tabCount: shell.tabCount,
+    ...current,
+    helperLine: "Each tab now gets its own focused heading so SoulFrame feels less like a long scroll and more like a guided product workspace.",
+  };
+}
+
+function buildV51WorkspaceHeaderText(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const header = buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 FOCUSED WORKSPACE HEADER",
+    "",
+    `Active tab: ${header.tabLabel}`,
+    `Eyebrow: ${header.eyebrow}`,
+    `Title: ${header.title}`,
+    `Primary action: ${header.primaryAction}`,
+    "",
+    "DESCRIPTION",
+    header.description,
+    "",
+    "HELPER LINE",
+    header.helperLine,
+  ].join(newline);
+}
+
+function V51FocusedWorkspaceHeader({ activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const header = buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{header.eyebrow}</p>
+          <h2 className="mt-3 text-2xl font-semibold text-zinc-100">{header.title}</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{header.description}</p>
+          <p className="mt-2 text-xs leading-5 text-zinc-600">{header.helperLine}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-300">
+          Focus: <span className="font-semibold text-zinc-100">{header.primaryAction}</span>
+        </div>
       </div>
     </div>
   );
@@ -6526,7 +6622,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.1 Dashboard Shell</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.2 Workspace Header</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
