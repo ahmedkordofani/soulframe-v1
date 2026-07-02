@@ -1414,6 +1414,7 @@ function runSoulFrameTests() {
     typeof V51FocusedWorkspaceHeader === "function" &&
     typeof V51DashboardActionCardsPanel === "function" &&
     typeof V51FocusedAnalyzeWorkspacePanel === "function" &&
+    typeof V51FocusedReportWorkspacePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1460,6 +1461,8 @@ function runSoulFrameTests() {
     buildV51DashboardActionCardsText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD ACTION CARDS") &&
     buildV51AnalyzeWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Analyze Workspace" &&
     buildV51AnalyzeWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ANALYZE WORKSPACE") &&
+    buildV51ReportWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Report Workspace" &&
+    buildV51ReportWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED REPORT WORKSPACE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5557,6 +5560,121 @@ function V51FocusedAnalyzeWorkspacePanel({ projectSession, reviewMode, draftAnal
   );
 }
 
+
+function buildV51ReportWorkspaceSummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const control = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const composer = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
+
+  const reportCards = [
+    {
+      label: "Route",
+      value: context.reportPath,
+      detail: `Genre focus: ${context.genreFocus}`,
+    },
+    {
+      label: "Quality",
+      value: `${qualityGate.score}/100`,
+      detail: qualityGate.recommendation,
+    },
+    {
+      label: "Composer",
+      value: composer.reportTitle,
+      detail: composer.confidenceLine,
+    },
+    {
+      label: "Comparison",
+      value: beforeAfter.improvementLabel,
+      detail: beforeAfter.clientSafeLine,
+    },
+  ];
+
+  const canContinueToOutput = qualityGate.score >= 35 || Boolean(control.recommendedOutput);
+
+  return {
+    version: "v5.1",
+    feature: "Focused Report Workspace",
+    headline: control.statusLabel,
+    nextMove: control.nextMove,
+    recommendedOutput: control.recommendedOutput,
+    canContinueToOutput,
+    reportCards,
+    layoutChange: "The Report tab now starts with one focused report summary before showing the deeper composer, quality, comparison, workflow, and revision panels.",
+  };
+}
+
+function buildV51ReportWorkspaceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV51ReportWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 FOCUSED REPORT WORKSPACE",
+    "",
+    `Headline: ${summary.headline}`,
+    `Recommended output: ${summary.recommendedOutput}`,
+    `Can continue to output: ${summary.canContinueToOutput ? "Yes" : "No"}`,
+    "",
+    "NEXT MOVE",
+    summary.nextMove,
+    "",
+    "REPORT CARDS",
+    ...summary.reportCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "LAYOUT CHANGE",
+    summary.layoutChange,
+  ].join(newline);
+}
+
+function V51FocusedReportWorkspacePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const summary = buildV51ReportWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.1 Focused Report Workspace"
+      subtitle="Gives the Report tab a clean summary layer before the user opens the deeper report intelligence panels."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.5: <span className="font-semibold text-zinc-100">Report Workspace</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Report Status</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.nextMove}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{summary.layoutChange}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.reportCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => setActiveTab("output")}
+          className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!summary.canContinueToOutput}
+        >
+          Continue to Output
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("analyze")}
+          className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
+        >
+          Back to Analyze
+        </button>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -6771,8 +6889,9 @@ export default function SoulFrameDraftReviewV2() {
           </div>
         </div>
       )}
-      reportContent={
+      reportContent={({ setActiveTab }) => (
         <div className="space-y-6">
+          <V51FocusedReportWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -6780,7 +6899,7 @@ export default function SoulFrameDraftReviewV2() {
           <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
           <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
         </div>
-      }
+      )}
       outputContent={
         <div className="space-y-6">
           <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -6858,7 +6977,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.4 Analyze Workspace</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.5 Report Workspace</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
