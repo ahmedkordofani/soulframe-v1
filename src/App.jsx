@@ -1375,7 +1375,7 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof HowSoulFrameWorksPanel === "function" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V4.2 smarter humanization reports") &&
+    buildProductSummaryText().includes("V5.1 real layout refactor") &&
     typeof DemoWalkthroughPanel === "function" &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
@@ -1410,6 +1410,7 @@ function runSoulFrameTests() {
     typeof V50CleanDashboardPriorityPanel === "function" &&
     typeof V50AdvancedPanelCollapseStrategyPanel === "function" &&
     typeof V50PublicBetaUxHandoffPanel === "function" &&
+    typeof V51ProductWorkspace === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1448,6 +1449,8 @@ function runSoulFrameTests() {
     buildV50AdvancedPanelCollapseText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 ADVANCED PANEL COLLAPSE STRATEGY") &&
     buildV50PublicBetaUxHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta UX Handoff" &&
     buildV50PublicBetaUxHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.0 PUBLIC BETA UX HANDOFF") &&
+    buildV51DashboardShellState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Layout Shell" &&
+    buildV51DashboardShellText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 DASHBOARD LAYOUT SHELL") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5089,6 +5092,140 @@ function V50PublicBetaUxHandoffPanel({ projectSession, reviewMode, draftAnalysis
   );
 }
 
+
+function buildV51DashboardShellState(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const dashboard = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const tabbedShell = buildV50TabbedWorkflowShell(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+
+  const tabs = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      purpose: "Show the calm project overview, status, next move, and recommended output.",
+      ready: true,
+    },
+    {
+      id: "analyze",
+      label: "Analyze",
+      purpose: "Keep project intake, upload, waveform, metadata, and audio health in one workspace.",
+      ready: !!activeAnalysis && activeAnalysis.status === "Ready",
+    },
+    {
+      id: "report",
+      label: "Report",
+      purpose: "Show the smarter humanization report without forcing every subsystem into the first screen.",
+      ready: dashboard.priorityCards.some((card) => card.label === "Quality"),
+    },
+    {
+      id: "output",
+      label: "Output",
+      purpose: "Group producer brief, client update, checklist, handoff, and export readiness.",
+      ready: Boolean(dashboard.recommendedOutput),
+    },
+    {
+      id: "advanced",
+      label: "Advanced",
+      purpose: "Keep backend/API planning and deeper technical systems available but out of the default path.",
+      ready: true,
+    },
+  ];
+
+  return {
+    version: "v5.1",
+    feature: "Dashboard Layout Shell",
+    defaultTab: "dashboard",
+    currentSummary: dashboard.headline,
+    recommendedOutput: dashboard.recommendedOutput,
+    tabCount: tabs.length,
+    tabs,
+    productShift: "V5.1 starts turning the V5 product plan into a real dashboard-first app shell.",
+    layoutRule: tabbedShell.disclosurePrinciple || "Show the workflow first and reveal deeper systems only when needed.",
+  };
+}
+
+function buildV51DashboardShellText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 DASHBOARD LAYOUT SHELL",
+    "",
+    `Feature: ${shell.feature}`,
+    `Default tab: ${shell.defaultTab}`,
+    `Tabs: ${shell.tabCount}`,
+    `Current summary: ${shell.currentSummary}`,
+    `Recommended output: ${shell.recommendedOutput}`,
+    "",
+    "PRODUCT SHIFT",
+    shell.productShift,
+    "",
+    "TABS",
+    ...shell.tabs.map((tab) => `- ${tab.label}: ${tab.purpose} Ready: ${tab.ready ? "Yes" : "No"}`),
+    "",
+    "LAYOUT RULE",
+    shell.layoutRule,
+  ].join(newline);
+}
+
+function V51ProductWorkspace({
+  projectSession,
+  reviewMode,
+  draftAnalysis,
+  humanizedAnalysis,
+  dashboardContent,
+  analyzeContent,
+  reportContent,
+  outputContent,
+  advancedContent,
+}) {
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const [activeTab, setActiveTab] = useState(shell.defaultTab);
+
+  const contentMap = {
+    dashboard: dashboardContent,
+    analyze: analyzeContent,
+    report: reportContent,
+    output: outputContent,
+    advanced: advancedContent,
+  };
+
+  return (
+    <div className="space-y-6">
+      <Panel
+        title="V5.1 Dashboard Layout Shell"
+        subtitle="A real dashboard-first workspace that starts replacing the long prototype scroll with focused tabs."
+        action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.1: <span className="font-semibold text-zinc-100">Dashboard Shell</span></div>}
+      >
+        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Shift</p>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{shell.productShift}</h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{shell.layoutRule}</p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+          {shell.tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-3xl border p-4 text-left transition ${activeTab === tab.id ? "border-white bg-white text-black" : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900"}`}
+            >
+              <p className="text-xs uppercase tracking-[0.22em] opacity-70">{tab.ready ? "Ready" : "Waiting"}</p>
+              <h3 className="mt-2 font-semibold">{tab.label}</h3>
+              <p className={`mt-2 text-xs leading-5 ${activeTab === tab.id ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="space-y-6">
+        {contentMap[activeTab] || dashboardContent}
+      </div>
+    </div>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -5921,7 +6058,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V4.2 smarter humanization reports prototype with browser-based audio analysis, V4 audio intelligence, V4.1 backend/API scaffolding, report routing, and local project sessions.",
+    "V5.1 real layout refactor prototype with a dashboard-first product shell, tabbed workflow direction, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
   ].join(newline);
 }
 
@@ -6164,7 +6301,7 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
 }
 
 export default function SoulFrameDraftReviewV2() {
-  const [view, setView] = useState("demo");
+  const [view, setView] = useState("product");
   const [selectedPreset, setSelectedPreset] = useState(() => loadSavedSetting("soulframe-selected-preset", "marcel"));
   const [activeStep, setActiveStep] = useState(0);
   const [draftFile, setDraftFile] = useState("");
@@ -6281,6 +6418,61 @@ export default function SoulFrameDraftReviewV2() {
     if (file && nextUrl) { loadAudioDuration(nextUrl, setHumanizedAudioMetadata); loadAudioHealthCheck(nextUrl, setHumanizedAudioAnalysis); }
   }
 
+  const productView = (
+    <V51ProductWorkspace
+      projectSession={projectSession}
+      reviewMode={reviewMode}
+      draftAnalysis={draftAudioAnalysis}
+      humanizedAnalysis={humanizedAudioAnalysis}
+      dashboardContent={
+        <div className="space-y-6">
+          <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
+          <V50CleanDashboardPriorityPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+        </div>
+      }
+      analyzeContent={
+        <div className="space-y-6">
+          <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
+            {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} selectedPreset={selectedPreset} />}
+          </div>
+        </div>
+      }
+      reportContent={
+        <div className="space-y-6">
+          <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
+          <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
+        </div>
+      }
+      outputContent={
+        <div className="space-y-6">
+          <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
+        </div>
+      }
+      advancedContent={
+        <div className="space-y-6">
+          <PublicDemoNotice />
+          <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V41BackendScaffoldPanel />
+          <V41AnalysisEngineSeparationPanel />
+          <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+        </div>
+      }
+    />
+  );
+
   const demoView = (
     <div className="space-y-6">
       <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
@@ -6334,13 +6526,14 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.0.7 Beta UX Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.1 Dashboard Shell</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button className={view === "demo" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("demo")}>Review Demo</Button>
+              <Button className={view === "product" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("product")}>Product</Button>
+              <Button className={view === "demo" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("demo")}>Classic Demo</Button>
               <Button className={view === "database" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("database")}>Artifact Database</Button>
               <Button className={view === "about" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("about")}>About</Button>
               <Button className={view === "walkthrough" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("walkthrough")}>Walkthrough</Button>
@@ -6350,7 +6543,7 @@ export default function SoulFrameDraftReviewV2() {
           </div>
         </header>
         <ErrorBoundary>
-          {view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
+          {view === "product" ? productView : view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
         </ErrorBoundary>
         <SoulFrameFooter setView={setView} />
       </div>
