@@ -1475,6 +1475,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
+    buildProductSummaryText().includes("V5.1 real layout refactor prototype") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -7117,9 +7118,9 @@ function AboutSoulFramePanel() {
         </article>
         <article className="rounded-3xl border border-zinc-800 bg-black p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V4.2 smarter humanization reports prototype</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V5.1 real layout refactor prototype</h3>
           <p className="mt-4 text-sm leading-7 text-zinc-400">
-            The app currently combines real browser-based audio inspection with V4 producer intelligence, report exports, client-safe summaries, revision planning, saved sessions, demo presets, mock API scaffolding, frontend adapter planning, and public demo readiness panels.
+            The app now opens into a dashboard-first Product workspace with focused Dashboard, Analyze, Report, Output, and Advanced tabs. It still preserves V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, browser-safe analysis, saved sessions, demo presets, and the older Classic Demo view.
           </p>
         </article>
       </div>
@@ -7135,9 +7136,9 @@ function AboutSoulFramePanel() {
 
       <div className="mt-5 rounded-3xl border border-zinc-800 bg-black p-6">
         <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Arc</p>
-        <p className="mt-3 text-2xl font-semibold text-zinc-100">Review → Decide → Export → Send → Revise</p>
+        <p className="mt-3 text-2xl font-semibold text-zinc-100">Dashboard → Analyze → Report → Output → Advanced</p>
         <p className="mt-3 text-sm leading-7 text-zinc-400">
-          This is the practical workflow SoulFrame is moving toward: help the producer review the draft, decide what matters, export the right version of the notes, communicate clearly with the client, and guide the next revision pass.
+          This is the V5.1 workflow SoulFrame is now moving into: give the producer a calm dashboard first, guide analysis in one workspace, shape the smarter humanization report, prepare the right output, and keep deeper technical systems available only when needed.
         </p>
       </div>
     </Panel>
@@ -7469,7 +7470,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.9 Layout Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.10 About Refresh</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
