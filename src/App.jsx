@@ -1415,6 +1415,7 @@ function runSoulFrameTests() {
     typeof V51DashboardActionCardsPanel === "function" &&
     typeof V51FocusedAnalyzeWorkspacePanel === "function" &&
     typeof V51FocusedReportWorkspacePanel === "function" &&
+    typeof V51FocusedOutputWorkspacePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1463,6 +1464,8 @@ function runSoulFrameTests() {
     buildV51AnalyzeWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ANALYZE WORKSPACE") &&
     buildV51ReportWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Report Workspace" &&
     buildV51ReportWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED REPORT WORKSPACE") &&
+    buildV51OutputWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Output Workspace" &&
+    buildV51OutputWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED OUTPUT WORKSPACE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5675,6 +5678,120 @@ function V51FocusedReportWorkspacePanel({ projectSession, reviewMode, draftAnaly
   );
 }
 
+
+function buildV51OutputWorkspaceSummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const control = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const outputCards = [
+    {
+      label: "Recommended",
+      value: control.recommendedOutput,
+      detail: control.nextMove,
+    },
+    {
+      label: "Producer Brief",
+      value: outputPack.producerBrief.length > 120 ? "Ready" : "Review",
+      detail: "Internal direction for the next humanization pass.",
+    },
+    {
+      label: "Client Update",
+      value: outputPack.clientUpdate.length > 100 ? "Ready" : "Review",
+      detail: "Client-safe message for explaining the revision direction.",
+    },
+    {
+      label: "Export Pack",
+      value: `${manifest.readyCount}/${manifest.totalItems}`,
+      detail: manifest.exportRecommendation,
+    },
+  ];
+
+  const canReturnToReport = true;
+  const canReviewAdvanced = handoff.handoffScore >= 60 || manifest.readyCount > 0;
+
+  return {
+    version: "v5.1",
+    feature: "Focused Output Workspace",
+    headline: handoff.handoffStatus,
+    handoffScore: handoff.handoffScore,
+    finalRecommendation: handoff.finalRecommendation,
+    canReturnToReport,
+    canReviewAdvanced,
+    outputCards,
+    layoutChange: "The Output tab now starts with a delivery-focused summary before showing output pack, handoff, export manifest, and saved projects.",
+  };
+}
+
+function buildV51OutputWorkspaceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV51OutputWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 FOCUSED OUTPUT WORKSPACE",
+    "",
+    `Headline: ${summary.headline}`,
+    `Handoff score: ${summary.handoffScore}/100`,
+    "",
+    "FINAL RECOMMENDATION",
+    summary.finalRecommendation,
+    "",
+    "OUTPUT CARDS",
+    ...summary.outputCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "LAYOUT CHANGE",
+    summary.layoutChange,
+  ].join(newline);
+}
+
+function V51FocusedOutputWorkspacePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const summary = buildV51OutputWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.1 Focused Output Workspace"
+      subtitle="Gives the Output tab a delivery-first summary before the user reaches report exports, handoff, manifest, and saved project tools."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.6: <span className="font-semibold text-zinc-100">Output Workspace</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Output Status</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.finalRecommendation}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{summary.layoutChange}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.outputCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => setActiveTab("report")}
+          className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+        >
+          Back to Report
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("advanced")}
+          className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!summary.canReviewAdvanced}
+        >
+          Review Advanced Details
+        </button>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -6900,14 +7017,15 @@ export default function SoulFrameDraftReviewV2() {
           <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
         </div>
       )}
-      outputContent={
+      outputContent={({ setActiveTab }) => (
         <div className="space-y-6">
+          <V51FocusedOutputWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
         </div>
-      }
+      )}
       advancedContent={
         <div className="space-y-6">
           <PublicDemoNotice />
@@ -6977,7 +7095,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.5 Report Workspace</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.6 Output Workspace</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
