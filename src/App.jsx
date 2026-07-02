@@ -1417,6 +1417,7 @@ function runSoulFrameTests() {
     typeof V51FocusedReportWorkspacePanel === "function" &&
     typeof V51FocusedOutputWorkspacePanel === "function" &&
     typeof V51FocusedAdvancedWorkspacePanel === "function" &&
+    typeof V51WorkspaceProgressRail === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1469,6 +1470,8 @@ function runSoulFrameTests() {
     buildV51OutputWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED OUTPUT WORKSPACE") &&
     buildV51AdvancedWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Advanced Workspace" &&
     buildV51AdvancedWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ADVANCED WORKSPACE") &&
+    buildV51WorkspaceProgressRailState("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Workspace Progress Rail" &&
+    buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5235,6 +5238,7 @@ function V51ProductWorkspace({
             </button>
           ))}
         </div>
+        <V51WorkspaceProgressRail activeTab={activeTab} setActiveTab={setActiveTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
       </Panel>
 
       <div className="space-y-6">
@@ -5915,6 +5919,113 @@ function V51FocusedAdvancedWorkspacePanel({ projectSession, reviewMode, draftAna
         </button>
       </div>
     </Panel>
+  );
+}
+
+
+function buildV51WorkspaceProgressRailState(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const orderedTabs = shell.tabs.map((tab, index) => {
+    const isCurrent = tab.id === activeTab;
+    const activeIndex = shell.tabs.findIndex((item) => item.id === activeTab);
+    const completed = activeIndex > index && tab.id !== "advanced";
+    const optional = tab.id === "advanced";
+
+    return {
+      ...tab,
+      index,
+      status: isCurrent ? "Current" : completed ? "Complete" : optional ? "Optional" : tab.ready ? "Ready" : "Waiting",
+      isCurrent,
+      completed,
+      optional,
+    };
+  });
+
+  const activeIndex = Math.max(0, shell.tabs.findIndex((tab) => tab.id === activeTab));
+  const previousTab = activeIndex > 0 ? shell.tabs[activeIndex - 1] : null;
+  const nextTab = activeIndex < shell.tabs.length - 2 ? shell.tabs[activeIndex + 1] : null;
+
+  return {
+    version: "v5.1",
+    feature: "Workspace Progress Rail",
+    activeTab,
+    activeLabel: shell.tabs.find((tab) => tab.id === activeTab)?.label || "Dashboard",
+    orderedTabs,
+    previousTab,
+    nextTab,
+    routeLabel: "Dashboard → Analyze → Report → Output",
+    advancedNote: "Advanced stays available as an optional inspection area rather than part of the required user path.",
+    layoutChange: "The workspace now gives users a visible sense of progress through the product flow instead of leaving each tab feeling isolated.",
+  };
+}
+
+function buildV51WorkspaceProgressRailText(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const rail = buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 WORKSPACE PROGRESS RAIL",
+    "",
+    `Active tab: ${rail.activeLabel}`,
+    `Route: ${rail.routeLabel}`,
+    "",
+    "WORKSPACE STEPS",
+    ...rail.orderedTabs.map((tab) => `- ${tab.label}: ${tab.status}`),
+    "",
+    "ADVANCED NOTE",
+    rail.advancedNote,
+    "",
+    "LAYOUT CHANGE",
+    rail.layoutChange,
+  ].join(newline);
+}
+
+function V51WorkspaceProgressRail({ activeTab, setActiveTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const rail = buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Workspace Progress</p>
+          <h3 className="mt-2 text-lg font-semibold text-zinc-100">{rail.routeLabel}</h3>
+          <p className="mt-2 text-xs leading-5 text-zinc-500">{rail.advancedNote}</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => rail.previousTab && setActiveTab(rail.previousTab.id)}
+            disabled={!rail.previousTab}
+            className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => rail.nextTab && setActiveTab(rail.nextTab.id)}
+            disabled={!rail.nextTab}
+            className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+        {rail.orderedTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-2xl border p-4 text-left transition ${tab.isCurrent ? "border-white bg-white text-black" : tab.completed ? "border-zinc-700 bg-zinc-900 text-zinc-100" : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900"}`}
+          >
+            <p className={`text-xs uppercase tracking-[0.22em] ${tab.isCurrent ? "text-zinc-700" : "text-zinc-600"}`}>{tab.status}</p>
+            <h4 className="mt-2 text-sm font-semibold">{tab.label}</h4>
+            <p className={`mt-2 text-xs leading-5 ${tab.isCurrent ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -7222,7 +7333,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.7 Advanced Workspace</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.8 Progress Rail</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
