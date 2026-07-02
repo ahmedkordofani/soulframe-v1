@@ -1416,6 +1416,7 @@ function runSoulFrameTests() {
     typeof V51FocusedAnalyzeWorkspacePanel === "function" &&
     typeof V51FocusedReportWorkspacePanel === "function" &&
     typeof V51FocusedOutputWorkspacePanel === "function" &&
+    typeof V51FocusedAdvancedWorkspacePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1466,6 +1467,8 @@ function runSoulFrameTests() {
     buildV51ReportWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED REPORT WORKSPACE") &&
     buildV51OutputWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Output Workspace" &&
     buildV51OutputWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED OUTPUT WORKSPACE") &&
+    buildV51AdvancedWorkspaceSummary(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Focused Advanced Workspace" &&
+    buildV51AdvancedWorkspaceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 FOCUSED ADVANCED WORKSPACE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5792,6 +5795,129 @@ function V51FocusedOutputWorkspacePanel({ projectSession, reviewMode, draftAnaly
   );
 }
 
+
+function buildV51AdvancedWorkspaceSummary(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const collapseStrategy = buildV50AdvancedPanelCollapseStrategy(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const betaHandoff = buildV50PublicBetaUxHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const advancedCards = [
+    {
+      label: "Collapse Plan",
+      value: `${collapseStrategy.advancedGroups.length} groups`,
+      detail: "Audio intelligence, report subsystems, backend/API planning, and developer checks are grouped away from the main workflow.",
+    },
+    {
+      label: "Backend/API",
+      value: "Mock only",
+      detail: "V4.1 architecture remains browser-safe with no real server calls or audio uploads.",
+    },
+    {
+      label: "Beta Readiness",
+      value: `${betaHandoff.readinessScore}/100`,
+      detail: betaHandoff.status,
+    },
+    {
+      label: "Workspace Shell",
+      value: `${shell.tabCount} tabs`,
+      detail: "Dashboard, Analyze, Report, Output, and Advanced now form the main product layout.",
+    },
+  ];
+
+  const advancedRules = [
+    "Keep Advanced available for producers, developers, and deeper review.",
+    "Do not make technical architecture the first thing a public visitor sees.",
+    "Keep backend/API panels visible here until the real backend is implemented.",
+    "Use Advanced as the home for product planning, diagnostics, and deeper explainability.",
+  ];
+
+  return {
+    version: "v5.1",
+    feature: "Focused Advanced Workspace",
+    headline: "Advanced details are available without controlling the main user journey.",
+    advancedCards,
+    advancedRules,
+    layoutChange: "The Advanced tab now has its own focused entry point instead of feeling like an overflow dump of every technical panel.",
+  };
+}
+
+function buildV51AdvancedWorkspaceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const summary = buildV51AdvancedWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.1 FOCUSED ADVANCED WORKSPACE",
+    "",
+    `Headline: ${summary.headline}`,
+    "",
+    "ADVANCED CARDS",
+    ...summary.advancedCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "ADVANCED RULES",
+    ...summary.advancedRules.map((rule, index) => `${index + 1}. ${rule}`),
+    "",
+    "LAYOUT CHANGE",
+    summary.layoutChange,
+  ].join(newline);
+}
+
+function V51FocusedAdvancedWorkspacePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const summary = buildV51AdvancedWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.1 Focused Advanced Workspace"
+      subtitle="Keeps deeper architecture, technical explanation, and product planning available without letting them dominate the main user journey."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.7: <span className="font-semibold text-zinc-100">Advanced Workspace</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Advanced Status</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.layoutChange}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.advancedCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Advanced Rules</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {summary.advancedRules.map((rule, index) => (
+            <div key={rule} className="rounded-2xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Rule {index + 1}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{rule}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => setActiveTab("dashboard")}
+          className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+        >
+          Back to Dashboard
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("output")}
+          className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
+        >
+          Back to Output
+        </button>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7026,8 +7152,9 @@ export default function SoulFrameDraftReviewV2() {
           <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
         </div>
       )}
-      advancedContent={
+      advancedContent={({ setActiveTab }) => (
         <div className="space-y-6">
+          <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <PublicDemoNotice />
           <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -7038,7 +7165,7 @@ export default function SoulFrameDraftReviewV2() {
           <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
         </div>
-      }
+      )}
     />
   );
 
@@ -7095,7 +7222,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.6 Output Workspace</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.7 Advanced Workspace</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
