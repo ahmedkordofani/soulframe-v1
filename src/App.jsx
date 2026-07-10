@@ -1421,6 +1421,7 @@ function runSoulFrameTests() {
     typeof V51LayoutRefactorHandoffPanel === "function" &&
     typeof V52PublicBetaPresentationHero === "function" &&
     typeof V52PublicDemoScenarioCards === "function" &&
+    typeof V52PublicBetaValueStrip === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1482,6 +1483,8 @@ function runSoulFrameTests() {
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
     buildV52PublicDemoScenariosText().includes("SOULFRAME V5.2 PUBLIC DEMO SCENARIO CARDS") &&
+    buildV52PublicBetaValueStrip(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Value Strip" &&
+    buildV52PublicBetaValueStripText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA VALUE STRIP") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5224,6 +5227,7 @@ function V51ProductWorkspace({
   return (
     <div className="space-y-6">
       <V52PublicBetaPresentationHero projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
+      <V52PublicBetaValueStrip projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
       <Panel
         title="V5.1 Dashboard Layout Shell"
         subtitle="A real dashboard-first workspace, now being polished for public beta presentation."
@@ -6389,6 +6393,94 @@ function V52PublicDemoScenarioCards({ applyDemoPreset, setActiveTab }) {
         ))}
       </div>
     </Panel>
+  );
+}
+
+
+function buildV52PublicBetaValueStrip(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const reportControl = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const valueCards = [
+    {
+      label: "For Producers",
+      value: "Human-led review",
+      detail: "SoulFrame supports the producer's ear instead of replacing musical judgement.",
+    },
+    {
+      label: "Privacy",
+      value: "Browser-safe demo",
+      detail: "The public prototype keeps audio inspection local and does not upload files to a server.",
+    },
+    {
+      label: "Workflow",
+      value: "Draft → Report → Output",
+      detail: "The product now guides users from analysis into a practical handoff path.",
+    },
+    {
+      label: "Readiness",
+      value: activeAnalysis && activeAnalysis.status === "Ready" ? reportControl.statusLabel : "Demo-ready",
+      detail: activeAnalysis && activeAnalysis.status === "Ready" ? reportControl.nextMove : `${handoff.readinessScore}/100 layout readiness for public beta presentation.`,
+    },
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Beta Value Strip",
+    headline: "A clearer first impression for visitors.",
+    description: "The value strip explains who SoulFrame is for, how the demo behaves, and what the product helps users prepare.",
+    valueCards,
+    presentationShift: "This makes the top of the product feel more like a public beta landing experience and less like a developer demo.",
+  };
+}
+
+function buildV52PublicBetaValueStripText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const strip = buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 PUBLIC BETA VALUE STRIP",
+    "",
+    `Headline: ${strip.headline}`,
+    "",
+    "DESCRIPTION",
+    strip.description,
+    "",
+    "VALUE CARDS",
+    ...strip.valueCards.map((card) => `- ${card.label}: ${card.value} — ${card.detail}`),
+    "",
+    "PRESENTATION SHIFT",
+    strip.presentationShift,
+  ].join(newline);
+}
+
+function V52PublicBetaValueStrip({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const strip = buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Why SoulFrame</p>
+          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{strip.headline}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{strip.description}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-400">
+          V5.2.3: <span className="font-semibold text-zinc-100">Value Strip</span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+        {strip.valueCards.map((card) => (
+          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{card.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -7698,7 +7790,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.2 Demo Scenarios</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.3 Value Strip</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
