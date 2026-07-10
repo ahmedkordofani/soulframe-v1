@@ -1423,6 +1423,7 @@ function runSoulFrameTests() {
     typeof V52PublicDemoScenarioCards === "function" &&
     typeof V52PublicBetaValueStrip === "function" &&
     typeof V52PublicBetaWorkflowPreview === "function" &&
+    typeof V52DashboardClarityCleanupPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1488,6 +1489,8 @@ function runSoulFrameTests() {
     buildV52PublicBetaValueStripText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA VALUE STRIP") &&
     buildV52PublicBetaWorkflowPreview(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Workflow Preview" &&
     buildV52PublicBetaWorkflowPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA WORKFLOW PREVIEW") &&
+    buildV52DashboardClarityCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Clarity Cleanup" &&
+    buildV52DashboardClarityCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 DASHBOARD CLARITY CLEANUP") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -6599,6 +6602,117 @@ function V52PublicBetaWorkflowPreview({ projectSession, reviewMode, draftAnalysi
   );
 }
 
+
+function buildV52DashboardClarityCleanup(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const actionCards = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const scenarios = buildV52PublicDemoScenarios();
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const visibleDashboardSections = [
+    "Dashboard Action Cards",
+    "Public Demo Scenario Cards",
+    "Quick Start Guide",
+  ];
+
+  const movedToAdvanced = [
+    "V5.1 Layout Refactor Handoff",
+  ];
+
+  const cleanupRules = [
+    "Keep the Dashboard focused on visitor action, not internal release proof.",
+    "Move release-readiness details into Advanced where they remain available.",
+    "Keep demo entry points visible because they help first-time visitors understand the product quickly.",
+    "Keep Quick Start visible, but after the more visual demo scenario cards.",
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Dashboard Clarity Cleanup",
+    headline: "The Dashboard is now more visitor-facing.",
+    dashboardFocus: actionCards.headline,
+    scenarioCount: scenarios.scenarios.length,
+    handoffReadiness: `${handoff.readinessScore}/100`,
+    visibleDashboardSections,
+    movedToAdvanced,
+    cleanupRules,
+    presentationShift: "This reduces internal product-management weight on the Dashboard while preserving the release handoff inside Advanced.",
+  };
+}
+
+function buildV52DashboardClarityCleanupText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const cleanup = buildV52DashboardClarityCleanup(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 DASHBOARD CLARITY CLEANUP",
+    "",
+    `Headline: ${cleanup.headline}`,
+    `Dashboard focus: ${cleanup.dashboardFocus}`,
+    `Demo scenarios: ${cleanup.scenarioCount}`,
+    `Handoff readiness: ${cleanup.handoffReadiness}`,
+    "",
+    "VISIBLE DASHBOARD SECTIONS",
+    ...cleanup.visibleDashboardSections.map((section) => `- ${section}`),
+    "",
+    "MOVED TO ADVANCED",
+    ...cleanup.movedToAdvanced.map((section) => `- ${section}`),
+    "",
+    "CLEANUP RULES",
+    ...cleanup.cleanupRules.map((rule, index) => `${index + 1}. ${rule}`),
+    "",
+    "PRESENTATION SHIFT",
+    cleanup.presentationShift,
+  ].join(newline);
+}
+
+function V52DashboardClarityCleanupPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const cleanup = buildV52DashboardClarityCleanup(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.2 Dashboard Clarity Cleanup"
+      subtitle="Keeps the public Dashboard focused on visitor action while moving internal release-readiness proof into Advanced."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.2.5: <span className="font-semibold text-zinc-100">Dashboard Cleanup</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Cleanup Result</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{cleanup.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{cleanup.presentationShift}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <article className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Dashboard Keeps</p>
+          <div className="mt-4 space-y-2">
+            {cleanup.visibleDashboardSections.map((section) => (
+              <div key={section} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">{section}</div>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Advanced Keeps</p>
+          <div className="mt-4 space-y-2">
+            {cleanup.movedToAdvanced.map((section) => (
+              <div key={section} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">{section}</div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-zinc-500">Release readiness remains accessible without crowding the visitor-facing Dashboard.</p>
+        </article>
+
+        <article className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Cleanup Rules</p>
+          <div className="mt-4 space-y-2">
+            {cleanup.cleanupRules.map((rule, index) => (
+              <div key={rule} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-xs leading-5 text-zinc-400">{index + 1}. {rule}</div>
+            ))}
+          </div>
+        </article>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7801,7 +7915,6 @@ export default function SoulFrameDraftReviewV2() {
         <div className="space-y-6">
           <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V52PublicDemoScenarioCards applyDemoPreset={applyDemoPreset} setActiveTab={setActiveTab} />
-          <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
         </div>
       )}
@@ -7838,6 +7951,8 @@ export default function SoulFrameDraftReviewV2() {
       advancedContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <PublicDemoNotice />
           <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -7905,7 +8020,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.4 Workflow Preview</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.5 Dashboard Cleanup</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
