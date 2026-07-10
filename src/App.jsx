@@ -1424,6 +1424,7 @@ function runSoulFrameTests() {
     typeof V52PublicBetaValueStrip === "function" &&
     typeof V52PublicBetaWorkflowPreview === "function" &&
     typeof V52DashboardClarityCleanupPanel === "function" &&
+    typeof V52PublicBetaScreenshotGuidePanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1491,6 +1492,8 @@ function runSoulFrameTests() {
     buildV52PublicBetaWorkflowPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA WORKFLOW PREVIEW") &&
     buildV52DashboardClarityCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Dashboard Clarity Cleanup" &&
     buildV52DashboardClarityCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 DASHBOARD CLARITY CLEANUP") &&
+    buildV52PublicBetaScreenshotGuide(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Screenshot Guide" &&
+    buildV52PublicBetaScreenshotGuideText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA SCREENSHOT GUIDE") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -6713,6 +6716,142 @@ function V52DashboardClarityCleanupPanel({ projectSession, reviewMode, draftAnal
   );
 }
 
+
+function buildV52PublicBetaScreenshotGuide(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const workflow = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const screenshotShots = [
+    {
+      label: "Hero",
+      targetTab: "dashboard",
+      shot: "Top of Product workspace",
+      purpose: "Show SoulFrame's public beta positioning and first impression.",
+      captureNote: hero.title,
+    },
+    {
+      label: "Workflow",
+      targetTab: "dashboard",
+      shot: "How It Works section",
+      purpose: "Show the product journey without requiring visitors to read the full app.",
+      captureNote: workflow.headline,
+    },
+    {
+      label: "Analyze",
+      targetTab: "analyze",
+      shot: "Analyze workspace status",
+      purpose: "Show upload, review mode, report route, and quality preview in context.",
+      captureNote: "Use a demo preset before capturing this screen.",
+    },
+    {
+      label: "Report",
+      targetTab: "report",
+      shot: "Report workspace summary",
+      purpose: "Show how SoulFrame turns analysis into producer/client direction.",
+      captureNote: "Capture after demo analysis is loaded.",
+    },
+    {
+      label: "Output",
+      targetTab: "output",
+      shot: "Output workspace summary",
+      purpose: "Show producer brief, client update, handoff, and export direction.",
+      captureNote: "Best captured after opening the Client Ready or Before / After demo.",
+    },
+    {
+      label: "Advanced",
+      targetTab: "advanced",
+      shot: "Advanced workspace overview",
+      purpose: "Show that deeper architecture exists without making it the main path.",
+      captureNote: `${handoff.readinessScore}/100 layout readiness remains available here.`,
+    },
+  ];
+
+  const publicBetaChecklist = [
+    "Use the Product view, not Classic Demo, for screenshots.",
+    "Load one demo scenario before capturing Analyze, Report, or Output.",
+    "Keep screenshots focused on one workspace at a time.",
+    "Avoid showing every technical panel in a single public-facing screenshot.",
+    "Use Advanced only when explaining roadmap, architecture, or build depth.",
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Beta Screenshot Guide",
+    headline: "Capture the product as a guided workflow, not a long prototype scroll.",
+    screenshotShots,
+    publicBetaChecklist,
+    presentationShift: "This gives SoulFrame a cleaner screenshot and walkthrough strategy for GitHub, LinkedIn, portfolio pages, and public beta demos.",
+  };
+}
+
+function buildV52PublicBetaScreenshotGuideText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const guide = buildV52PublicBetaScreenshotGuide(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 PUBLIC BETA SCREENSHOT GUIDE",
+    "",
+    `Headline: ${guide.headline}`,
+    "",
+    "SCREENSHOT SHOTS",
+    ...guide.screenshotShots.map((shot) => `- ${shot.label}: ${shot.shot} -> ${shot.targetTab}`),
+    "",
+    "PUBLIC BETA CHECKLIST",
+    ...guide.publicBetaChecklist.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "PRESENTATION SHIFT",
+    guide.presentationShift,
+  ].join(newline);
+}
+
+function V52PublicBetaScreenshotGuidePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const guide = buildV52PublicBetaScreenshotGuide(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.2 Public Beta Screenshot Guide"
+      subtitle="Defines the cleanest screens to capture for portfolio, GitHub, LinkedIn, walkthroughs, and public beta presentation."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.2.6: <span className="font-semibold text-zinc-100">Screenshot Guide</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Screenshot Strategy</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{guide.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{guide.presentationShift}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {guide.screenshotShots.map((shot) => (
+          <article key={shot.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{shot.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{shot.shot}</h3>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">{shot.purpose}</p>
+            <p className="mt-3 rounded-2xl border border-zinc-800 bg-black p-3 text-xs leading-5 text-zinc-400">{shot.captureNote}</p>
+            <button
+              type="button"
+              onClick={() => setActiveTab(shot.targetTab)}
+              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+            >
+              Open {shot.label}
+            </button>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Beta Checklist</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+          {guide.publicBetaChecklist.map((item, index) => (
+            <div key={item} className="rounded-2xl border border-zinc-800 bg-black p-4 text-xs leading-5 text-zinc-400">
+              <span className="font-semibold text-zinc-200">{index + 1}.</span> {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7952,6 +8091,7 @@ export default function SoulFrameDraftReviewV2() {
         <div className="space-y-6">
           <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+          <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <PublicDemoNotice />
           <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8020,7 +8160,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.5 Dashboard Cleanup</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.6 Screenshot Guide</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
