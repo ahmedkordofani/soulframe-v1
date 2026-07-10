@@ -1425,6 +1425,7 @@ function runSoulFrameTests() {
     typeof V52PublicBetaWorkflowPreview === "function" &&
     typeof V52DashboardClarityCleanupPanel === "function" &&
     typeof V52PublicBetaScreenshotGuidePanel === "function" &&
+    typeof V52PublicBetaPresentationHandoffPanel === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1494,6 +1495,8 @@ function runSoulFrameTests() {
     buildV52DashboardClarityCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 DASHBOARD CLARITY CLEANUP") &&
     buildV52PublicBetaScreenshotGuide(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Screenshot Guide" &&
     buildV52PublicBetaScreenshotGuideText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA SCREENSHOT GUIDE") &&
+    buildV52PublicBetaPresentationHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Handoff" &&
+    buildV52PublicBetaPresentationHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HANDOFF") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -6852,6 +6855,140 @@ function V52PublicBetaScreenshotGuidePanel({ projectSession, reviewMode, draftAn
   );
 }
 
+
+function buildV52PublicBetaPresentationHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const valueStrip = buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const workflowPreview = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const demoScenarios = buildV52PublicDemoScenarios();
+  const dashboardCleanup = buildV52DashboardClarityCleanup(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const screenshotGuide = buildV52PublicBetaScreenshotGuide(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const layoutHandoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const handoffChecks = [
+    {
+      label: "Hero communicates the product",
+      ready: hero.title.length > 20 && hero.heroActions.length === 3,
+      note: "The top of the Product workspace now explains SoulFrame clearly and gives direct actions.",
+    },
+    {
+      label: "Value is visible early",
+      ready: valueStrip.valueCards.length === 4,
+      note: "Visitors can quickly see producer value, browser-safe behavior, workflow, and readiness.",
+    },
+    {
+      label: "Workflow is easy to understand",
+      ready: workflowPreview.workflowSteps.length === 4,
+      note: "Dashboard, Analyze, Report, and Output are explained before deeper panels appear.",
+    },
+    {
+      label: "Demo entry is guided",
+      ready: demoScenarios.scenarios.length === 4,
+      note: "Visitors can load Vocal, Instrumental, Client Ready, or Before / After scenarios.",
+    },
+    {
+      label: "Dashboard is cleaner",
+      ready: dashboardCleanup.visibleDashboardSections.length <= 3,
+      note: "Internal release proof has been moved into Advanced so the Dashboard stays visitor-facing.",
+    },
+    {
+      label: "Screenshots have a strategy",
+      ready: screenshotGuide.screenshotShots.length >= 6,
+      note: "Portfolio, GitHub, LinkedIn, and walkthrough screenshots now have a recommended capture plan.",
+    },
+    {
+      label: "Layout foundation is stable",
+      ready: layoutHandoff.readinessScore >= 90,
+      note: "The V5.1 dashboard-first layout remains the foundation for V5.2 presentation polish.",
+    },
+  ];
+
+  const readyCount = handoffChecks.filter((check) => check.ready).length;
+  const readinessScore = Math.round((readyCount / handoffChecks.length) * 100);
+
+  const nextPresentationMoves = [
+    "Review the live Vercel deployment as a first-time visitor.",
+    "Capture screenshots from Hero, Workflow, Analyze, Report, Output, and Advanced.",
+    "Update README for V5.2 after final visual review.",
+    "Prepare release notes around public beta presentation rather than deep feature expansion.",
+    "Pause before adding backend features so the product polish can breathe.",
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Beta Presentation Handoff",
+    readinessScore,
+    readyCount,
+    totalChecks: handoffChecks.length,
+    status: readinessScore >= 90 ? "V5.2 presentation polish ready for release prep" : "Needs one more presentation review",
+    handoffChecks,
+    nextPresentationMoves,
+    finalSummary: "V5.2 makes SoulFrame feel more presentable as a public beta product by improving the first impression, demo paths, value explanation, workflow clarity, dashboard focus, and screenshot strategy.",
+  };
+}
+
+function buildV52PublicBetaPresentationHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV52PublicBetaPresentationHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 PUBLIC BETA PRESENTATION HANDOFF",
+    "",
+    `Status: ${handoff.status}`,
+    `Readiness: ${handoff.readinessScore}/100`,
+    `Checks ready: ${handoff.readyCount}/${handoff.totalChecks}`,
+    "",
+    "FINAL SUMMARY",
+    handoff.finalSummary,
+    "",
+    "HANDOFF CHECKS",
+    ...handoff.handoffChecks.map((check) => `- ${check.ready ? "READY" : "REVIEW"}: ${check.label} — ${check.note}`),
+    "",
+    "NEXT PRESENTATION MOVES",
+    ...handoff.nextPresentationMoves.map((move, index) => `${index + 1}. ${move}`),
+  ].join(newline);
+}
+
+function V52PublicBetaPresentationHandoffPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
+  const handoff = buildV52PublicBetaPresentationHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <Panel
+      title="V5.2 Public Beta Presentation Handoff"
+      subtitle="Wraps the V5.2 public beta polish into a release-ready presentation handoff before README, screenshots, merge, tag, and release."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.2.7: <span className="font-semibold text-zinc-100">Beta Handoff</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Presentation Readiness</p>
+        <h3 className="mt-3 text-3xl font-semibold text-zinc-100">{handoff.readinessScore}/100</h3>
+        <p className="mt-3 text-lg font-semibold text-zinc-200">{handoff.status}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-500">{handoff.finalSummary}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        {handoff.handoffChecks.map((check) => (
+          <article key={check.label} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{check.ready ? "Ready" : "Review"}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{check.label}</h3>
+            <p className="mt-3 text-sm leading-6 text-zinc-500">{check.note}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Next Presentation Moves</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+          {handoff.nextPresentationMoves.map((move, index) => (
+            <div key={move} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-xs leading-5 text-zinc-400">
+              <span className="font-semibold text-zinc-200">{index + 1}.</span> {move}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8092,6 +8229,7 @@ export default function SoulFrameDraftReviewV2() {
           <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <PublicDemoNotice />
           <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8160,7 +8298,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.6 Screenshot Guide</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.7 Beta Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
