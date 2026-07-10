@@ -41,6 +41,7 @@ SoulFrame is built around a practical AI-humanization workflow:
 19. Use V4.2 smarter humanization reports to route projects by genre, report path, client tone, before/after clarity, output pack, quality gate, and final handoff
 20. Use V5 product UX simplification to guide the app toward a cleaner dashboard, navigation, tabbed workflow, progressive layout, advanced collapse strategy, and public beta handoff
 21. Use V5.1 real layout refactor to open into a Product workspace with Dashboard, Analyze, Report, Output, and Advanced tabs while preserving the Classic Demo view
+22. Use V5.2 public beta presentation polish to improve the first impression, demo paths, value explanation, workflow preview, dashboard clarity, screenshot strategy, and release handoff
 
 ---
 
@@ -215,6 +216,13 @@ SoulFrame is built around a practical AI-humanization workflow:
 - V5.1 Workspace Progress Rail
 - V5.1 Layout Refactor Handoff
 - V5.1 About Current Stage Refresh
+- V5.2 Public Beta Presentation Hero
+- V5.2 Public Demo Scenario Cards
+- V5.2 Public Beta Value Strip
+- V5.2 Public Beta Workflow Preview
+- V5.2 Dashboard Clarity Cleanup
+- V5.2 Public Beta Screenshot Guide
+- V5.2 Public Beta Presentation Handoff
 
 ---
 
@@ -245,13 +253,13 @@ This project is part of my wider work as **ChordOfAnnie**, focused on humanizing
 
 ## Current Version
 
-**V5.1.0: Real Layout Refactor**
+**V5.2.0: Visual Polish and Public Beta Presentation**
 
-SoulFrame V5.1 turns the V5 product UX plan into an actual dashboard-first workspace.
+SoulFrame V5.2 improves the first impression of the Product workspace and makes the public demo easier to understand.
 
-This release adds the Product view as the default experience, introduces Dashboard, Analyze, Report, Output, and Advanced tabs, adds focused workspace headers, action cards, tab-specific summaries, progress navigation, and a final layout refactor handoff.
+This release adds a public beta presentation hero, guided demo scenario cards, a visitor-friendly value strip, a workflow preview, dashboard clarity cleanup, screenshot guide, and public beta presentation handoff.
 
-The goal of V5.1 is to reduce the long-scroll prototype feeling while preserving the deeper V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and the older Classic Demo view.
+The goal of V5.2 is to make SoulFrame feel more presentable as a public beta product without adding unnecessary deep-system complexity.
 
 ---
 
@@ -420,6 +428,33 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
   - Updates the About section to describe the current stage as a V5.1 real layout refactor prototype
   - Updates the product arc to Dashboard → Analyze → Report → Output → Advanced
 - Preserves all existing V4/V5 intelligence while making SoulFrame feel more like a guided product and less like a long technical prototype
+
+---
+
+## V5.2 Features
+
+- V5.2 Public Beta Presentation Hero
+  - Adds a cleaner first impression at the top of the Product workspace
+  - Positions SoulFrame as an AI Music Humanization Review Tool
+  - Adds direct actions for Analyze, Report, and Output
+- V5.2 Public Demo Scenario Cards
+  - Adds Vocal Draft, Instrumental, Client Ready, and Before / After demo paths
+  - Lets visitors load demo presets and jump directly into the relevant workspace
+- V5.2 Public Beta Value Strip
+  - Explains producer value, browser-safe demo behavior, workflow, and readiness
+  - Makes the top of the app feel more like a public beta landing experience
+- V5.2 Public Beta Workflow Preview
+  - Explains the product journey as Dashboard → Analyze → Report → Output
+  - Keeps Advanced positioned as an optional deeper inspection area
+- V5.2 Dashboard Clarity Cleanup
+  - Keeps the Dashboard more visitor-facing
+  - Moves internal layout handoff details into Advanced
+- V5.2 Public Beta Screenshot Guide
+  - Defines the best screens to capture for GitHub, LinkedIn, portfolio pages, walkthroughs, and public beta presentation
+- V5.2 Public Beta Presentation Handoff
+  - Scores public beta presentation readiness
+  - Confirms hero, value strip, workflow preview, demo scenarios, dashboard cleanup, screenshot guide, and layout foundation
+- Preserves the V5.1 layout refactor while making SoulFrame easier to understand as a public-facing product
 
 ---
 
@@ -636,17 +671,25 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - Preserved V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and browser-only demo behavior
 
 ---
+### V5.2.0 — Visual Polish and Public Beta Presentation
+
+- Added V5.2 Public Beta Presentation Hero
+- Added cleaner public beta positioning at the top of the Product workspace
+- Added hero actions for Analyze, Report, and Output
+- Added V5.2 Public Demo Scenario Cards
+- Added Vocal Draft, Instrumental, Client Ready, and Before / After demo paths
+- Added V5.2 Public Beta Value Strip
+- Added V5.2 Public Beta Workflow Preview
+- Added Dashboard → Analyze → Report → Output walkthrough
+- Added V5.2 Dashboard Clarity Cleanup
+- Moved internal layout handoff details from Dashboard into Advanced
+- Added V5.2 Public Beta Screenshot Guide
+- Added V5.2 Public Beta Presentation Handoff
+- Improved public beta presentation without adding unnecessary deep-system complexity
+- Preserved the V5.1 dashboard-first Product workspace, Classic Demo, V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and browser-only behavior
+
+---
 ## Future Roadmap
-
-### V5.2 — Visual Polish and Public Beta Presentation
-
-- Refine the new Product workspace visually
-- Reduce duplicated explanatory panels now that tabs exist
-- Improve the first-screen demo experience
-- Strengthen landing-page style presentation inside the app
-- Improve sample/demo project flow
-- Tighten product copy and onboarding
-- Prepare clearer screenshots, walkthroughs, and public examples
 
 ### V5.3 — Report Sharing and Export Direction
 
@@ -655,6 +698,15 @@ V3 expanded SoulFrame from a technical review tool into a humanization-focused w
 - Cleaner report download formats
 - Better public/client-facing report examples
 - Case studies and before/after walkthroughs
+- More polished producer/client report examples
+
+### V5.4 — UI Simplification Pass
+
+- Reduce duplicated explanatory panels now that tabs exist
+- Collapse or remove older planning panels from public-first views
+- Tighten spacing, hierarchy, and first-screen density
+- Improve mobile presentation
+- Review whether some V4/V5 planning panels should become developer-only
 
 ### V6.0 — Real Backend/API Implementation
 
@@ -681,6 +733,7 @@ SoulFrame is currently a public prototype.
 - V4.2 report features are local frontend report intelligence only, with no real backend processing or server-side audio analysis
 - V5 product UX features are product-structure previews and simplification planning layers
 - V5.1 layout features turn that product direction into a real dashboard-first workspace while preserving Classic Demo and browser-only behavior
+- V5.2 presentation features improve the first impression, demo scenario entry, value explanation, workflow preview, dashboard clarity, and screenshot strategy for public beta presentation
 
 SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
 
