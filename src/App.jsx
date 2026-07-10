@@ -1419,6 +1419,7 @@ function runSoulFrameTests() {
     typeof V51FocusedAdvancedWorkspacePanel === "function" &&
     typeof V51WorkspaceProgressRail === "function" &&
     typeof V51LayoutRefactorHandoffPanel === "function" &&
+    typeof V52PublicBetaPresentationHero === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1476,6 +1477,8 @@ function runSoulFrameTests() {
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
     buildProductSummaryText().includes("V5.1 real layout refactor prototype") &&
+    buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
+    buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5217,9 +5220,10 @@ function V51ProductWorkspace({
 
   return (
     <div className="space-y-6">
+      <V52PublicBetaPresentationHero projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
       <Panel
         title="V5.1 Dashboard Layout Shell"
-        subtitle="A real dashboard-first workspace that starts replacing the long prototype scroll with focused tabs."
+        subtitle="A real dashboard-first workspace, now being polished for public beta presentation."
         action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.1: <span className="font-semibold text-zinc-100">Dashboard Shell</span></div>}
       >
         <div className="rounded-3xl border border-zinc-800 bg-black p-5">
@@ -6162,6 +6166,124 @@ function V51LayoutRefactorHandoffPanel({ projectSession, reviewMode, draftAnalys
         <p className="mt-3 text-sm leading-6 text-zinc-300">{handoff.recommendedNextMilestone}</p>
       </div>
     </Panel>
+  );
+}
+
+
+function buildV52PresentationHeroState(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const dashboard = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV51LayoutRefactorHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+
+  const heroActions = [
+    {
+      label: activeAnalysis && activeAnalysis.status === "Ready" ? "Review Analysis" : "Start with Analyze",
+      targetTab: "analyze",
+      intent: activeAnalysis && activeAnalysis.status === "Ready" ? "Open the active audio review workspace." : "Upload audio or load a demo preset.",
+    },
+    {
+      label: "Open Report",
+      targetTab: "report",
+      intent: "Move into the smarter humanization report workspace.",
+    },
+    {
+      label: "Prepare Output",
+      targetTab: "output",
+      intent: "Package the producer brief, client update, checklist, and handoff.",
+    },
+  ];
+
+  const proofPoints = [
+    "Browser-safe audio review",
+    "Producer-led humanization",
+    "Client-ready reporting",
+    "Classic Demo preserved",
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Beta Presentation Hero",
+    eyebrow: "AI Music Humanization Review Tool",
+    title: "Turn AI music drafts into clearer human-led revision decisions.",
+    description: "SoulFrame helps producers inspect AI-generated music, identify what feels synthetic or unfinished, and prepare clearer notes for the next humanization pass.",
+    projectLine: dashboard.headline,
+    readinessLine: `${handoff.readinessScore}/100 layout readiness`,
+    heroActions,
+    proofPoints,
+    presentationShift: "V5.2 starts polishing SoulFrame's first impression for public beta presentation instead of adding more deep technical systems.",
+  };
+}
+
+function buildV52PresentationHeroText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO",
+    "",
+    `Eyebrow: ${hero.eyebrow}`,
+    `Title: ${hero.title}`,
+    `Readiness: ${hero.readinessLine}`,
+    "",
+    "DESCRIPTION",
+    hero.description,
+    "",
+    "PROOF POINTS",
+    ...hero.proofPoints.map((point) => `- ${point}`),
+    "",
+    "HERO ACTIONS",
+    ...hero.heroActions.map((action) => `- ${action.label}: ${action.intent} -> ${action.targetTab}`),
+    "",
+    "PRESENTATION SHIFT",
+    hero.presentationShift,
+  ].join(newline);
+}
+
+function V52PublicBetaPresentationHero({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <section className="rounded-[2rem] border border-zinc-800 bg-black p-6 shadow-2xl shadow-black/30">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-stretch">
+        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">{hero.eyebrow}</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-zinc-100 md:text-5xl">{hero.title}</h1>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-zinc-400">{hero.description}</p>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            {hero.heroActions.map((action, index) => (
+              <button
+                key={action.label}
+                type="button"
+                onClick={() => setActiveTab(action.targetTab)}
+                className={`rounded-2xl border px-5 py-3 text-sm font-semibold transition ${index === 0 ? "border-white bg-white text-black hover:bg-zinc-200" : "border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"}`}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Public Beta Snapshot</p>
+          <h2 className="mt-4 text-2xl font-semibold text-zinc-100">{hero.projectLine}</h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">{hero.presentationShift}</p>
+
+          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Layout Readiness</p>
+            <p className="mt-2 text-lg font-semibold text-zinc-100">{hero.readinessLine}</p>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-2">
+            {hero.proofPoints.map((point) => (
+              <div key={point} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
+                {point}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -7470,7 +7592,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.1.10 About Refresh</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.1 Presentation Hero</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
