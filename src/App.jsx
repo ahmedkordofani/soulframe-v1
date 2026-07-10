@@ -1422,6 +1422,7 @@ function runSoulFrameTests() {
     typeof V52PublicBetaPresentationHero === "function" &&
     typeof V52PublicDemoScenarioCards === "function" &&
     typeof V52PublicBetaValueStrip === "function" &&
+    typeof V52PublicBetaWorkflowPreview === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1485,6 +1486,8 @@ function runSoulFrameTests() {
     buildV52PublicDemoScenariosText().includes("SOULFRAME V5.2 PUBLIC DEMO SCENARIO CARDS") &&
     buildV52PublicBetaValueStrip(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Value Strip" &&
     buildV52PublicBetaValueStripText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA VALUE STRIP") &&
+    buildV52PublicBetaWorkflowPreview(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Workflow Preview" &&
+    buildV52PublicBetaWorkflowPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA WORKFLOW PREVIEW") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -5228,6 +5231,7 @@ function V51ProductWorkspace({
     <div className="space-y-6">
       <V52PublicBetaPresentationHero projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
       <V52PublicBetaValueStrip projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
+      <V52PublicBetaWorkflowPreview projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
       <Panel
         title="V5.1 Dashboard Layout Shell"
         subtitle="A real dashboard-first workspace, now being polished for public beta presentation."
@@ -6479,6 +6483,117 @@ function V52PublicBetaValueStrip({ projectSession, reviewMode, draftAnalysis, hu
             <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+
+function buildV52PublicBetaWorkflowPreview(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const workflowSteps = [
+    {
+      number: "01",
+      label: "Dashboard",
+      title: "Start with the project picture",
+      description: "See project status, demo paths, action cards, and the next practical move before opening deeper panels.",
+      targetTab: "dashboard",
+    },
+    {
+      number: "02",
+      label: "Analyze",
+      title: "Inspect the audio",
+      description: "Use intake, upload, metadata, waveform, and audio health to understand what the draft needs.",
+      targetTab: "analyze",
+    },
+    {
+      number: "03",
+      label: "Report",
+      title: "Translate analysis into direction",
+      description: "Turn findings into producer priorities, client-safe language, comparison notes, and revision logic.",
+      targetTab: "report",
+    },
+    {
+      number: "04",
+      label: "Output",
+      title: "Prepare the handoff",
+      description: "Package the producer brief, client update, revision checklist, export manifest, and saved project flow.",
+      targetTab: "output",
+    },
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Beta Workflow Preview",
+    headline: "A simple walkthrough of how SoulFrame works.",
+    description: "This visitor-friendly workflow preview explains the product journey before someone reaches the more detailed workspace panels.",
+    workflowSteps,
+    optionalArea: shell.tabs.find((tab) => tab.id === "advanced")?.label || "Advanced",
+    optionalNote: "Advanced remains available for deeper architecture, product planning, backend/API notes, and technical explainability.",
+    presentationShift: "The app now communicates the product flow visually before asking visitors to understand the full interface.",
+  };
+}
+
+function buildV52PublicBetaWorkflowPreviewText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const preview = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.2 PUBLIC BETA WORKFLOW PREVIEW",
+    "",
+    `Headline: ${preview.headline}`,
+    "",
+    "DESCRIPTION",
+    preview.description,
+    "",
+    "WORKFLOW STEPS",
+    ...preview.workflowSteps.map((step) => `- ${step.number} ${step.label}: ${step.title} -> ${step.targetTab}`),
+    "",
+    "OPTIONAL AREA",
+    `${preview.optionalArea}: ${preview.optionalNote}`,
+    "",
+    "PRESENTATION SHIFT",
+    preview.presentationShift,
+  ].join(newline);
+}
+
+function V52PublicBetaWorkflowPreview({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
+  const preview = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return (
+    <section className="rounded-[2rem] border border-zinc-800 bg-black p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">How It Works</p>
+          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{preview.headline}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{preview.description}</p>
+        </div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-400">
+          V5.2.4: <span className="font-semibold text-zinc-100">Workflow Preview</span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
+        {preview.workflowSteps.map((step) => (
+          <article key={step.number} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{step.number} · {step.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{step.title}</h3>
+            <p className="mt-3 min-h-24 text-xs leading-5 text-zinc-500">{step.description}</p>
+            <button
+              type="button"
+              onClick={() => setActiveTab(step.targetTab)}
+              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
+            >
+              Open {step.label}
+            </button>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Optional: {preview.optionalArea}</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{preview.optionalNote}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{preview.presentationShift}</p>
       </div>
     </section>
   );
@@ -7790,7 +7905,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.3 Value Strip</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.4 Workflow Preview</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
