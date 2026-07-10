@@ -1420,6 +1420,7 @@ function runSoulFrameTests() {
     typeof V51WorkspaceProgressRail === "function" &&
     typeof V51LayoutRefactorHandoffPanel === "function" &&
     typeof V52PublicBetaPresentationHero === "function" &&
+    typeof V52PublicDemoScenarioCards === "function" &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1479,6 +1480,8 @@ function runSoulFrameTests() {
     buildProductSummaryText().includes("V5.1 real layout refactor prototype") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
+    buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
+    buildV52PublicDemoScenariosText().includes("SOULFRAME V5.2 PUBLIC DEMO SCENARIO CARDS") &&
     buildShareLinksText().includes("SOULFRAME PUBLIC LINKS") &&
     buildV41ApiContractText().includes("SOULFRAME V4.1 BACKEND/API ARCHITECTURE") &&
     buildV41MockApiResponseShape().apiVersion === "v4.1" &&
@@ -6287,6 +6290,108 @@ function V52PublicBetaPresentationHero({ projectSession, reviewMode, draftAnalys
   );
 }
 
+
+function buildV52PublicDemoScenarios() {
+  const scenarios = [
+    {
+      key: "vocalDraft",
+      label: "Vocal Draft",
+      title: "AI Vocal Humanization Demo",
+      description: "Start with a vocal-focused review for metallic tone, expression, and release-readiness.",
+      targetTab: "analyze",
+    },
+    {
+      key: "instrumentalDraft",
+      label: "Instrumental",
+      title: "AI Instrumental Texture Demo",
+      description: "Review shimmer, generated movement, arrangement repetition, and instrumental warmth.",
+      targetTab: "analyze",
+    },
+    {
+      key: "clientReady",
+      label: "Client Ready",
+      title: "Client Delivery Review Demo",
+      description: "Load a more polished scenario focused on client communication and final-pass delivery.",
+      targetTab: "report",
+    },
+    {
+      key: "beforeAfter",
+      label: "Before / After",
+      title: "Humanized Edit Comparison",
+      description: "Compare an AI draft against a humanized edit and explain what improved.",
+      targetTab: "report",
+    },
+  ];
+
+  return {
+    version: "v5.2",
+    feature: "Public Demo Scenario Cards",
+    headline: "Choose a demo path instead of starting from a blank product.",
+    description: "Public beta visitors can now understand SoulFrame faster by loading a clear scenario and jumping into the right workspace.",
+    scenarios,
+    presentationShift: "The first-screen experience becomes more guided for visitors, screenshots, walkthroughs, and public demos.",
+  };
+}
+
+function buildV52PublicDemoScenariosText() {
+  const newline = String.fromCharCode(10);
+  const summary = buildV52PublicDemoScenarios();
+
+  return [
+    "SOULFRAME V5.2 PUBLIC DEMO SCENARIO CARDS",
+    "",
+    `Headline: ${summary.headline}`,
+    "",
+    "DESCRIPTION",
+    summary.description,
+    "",
+    "SCENARIOS",
+    ...summary.scenarios.map((scenario) => `- ${scenario.label}: ${scenario.title} -> ${scenario.targetTab}`),
+    "",
+    "PRESENTATION SHIFT",
+    summary.presentationShift,
+  ].join(newline);
+}
+
+function V52PublicDemoScenarioCards({ applyDemoPreset, setActiveTab }) {
+  const summary = buildV52PublicDemoScenarios();
+
+  return (
+    <Panel
+      title="V5.2 Public Demo Scenario Cards"
+      subtitle="Gives first-time visitors a faster way to understand SoulFrame by choosing a clear demo path."
+      action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.2.2: <span className="font-semibold text-zinc-100">Demo Scenarios</span></div>}
+    >
+      <div className="rounded-3xl border border-zinc-800 bg-black p-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Demo Entry</p>
+        <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{summary.headline}</h3>
+        <p className="mt-3 text-sm leading-6 text-zinc-400">{summary.description}</p>
+        <p className="mt-2 text-xs leading-5 text-zinc-600">{summary.presentationShift}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        {summary.scenarios.map((scenario) => (
+          <article key={scenario.key} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
+            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{scenario.label}</p>
+            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{scenario.title}</h3>
+            <p className="mt-3 min-h-20 text-xs leading-5 text-zinc-500">{scenario.description}</p>
+            <button
+              type="button"
+              onClick={() => {
+                applyDemoPreset(scenario.key);
+                setActiveTab(scenario.targetTab);
+              }}
+              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200"
+            >
+              Load Demo
+            </button>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7488,6 +7593,7 @@ export default function SoulFrameDraftReviewV2() {
       dashboardContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V52PublicDemoScenarioCards applyDemoPreset={applyDemoPreset} setActiveTab={setActiveTab} />
           <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
         </div>
@@ -7592,7 +7698,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.1 Presentation Hero</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.2 Demo Scenarios</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
