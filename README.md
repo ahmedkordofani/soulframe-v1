@@ -2,231 +2,153 @@
 
 **AI Music Humanization Review Tool**
 
-SoulFrame is a creative technology tool designed to help producers review AI-generated music drafts, inspect audio files, identify synthetic artifacts, compare humanized edits, and prepare clearer client update notes.
+SoulFrame is a browser-based prototype for reviewing AI-generated music and turning technical observations into clearer human-led production decisions.
 
-The goal is simple:
+The product is built around a simple belief:
 
-> Help AI-generated music feel more human, emotional, and intentional.
-
----
+> AI can assist the creative process, but the final emotional and musical decisions still need a human ear.
 
 ## Live Demo
 
 https://soulframe-v1.vercel.app
 
----
+## Current Version
+
+**V5.3.0 — Report Sharing & Export**
+
+SoulFrame now supports a cleaner path from AI-music review to producer/client reporting, local report export, browser-native sharing, before/after case-study presentation, and final client delivery preparation.
+
+The current product flow is:
+
+**Dashboard → Analyze → Report → Output → Advanced**
+
+Advanced remains optional so deeper technical and architectural material does not control the first impression of the product.
 
 ## What SoulFrame Does
 
-SoulFrame is built around a practical AI-humanization workflow:
+SoulFrame helps producers review AI-generated music and organise the humanization process around practical questions:
 
-1. Upload an AI-generated music draft
-2. Preview and inspect the audio
-3. Review real file metadata, waveform, and audio health
-4. Identify synthetic or unnatural-sounding elements
-5. Generate early artifact clues from browser-based proxy analysis
-6. Map the main revision priorities
-7. Compare an original AI draft against a humanized edit
-8. Generate clear client-facing update notes
-9. Export producer/client reports, checklists, product summaries, and project records
-10. Save, search, import, and export local project sessions
-11. Load demo presets for quick testing, screenshots, and walkthroughs
-12. Explain the product through About, Walkthrough, and How It Works views
-13. Guide first-time visitors with a Quick Start path
-14. Launch different demo scenarios without manual setup
-15. Show public demo status, use cases, release notes, roadmap direction, and local-session privacy notes
-16. Provide share links and footer links to the live demo, GitHub, and ChordOfAnnie
-17. Use V4 audio intelligence to turn browser-based analysis into producer priorities, humanization confidence, revision moves, client-safe summaries, and final recommendations
-18. Prepare V4.1 backend/API architecture using a mock API layer and frontend adapter without uploading audio or requiring a live server
-19. Use V4.2 smarter humanization reports to route projects by genre, report path, client tone, before/after clarity, output pack, quality gate, and final handoff
-20. Use V5 product UX simplification to guide the app toward a cleaner dashboard, navigation, tabbed workflow, progressive layout, advanced collapse strategy, and public beta handoff
-21. Use V5.1 real layout refactor to open into a Product workspace with Dashboard, Analyze, Report, Output, and Advanced tabs while preserving the Classic Demo view
-22. Use V5.2 public beta presentation polish to improve the first impression, demo paths, value explanation, workflow preview, dashboard clarity, screenshot strategy, and release handoff
+- What sounds technically or musically risky?
+- What should the producer listen to first?
+- What needs a human decision rather than another automated pass?
+- How can the findings be explained clearly to a client?
+- What should be delivered next?
 
----
+The current prototype includes browser-safe audio inspection, humanization priorities, smarter report composition, before/after comparison, producer guidance, client-safe reporting, downloadable local reports, delivery preparation, saved local sessions, and backend/API planning scaffolds.
 
-## Current Features
+## V5.3 — Report Sharing & Export
 
-- Project Intake system
-- Quick Start Guide
-- Demo Launcher Presets
-  - Vocal Demo
-  - Instrumental Demo
-  - Before / After Demo
-  - Walkthrough
-- Demo Readiness Banner
-- Public Demo Notice
-- Demo Use Cases panel
-- Public Launch Checklist
-- Public Demo Stats
-- V3.5 Release Notes panel
-- Roadmap Preview panel
-- Share SoulFrame panel
-  - Live Demo
-  - GitHub Repository
-  - ChordOfAnnie
-- Copy public share links
-- Download public share links as `.txt`
-- Header version badge
-- Public Footer Links
-  - Live Demo
-  - GitHub
-  - ChordOfAnnie
-  - About SoulFrame
-- Neutral public demo naming
-- Improved saved project empty state
-- Import backup available before saving projects
-- Disabled Clear All state when no projects are saved
-- Demo Mode Presets
-  - AI Vocal Draft
-  - AI Instrumental Draft
-  - Client-Ready Review
-  - Before / After Humanized Edit
-- About / Product Story panel
-- Demo Walkthrough mode
-- How SoulFrame Works section
-- Copy Product Summary
-- Download Product Summary
-- Draft Review mode
-- Before / After Review mode
-- Audio upload and playback
-- Real file metadata
-- Duration reading
-- Waveform preview
-- Basic audio health check
-  - Peak level
-  - Clipping risk
-  - Average energy
-  - Dynamics estimate
-  - Sample rate
-  - Channel count
-- Spectral texture proxy analysis
-- Brightness profile detection
-  - Dark / Warm
-  - Balanced
-  - Bright / Potentially Harsh
-- Texture stability detection
-  - Stable
-  - Moderate Movement
-  - Unstable / Busy
-- Early artifact clues
-  - Possible harsh AI shimmer
-  - Possible generated texture movement
-  - Possible flat emotional movement
-  - Headroom may affect perception
-- Producer Listening Focus
-- Humanization Priority Score
-- Priority labels
-  - Low Priority
-  - Medium Priority
-  - High Priority
-- Section-by-section review notes
-  - Intro
-  - Verse
-  - Chorus
-  - Bridge / Breakdown
-  - Outro
-- Humanization Action Plan
-- Producer Notes / Client-Safe Notes toggle
-- Before / After Humanization Delta
-- Session Summary Card
-- Copy Session Summary
-- Error Boundary / blank screen protection
-- Producer Report / Client Report export modes
-- Client-friendly report wording
-- Technical format notes
-- Technical readiness score
-- Real audio facts inside reports
-- Real audio facts inside client updates
-- Artifact clues inside client updates
-- Artifact clues inside exported reports
-- Before / After audio comparison summary
-- Before / After technical improvement score
-- Client delivery checklist
-- Project Snapshot
-- Project Workflow
-- Revision History
-- Next Revision Plan
-- Artifact Database
-- Client Update Generator
-- Copy Full Report
-- Download Full Report as `.txt`
-- Copy Client Update
-- Download Client Update as `.txt`
-- Copy Delivery Checklist
-- Download Delivery Checklist as `.txt`
-- Local project session saving
-- Multiple saved project sessions
-- Searchable saved project history
-- Saved project backup export
-- Saved project backup import
-- Reset Session button
-- Internal self-tests for core logic
-- V4 Audio Intelligence Baseline
-- Frequency Balance Insight
-- Low / Mid / High energy estimate
-- Harshness Risk
-- Mud Risk
-- Thinness Risk
-- AI Texture Risk
-- Producer Interpretation Summary
-- V4 Listening Priority Stack
-- V4 Revision Move Suggestions
-- V4 Humanization Confidence Score
-- V4 Client-Safe Summary
-- V4 Readiness Checklist
-- V4 Next-Pass Brief
-- V4 Producer Decision Log
-- V4 Human Touchpoints
-- V4 Client Update Draft
-- V4 Review Snapshot
-- V4 Final Recommendation
-- V4 Analysis Stack Overview
-- V4 Executive Summary
-- V4 Export Completeness Checklist
-- V4.1 Backend/API Scaffold
-- V4.1 Analysis Engine Separation Plan
-- V4.1 Mock API Response Layer
-- V4.1 Frontend API Adapter
-- V4.2 Smarter Report Router
-- V4.2 Genre-Aware Recommendations
-- V4.2 Path-Specific Report Builder
-- V4.2 Client Tone Drafts
-- V4.2 Before/After Explanation Layer
-- V4.2 Smart Report Composer
-- V4.2 Report Quality Gate
-- V4.2 Report Output Pack
-- V4.2 Final Report Handoff
-- V4.2 Report Export Manifest
-- V4.2 Report Control Center
-- V5 Product Dashboard Preview
-- V5 Product Navigation Blueprint
-- V5 Progressive Disclosure Layout
-- V5 Tabbed Workflow Shell
-- V5 Clean Dashboard Priority Summary
-- V5 Advanced Panel Collapse Strategy
-- V5 Public Beta UX Handoff
-- V5.1 Dashboard Layout Shell
-- V5.1 Focused Workspace Header
-- V5.1 Dashboard Action Cards
-- V5.1 Focused Analyze Workspace
-- V5.1 Focused Report Workspace
-- V5.1 Focused Output Workspace
-- V5.1 Focused Advanced Workspace
-- V5.1 Workspace Progress Rail
-- V5.1 Layout Refactor Handoff
-- V5.1 About Current Stage Refresh
-- V5.2 Public Beta Presentation Hero
-- V5.2 Public Demo Scenario Cards
-- V5.2 Public Beta Value Strip
-- V5.2 Public Beta Workflow Preview
-- V5.2 Dashboard Clarity Cleanup
-- V5.2 Public Beta Screenshot Guide
-- V5.2 Public Beta Presentation Handoff
+### V5.3.1 — Product Workspace Modularization
 
----
+The Product workspace began moving out of the monolithic `App.jsx` file into dedicated modules.
 
-## Tech Stack
+Key presentation components now live in:
+
+```text
+src/product/ProductWorkspace.jsx
+```
+
+This creates safer boundaries for future refactoring, report features, and code splitting while preserving the public Product experience.
+
+### V5.3.2 — Clean Report Preview
+
+Introduced a polished report presentation layer with separate:
+
+- Producer view
+- Client view
+- Executive/client summaries
+- Producer priorities
+- Before/after explanation
+- Recommended next move
+- Report quality and output details
+
+The goal is to make SoulFrame output feel closer to something a producer could genuinely review or send.
+
+### V5.3.3 — Downloadable Report Export
+
+Added real browser-local TXT export.
+
+Producer and Client reports generate separate project-based filenames and download without uploading report or audio data to a server.
+
+### V5.3.4 — Shareable Report Direction
+
+Added browser-native text sharing where supported, with clipboard fallback.
+
+SoulFrame also exposes the direction for future hosted report routes:
+
+```text
+/report/project-name
+```
+
+No fake public cloud URL is generated in V5.3. Secure hosted reports remain part of a later backend phase.
+
+### V5.3.5 — Before / After Case Study
+
+Before/after review can now become a cleaner case-study format showing:
+
+- Humanization Priority before and after
+- Brightness
+- Texture stability
+- Dynamics
+- Clipping risk
+- What changed
+- Client-safe explanation
+- Final human-check guidance
+
+The case study can also be copied or downloaded locally.
+
+### V5.3.6 — Client Delivery Experience
+
+The Output workspace now includes a final delivery checkpoint with:
+
+- Delivery readiness
+- Producer Brief status
+- Client Update status
+- Revision Checklist status
+- Final human listening checks
+- Client message preview
+- Delivery note copy/download
+- Clear next-step guidance
+
+The final delivery decision remains explicitly human-led.
+
+### V5.3.7 — Report Sharing & Export Handoff
+
+The V5.3 handoff confirms the complete planned feature set and clearly separates current browser-local behaviour from future backend capabilities.
+
+## Product Evolution
+
+### V4.0.0 — Deeper Audio Intelligence
+
+Expanded browser-safe audio analysis and humanization guidance.
+
+### V4.1.0 — Backend/API Prototype Scaffold
+
+Defined early API and backend architecture direction without presenting it as a live backend.
+
+### V4.2.0 — Smarter Humanization Reports
+
+Added smarter report composition, quality gates, output packs, final handoff logic, export manifests, and stronger before/after explanations.
+
+### V5.0.0 — Product UX Simplification
+
+Shifted SoulFrame away from a long technical-document experience toward a clearer product direction.
+
+### V5.1.0 — Real Layout Refactor
+
+Introduced the Dashboard / Analyze / Report / Output / Advanced workspace model.
+
+### V5.2.0 — Visual Polish & Public Beta Presentation
+
+Improved the public-facing hero, value proposition, workflow explanation, guided demo scenarios, screenshot strategy, and presentation readiness.
+
+### V5.3.0 — Report Sharing & Export
+
+Connected the analysis/report system to cleaner producer/client presentation, local downloads, sharing direction, case studies, and final delivery preparation.
+
+## Architecture
+
+Current stack:
 
 - React
 - Vite
@@ -237,514 +159,106 @@ SoulFrame is built around a practical AI-humanization workflow:
 - GitHub
 - Vercel
 
----
-
-## Why This Exists
-
-AI-generated music can be fast and impressive, but it often lacks the subtle details that make music feel alive.
-
-SoulFrame explores how producers can use AI as a tool without removing the human ear, emotional judgement, and creative decision-making from the process.
-
-The tool is designed around the belief that AI can assist creativity, but the final emotional, musical, and human decisions still need a producer.
-
-This project is part of my wider work as **ChordOfAnnie**, focused on humanizing AI-generated sound and bringing soul back into music.
-
----
-
-## Current Version
-
-**V5.2.0: Visual Polish and Public Beta Presentation**
-
-SoulFrame V5.2 improves the first impression of the Product workspace and makes the public demo easier to understand.
-
-This release adds a public beta presentation hero, guided demo scenario cards, a visitor-friendly value strip, a workflow preview, dashboard clarity cleanup, screenshot guide, and public beta presentation handoff.
-
-The goal of V5.2 is to make SoulFrame feel more presentable as a public beta product without adding unnecessary deep-system complexity.
-
----
-
-## V3 Feature Summary
-
-V3 expanded SoulFrame from a technical review tool into a humanization-focused workflow.
-
-- V3.0 added spectral texture proxy analysis, brightness profile detection, texture stability detection, early artifact clues, producer listening focus, humanization priority scoring, and section-by-section review notes.
-- V3.1 added the Humanization Action Plan, Before / After Humanization Delta, Producer Notes / Client-Safe Notes toggle, and Session Summary Card.
-- V3.2 added Error Boundary protection, producer/client report export modes, client-friendly wording, Copy Session Summary, and demo mode presets.
-- V3.3 added client action plan exports, revision checklist generation, Save Demo Preset as Project, and stronger client workflow support.
-- V3.4 added the About / Product Story panel, Demo Walkthrough mode, product summary exports, and How SoulFrame Works section.
-- V3.5 and V3.5.1 added public demo polish, Quick Start, demo launcher presets, public demo notice, use cases, launch checklist, demo stats, release notes, roadmap preview, share links, neutral demo naming, and public-demo stability cleanup.
-
----
-
-## V4.0 Features
-
-- V4 Audio Intelligence Baseline
-  - Frequency balance insight
-  - Low / Mid / High energy estimate
-  - Harshness risk
-  - Mud risk
-  - Thinness risk
-  - AI texture risk
-  - Producer interpretation summary
-- V4 Listening Priority Stack
-  - Ranks the main listening risks so the producer knows what to check first
-- V4 Revision Move Suggestions
-  - Turns analysis into practical next-pass moves
-- V4 Humanization Confidence Score
-  - Estimates how ready the draft feels for human-led refinement
-- V4 Client-Safe Summary
-  - Converts technical findings into clearer client-facing language
-- V4 Readiness Checklist
-  - Checks top-end comfort, low-mid clarity, body/warmth, generated texture control, and humanization confidence
-- V4 Next-Pass Brief
-  - Creates a focused producer plan for the next human edit
-- V4 Producer Decision Log
-  - Explains why the next edit should move in a specific direction
-- V4 Human Touchpoints
-  - Reconnects the analysis to emotion, movement, tone, and client delivery
-- V4 Client Update Draft
-  - Generates ready-to-send language for the next revision update
-- V4 Review Snapshot
-  - Condenses the whole V4 analysis into one quick overview
-- V4 Final Recommendation
-  - Suggests whether to proceed to final polish, do one focused humanization pass, or treat the draft as a high-priority revision
-- V4 Analysis Stack Overview
-  - Shows what SoulFrame checked before making the recommendation
-- V4 Executive Summary
-  - Summarizes the full V4 review in a clean producer-facing overview
-- V4 Export Completeness Checklist
-  - Confirms which V4 sections are included in the full report export
-- V4 sections added into full report exports
-- Improved SoulFrame from a public prototype into a deeper producer decision-support workflow
-
----
-
-## V4.1 Features
-
-- V4.1 Backend/API Scaffold
-  - API-ready architecture notes
-  - Frontend/backend responsibility map
-  - Mock backend response shape
-- V4.1 Analysis Engine Separation Plan
-  - Audio Feature Engine
-  - Risk Interpretation Engine
-  - Humanization Engine
-  - Communication Engine
-- V4.1 Mock API Response Layer
-  - Mock analysis request and response
-  - Local-only risk profile and communication preview
-  - No real backend calls or audio uploads
-- V4.1 Frontend API Adapter
-  - Local browser source
-  - Mock API source
-  - Future backend source
-  - Adapter state and UI state handling
-- Preserves the current browser-safe demo while preparing for future server-side analysis
-
----
-
-## V4.2 Features
-
-- V4.2 Smarter Report Router
-  - Detects report path, genre focus, revision difficulty, suggested edit order, and client tone options
-- V4.2 Genre-Aware Recommendations
-  - Adds musical listening lenses and production moves for vocal, instrumental, before/after, and genre-specific workflows
-- V4.2 Path-Specific Report Builder
-  - Structures reports differently for Vocal, Instrumental, Before / After, and General AI Draft reviews
-- V4.2 Client Tone Drafts
-  - Generates Professional, Encouraging, and Direct client-facing update options
-- V4.2 Before/After Explanation Layer
-  - Explains whether a humanized edit improved, stayed similar, or needs another pass
-- V4.2 Smart Report Composer
-  - Combines report route, genre guidance, path-specific sections, client tone, and before/after clarity into one report preview
-- V4.2 Report Quality Gate
-  - Scores report readiness and labels outputs as Needs Setup, Draft Report, Producer-Ready, or Client-Ready
-- V4.2 Report Output Pack
-  - Packages Producer Brief, Client Update, and Revision Checklist outputs
-- V4.2 Final Report Handoff
-  - Checks producer direction, client tone, revision task order, before/after clarity, and final human read-through
-- V4.2 Report Export Manifest
-  - Maps report outputs into export-ready deliverables with suggested filenames
-- V4.2 Report Control Center
-  - Condenses route, quality gate, handoff, export readiness, warnings, and next move into one status view
-- Preserves the browser-safe public demo while making the report system more practical, focused, and client-ready
-
----
-
----
-
-## V5.0 Features
-
-- V5 Product Dashboard Preview
-  - Introduces a cleaner dashboard direction near the top of the app
-  - Summarizes the workflow into Start Project, Analyze Audio, Review Report, and Prepare Output
-- V5 Product Navigation Blueprint
-  - Defines future app areas: Dashboard, Analyze, Report, Output, and Advanced
-  - Moves deeper technical systems out of the first-time user path
-- V5 Progressive Disclosure Layout
-  - Defines what should appear first, what should collapse, and when deeper intelligence should be revealed
-- V5 Tabbed Workflow Shell
-  - Maps SoulFrame into a future tab-style workflow while preserving the intelligence already built
-- V5 Clean Dashboard Priority Summary
-  - Condenses the product into clear priority cards for status, report path, quality, and handoff
-- V5 Advanced Panel Collapse Strategy
-  - Groups audio intelligence, report subsystems, backend/API planning, and developer/safety checks into advanced sections
-- V5 Public Beta UX Handoff
-  - Scores public beta UX readiness and defines the final V5 product simplification direction
-- Preserves all existing V4 intelligence while shifting the user experience toward a cleaner, calmer, and more presentable product layout
-
----
-
-## V5.1 Features
-
-- V5.1 Dashboard Layout Shell
-  - Makes the Product view the default app experience
-  - Introduces Dashboard, Analyze, Report, Output, and Advanced tabs
-  - Preserves the older long-scroll experience as Classic Demo
-- V5.1 Focused Workspace Header
-  - Adds contextual headings and primary actions for each workspace tab
-- V5.1 Dashboard Action Cards
-  - Adds Project, Audio, Report, and Output cards to the Dashboard tab
-  - Lets users move into the right tab from the first screen
-- V5.1 Focused Analyze Workspace
-  - Adds Analyze status cards for review mode, upload state, report route, and quality preview
-  - Adds Continue to Report and Back to Dashboard actions
-- V5.1 Focused Report Workspace
-  - Adds report summary cards for route, quality, composer, and comparison
-  - Adds Continue to Output and Back to Analyze actions
-- V5.1 Focused Output Workspace
-  - Adds output summary cards for recommended output, producer brief, client update, and export pack
-  - Adds Back to Report and Review Advanced Details actions
-- V5.1 Focused Advanced Workspace
-  - Gives technical architecture, backend/API planning, and product planning a clearer Advanced area
-  - Keeps deeper systems available without making them the main user path
-- V5.1 Workspace Progress Rail
-  - Shows the main route: Dashboard → Analyze → Report → Output
-  - Keeps Advanced visible as an optional inspection space
-  - Adds Previous and Next navigation through the product flow
-- V5.1 Layout Refactor Handoff
-  - Scores layout refactor readiness and confirms the new workspace structure
-- V5.1 About Current Stage Refresh
-  - Updates the About section to describe the current stage as a V5.1 real layout refactor prototype
-  - Updates the product arc to Dashboard → Analyze → Report → Output → Advanced
-- Preserves all existing V4/V5 intelligence while making SoulFrame feel more like a guided product and less like a long technical prototype
-
----
-
-## V5.2 Features
-
-- V5.2 Public Beta Presentation Hero
-  - Adds a cleaner first impression at the top of the Product workspace
-  - Positions SoulFrame as an AI Music Humanization Review Tool
-  - Adds direct actions for Analyze, Report, and Output
-- V5.2 Public Demo Scenario Cards
-  - Adds Vocal Draft, Instrumental, Client Ready, and Before / After demo paths
-  - Lets visitors load demo presets and jump directly into the relevant workspace
-- V5.2 Public Beta Value Strip
-  - Explains producer value, browser-safe demo behavior, workflow, and readiness
-  - Makes the top of the app feel more like a public beta landing experience
-- V5.2 Public Beta Workflow Preview
-  - Explains the product journey as Dashboard → Analyze → Report → Output
-  - Keeps Advanced positioned as an optional deeper inspection area
-- V5.2 Dashboard Clarity Cleanup
-  - Keeps the Dashboard more visitor-facing
-  - Moves internal layout handoff details into Advanced
-- V5.2 Public Beta Screenshot Guide
-  - Defines the best screens to capture for GitHub, LinkedIn, portfolio pages, walkthroughs, and public beta presentation
-- V5.2 Public Beta Presentation Handoff
-  - Scores public beta presentation readiness
-  - Confirms hero, value strip, workflow preview, demo scenarios, dashboard cleanup, screenshot guide, and layout foundation
-- Preserves the V5.1 layout refactor while making SoulFrame easier to understand as a public-facing product
-
----
-
-## Version History
-
-### V1.0.0 — Workflow Prototype
-
-- Defined the original SoulFrame interface
-- Added draft review workflow
-- Added before/after review workflow
-- Added artifact database
-- Added simulated reports
-- Added client update generator
-
-### V2.0.0 — Functional Audio Intake
-
-- Added audio upload and playback
-- Added real metadata reading
-- Added duration detection
-- Added waveform preview
-- Added peak/clipping/dynamics health check
-- Added real audio facts inside reports
-- Added real audio facts inside client updates
-- Added before/after audio comparison summary
-- Added copy full report button
-- Added local project session saving
-
-### V2.1.0 — Project Sessions and Export Workflow
-
-- Added downloadable full reports
-- Added client update export
-- Added delivery checklist export
-- Added saved project sessions
-- Added searchable project history
-- Added project backup export/import
-- Added technical format notes
-- Added technical readiness score
-- Added before/after technical improvement score
-- Added delivery checklist inside report export
-
-### V3.0.0 — Deeper Listening and Humanization Intelligence
-
-- Added spectral texture proxy analysis
-- Added brightness profile detection
-- Added texture stability detection
-- Added early artifact clues
-- Added artifact clue sentences inside client updates
-- Added artifact clues to exported full reports
-- Added producer listening focus
-- Added humanization priority score
-- Added priority labels and producer notes
-- Added section-by-section review notes
-- Added section notes to full report exports
-- Expanded SoulFrame from technical review into early humanization intelligence
-
-### V3.1.0 — Humanization Guidance and Session Intelligence
-
-- Added Humanization Action Plan
-- Added practical production moves based on analysis results
-- Added Before / After Humanization Delta
-- Added comparison of humanization priority, technical readiness, brightness, texture stability, headroom, and dynamics
-- Added Producer Notes / Client-Safe Notes toggle
-- Added client-safe wording for sharing humanization plans with clients
-- Added Session Summary Card
-- Added session summary to full report exports
-- Improved SoulFrame’s workflow from analysis-only into analysis plus guided production decisions
-
-### V3.2.0 — Polish, Reliability, and Demo Readiness
-
-- Added Error Boundary / blank screen protection
-- Added recovery fallback if a review panel crashes
-- Added Producer Report / Client Report export modes
-- Added client-friendly report wording
-- Added Copy Session Summary
-- Added Demo Mode Presets
-- Added preset scenarios for AI Vocal Draft, AI Instrumental Draft, Client-Ready Review, and Before / After Humanized Edit
-- Improved product stability, demo flow, and presentation readiness
-
-### V3.3.0 — Client Workflow Power-Up
-
-- Added Export Client Action Plan
-- Added Copy Client Plan and Download Client Plan
-- Added Copy Client-Safe Report Summary
-- Added Revision Checklist Generator
-- Added Copy Revision Checklist and Download Revision Checklist
-- Added Save Demo Preset as Project
-- Improved client workflow from review output to revision planning and client communication
-
-### V3.4.0 — Demo, Presentation, and Productization
-
-- Added About / Product Story panel
-- Added Demo Walkthrough mode
-- Added Export Product Summary
-- Added How SoulFrame Works section
-- Added clearer in-app explanation of the SoulFrame workflow
-- Improved product presentation, demo readiness, and project storytelling
-
-### V3.5.0 — Public Demo Polish
-
-- Added Quick Start Guide for first-time visitors
-- Added Demo Launcher Presets for vocal, instrumental, before/after, and walkthrough paths
-- Added Demo Readiness Banner
-- Added Public Footer Links for Live Demo, GitHub, ChordOfAnnie, and About SoulFrame
-- Improved Saved Project Sessions empty state
-- Made Import Backup available before saving any projects
-- Disabled Clear All when there are no saved projects
-- Improved public demo navigation, onboarding, and first-time visitor clarity
-
-### V3.5.1 — Public Demo Stability Cleanup
-
-- Added Public Demo Notice
-- Added Demo Use Cases panel
-- Added Public Launch Checklist
-- Added Public Demo Stats
-- Added V3.5 Release Notes inside the app
-- Added Roadmap Preview panel
-- Added Share SoulFrame panel with public links
-- Added copy/download support for public share links
-- Added header version badge
-- Updated outdated V3.4 product copy to V3.5 public demo wording
-- Updated saved backup version metadata
-- Neutralized demo/client naming for public repository safety
-- Preserved the existing public footer and avoided duplicate footer changes
-- Improved public demo clarity, stability, and share-readiness
-
-### V4.0.0 — Deeper Audio Intelligence
-
-- Added V4 Audio Intelligence Baseline
-- Added Frequency Balance Insight
-- Added Low / Mid / High energy estimate
-- Added Harshness Risk, Mud Risk, Thinness Risk, and AI Texture Risk
-- Added Producer Interpretation Summary
-- Added V4 Listening Priority Stack
-- Added V4 Revision Move Suggestions
-- Added V4 Humanization Confidence Score
-- Added V4 Client-Safe Summary
-- Added V4 Readiness Checklist
-- Added V4 Next-Pass Brief
-- Added V4 Producer Decision Log
-- Added V4 Human Touchpoints
-- Added V4 Client Update Draft
-- Added V4 Review Snapshot
-- Added V4 Final Recommendation
-- Added V4 Analysis Stack Overview
-- Added V4 Executive Summary
-- Added V4 Export Completeness Checklist
-- Added V4 sections to full report exports
-- Improved SoulFrame from public prototype into deeper producer decision-support workflow
-
-### V4.1.0 — Backend/API Prototype Scaffold
-
-- Added V4.1 Backend/API Scaffold panel
-- Added frontend/backend responsibility map
-- Added V4.1 Analysis Engine Separation Plan
-- Added V4.1 Mock API Response Layer
-- Added V4.1 Frontend API Adapter
-- Added local browser, mock API, and future backend source mapping
-- Preserved browser-only demo behavior with no audio upload and no real backend calls
-- Prepared SoulFrame for future backend/API architecture without breaking the current public prototype
-
----
-
-### V4.2.0 — Smarter Humanization Reports
-
-- Added V4.2 Smarter Report Router
-- Added genre-aware recommendation logic
-- Added path-specific report structures for Vocal, Instrumental, Before / After, and General AI Draft reviews
-- Added Professional, Encouraging, and Direct client tone drafts
-- Added clearer before/after explanation logic
-- Added Smart Report Composer
-- Added Report Quality Gate
-- Added Report Output Pack
-- Added Final Report Handoff
-- Added Report Export Manifest
-- Added Report Control Center
-- Improved SoulFrame's report workflow from analysis output into clearer producer/client-ready guidance
-- Preserved browser-only demo behavior with no audio upload to a server and no real backend calls
-
----
-
-### V5.0.0 — Product UX Simplification / Public Beta Direction
-
-- Added V5 Product Dashboard Preview
-- Added V5 Product Navigation Blueprint
-- Added V5 Progressive Disclosure Layout
-- Added V5 Tabbed Workflow Shell
-- Added V5 Clean Dashboard Priority Summary
-- Added V5 Advanced Panel Collapse Strategy
-- Added V5 Public Beta UX Handoff
-- Defined a cleaner future app structure around Dashboard, Analyze, Report, Output, and Advanced areas
-- Established progressive disclosure rules to reduce long-scroll complexity
-- Grouped deeper technical systems into advanced sections while preserving their value
-- Positioned SoulFrame for a more presentable public beta direction
-- Preserved browser-only demo behavior with no server-side audio upload or real backend calls
-
----
-### V5.1.0 — Real Layout Refactor
-
-- Added V5.1 Dashboard Layout Shell
-- Added Product view as the default app experience
-- Added Dashboard, Analyze, Report, Output, and Advanced tabs
-- Preserved the older long-scroll experience as Classic Demo
-- Added V5.1 Focused Workspace Header
-- Added V5.1 Dashboard Action Cards
-- Added V5.1 Focused Analyze Workspace
-- Added V5.1 Focused Report Workspace
-- Added V5.1 Focused Output Workspace
-- Added V5.1 Focused Advanced Workspace
-- Added V5.1 Workspace Progress Rail
-- Added V5.1 Layout Refactor Handoff
-- Updated the About section current stage to V5.1 real layout refactor prototype
-- Updated the product arc to Dashboard → Analyze → Report → Output → Advanced
-- Reduced the long-scroll prototype feeling by giving each major workflow area a clearer home
-- Preserved V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and browser-only demo behavior
-
----
-### V5.2.0 — Visual Polish and Public Beta Presentation
-
-- Added V5.2 Public Beta Presentation Hero
-- Added cleaner public beta positioning at the top of the Product workspace
-- Added hero actions for Analyze, Report, and Output
-- Added V5.2 Public Demo Scenario Cards
-- Added Vocal Draft, Instrumental, Client Ready, and Before / After demo paths
-- Added V5.2 Public Beta Value Strip
-- Added V5.2 Public Beta Workflow Preview
-- Added Dashboard → Analyze → Report → Output walkthrough
-- Added V5.2 Dashboard Clarity Cleanup
-- Moved internal layout handoff details from Dashboard into Advanced
-- Added V5.2 Public Beta Screenshot Guide
-- Added V5.2 Public Beta Presentation Handoff
-- Improved public beta presentation without adding unnecessary deep-system complexity
-- Preserved the V5.1 dashboard-first Product workspace, Classic Demo, V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, saved sessions, demo presets, and browser-only behavior
-
----
-## Future Roadmap
-
-### V5.3 — Report Sharing and Export Direction
-
-- Shareable report link direction
-- Exportable PDF report direction
-- Cleaner report download formats
-- Better public/client-facing report examples
-- Case studies and before/after walkthroughs
-- More polished producer/client report examples
-
-### V5.4 — UI Simplification Pass
-
-- Reduce duplicated explanatory panels now that tabs exist
-- Collapse or remove older planning panels from public-first views
-- Tighten spacing, hierarchy, and first-screen density
-- Improve mobile presentation
-- Review whether some V4/V5 planning panels should become developer-only
+Current modular areas include:
+
+```text
+src/
+├── App.jsx
+├── product/
+│   └── ProductWorkspace.jsx
+└── report/
+    ├── CleanReportPreview.jsx
+    ├── BeforeAfterCaseStudy.jsx
+    ├── ClientDeliveryExperience.jsx
+    └── ReportSharingExportHandoff.jsx
+```
+
+The codebase is still in transition. `App.jsx` remains large and contains substantial legacy builder and workspace logic. V5.3 begins the modularization process rather than claiming it is finished.
+
+## Privacy / Browser-Safe Behaviour
+
+The current audio-review prototype runs locally in the browser.
+
+V5.3 report downloads are also generated locally.
+
+SoulFrame does **not** currently provide:
+
+- user accounts
+- cloud project persistence
+- live public report URLs
+- database-backed report history
+- permissions or access control
+- revocable shared links
+- server-generated PDFs
+- a production backend/API
+
+The V4.1 backend work remains architectural/prototype scaffolding only.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run locally:
+
+```bash
+npm run dev
+```
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+## Current Development Note
+
+The production bundle currently sits around Vite's default large-chunk warning threshold.
+
+This is not blocking the prototype, but future cleanup should continue:
+
+- extracting large UI areas from `App.jsx`
+- separating builder/business logic
+- introducing route/component-level lazy loading
+- reducing repeated planning/prototype UI
+- improving code splitting
+
+## Roadmap
+
+### V5.4 — UI Simplification & Codebase Cleanup
+
+Planned direction:
+
+- continue modularizing `App.jsx`
+- simplify overlapping V4/V5 panels
+- remove redundant prototype/planning surfaces
+- improve lazy loading and code splitting
+- reduce bundle size
+- tighten the public Product, Report, and Output experiences
+- preserve Classic Demo and deeper architecture without letting them dominate the main workflow
 
 ### V6.0 — Real Backend/API Implementation
 
-- Secure file upload pipeline
-- Server-side audio processing
-- Database-backed saved projects
-- User accounts
-- Cloud saved sessions and upload history
-- Shareable cloud report links
+Potential future work:
 
----
+- persistent projects
+- authenticated users
+- hosted reports
+- secure share links
+- report permissions
+- revocable links
+- database persistence
+- server-side export/PDF generation
+- real API endpoints
+- production deployment architecture
 
-## Public Demo Notes
+These capabilities are not yet implemented.
 
-SoulFrame is currently a public prototype.
+## Status
 
-- Audio inspection runs in the browser
-- Saved project sessions use LocalStorage
-- Demo presets are included for quick testing
-- No private client audio is included in the public repository
-- The tool supports producer judgement rather than replacing it
-- V4 analysis is a decision-support layer, not an automatic final verdict
-- V4.1 backend/API features are local mock architecture only, with no real server calls or audio uploads
-- V4.2 report features are local frontend report intelligence only, with no real backend processing or server-side audio analysis
-- V5 product UX features are product-structure previews and simplification planning layers
-- V5.1 layout features turn that product direction into a real dashboard-first workspace while preserving Classic Demo and browser-only behavior
-- V5.2 presentation features improve the first impression, demo scenario entry, value explanation, workflow preview, dashboard clarity, and screenshot strategy for public beta presentation
+SoulFrame remains an evolving prototype and public-beta product experiment.
 
-SoulFrame is designed as a human-led workflow for making AI-generated music feel more intentional, emotional, and alive.
-
----
-
-## About the Creator
-
-Built by **Ahmed Kordofani**, a London-based music producer, mixing engineer, and creative technologist working at the intersection of music, AI, and human creativity.
-
-Ahmed creates under the name **ChordOfAnnie**, with a focus on music production, mixing, AI music humanization, and preserving soul in the creative process.
-
-Website: https://chordofannie.com  
-GitHub: https://github.com/ahmedkordofani  
-LinkedIn: https://linkedin.com/in/ahmedkordofani
+The focus is not to automate creative judgement. It is to make AI-assisted music review more understandable, more structured, and more useful to the producer who still has to make the final call.

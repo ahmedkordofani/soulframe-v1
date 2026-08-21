@@ -1,4 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  V51FocusedWorkspaceHeader,
+  V51ProductWorkspace,
+  V51WorkspaceProgressRail,
+  V52PublicBetaPresentationHero,
+  V52PublicBetaValueStrip,
+  V52PublicBetaWorkflowPreview,
+} from "./product/ProductWorkspace";
+import { V53CleanReportPreview } from "./report/CleanReportPreview";
+import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
+import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
+import { V53ReportSharingExportHandoff } from "./report/ReportSharingExportHandoff";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1426,6 +1438,31 @@ function runSoulFrameTests() {
     typeof V52DashboardClarityCleanupPanel === "function" &&
     typeof V52PublicBetaScreenshotGuidePanel === "function" &&
     typeof V52PublicBetaPresentationHandoffPanel === "function" &&
+    buildV53ProductWorkspaceModuleSummary().feature === "Product Workspace Modularization" &&
+    buildV53ProductWorkspaceModuleSummary().modulePath === "src/product/ProductWorkspace.jsx" &&
+    buildV53ProductWorkspaceModuleText().includes("SOULFRAME V5.3 PRODUCT WORKSPACE MODULARIZATION") &&
+    typeof V53CleanReportPreview === "function" &&
+    buildV53CleanReportPreview(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Clean Report Preview" &&
+    buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "producer").includes("SOULFRAME CLEAN HUMANIZATION REPORT") &&
+    buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "client").includes("CLIENT SUMMARY") &&
+    buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Downloadable Report Export" &&
+    buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).producerFileName.endsWith(".txt") &&
+    buildV53DownloadableReportExportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 DOWNLOADABLE REPORT EXPORT") &&
+    buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Shareable Report Direction" &&
+    buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).routePreview.startsWith("/report/") &&
+    buildV53ShareableReportDirectionText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 SHAREABLE REPORT DIRECTION") &&
+    typeof V53BeforeAfterCaseStudy === "function" &&
+    buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).feature === "Before / After Case Study" &&
+    buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).comparisonReady === true &&
+    buildV53BeforeAfterCaseStudyText(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V5.3 BEFORE / AFTER CASE STUDY") &&
+    typeof V53ClientDeliveryExperience === "function" &&
+    buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Client Delivery Experience" &&
+    buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).fileName.endsWith(".txt") &&
+    buildV53ClientDeliveryExperienceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 CLIENT DELIVERY EXPERIENCE") &&
+    typeof V53ReportSharingExportHandoff === "function" &&
+    buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Sharing & Export Handoff" &&
+    buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).readinessScore === 100 &&
+    buildV53ReportSharingExportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 REPORT SHARING & EXPORT HANDOFF") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1482,7 +1519,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
-    buildProductSummaryText().includes("V5.1 real layout refactor prototype") &&
+    buildProductSummaryText().includes("V5.3 report sharing and export prototype") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
@@ -5214,70 +5251,6 @@ function buildV51DashboardShellText(projectSession = defaultProjectSession, revi
   ].join(newline);
 }
 
-function V51ProductWorkspace({
-  projectSession,
-  reviewMode,
-  draftAnalysis,
-  humanizedAnalysis,
-  dashboardContent,
-  analyzeContent,
-  reportContent,
-  outputContent,
-  advancedContent,
-}) {
-  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const [activeTab, setActiveTab] = useState(shell.defaultTab);
-
-  const contentMap = {
-    dashboard: typeof dashboardContent === "function" ? dashboardContent({ setActiveTab }) : dashboardContent,
-    analyze: typeof analyzeContent === "function" ? analyzeContent({ setActiveTab }) : analyzeContent,
-    report: typeof reportContent === "function" ? reportContent({ setActiveTab }) : reportContent,
-    output: typeof outputContent === "function" ? outputContent({ setActiveTab }) : outputContent,
-    advanced: typeof advancedContent === "function" ? advancedContent({ setActiveTab }) : advancedContent,
-  };
-
-  return (
-    <div className="space-y-6">
-      <V52PublicBetaPresentationHero projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
-      <V52PublicBetaValueStrip projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-      <V52PublicBetaWorkflowPreview projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
-      <Panel
-        title="V5.1 Dashboard Layout Shell"
-        subtitle="A real dashboard-first workspace, now being polished for public beta presentation."
-        action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.1: <span className="font-semibold text-zinc-100">Dashboard Shell</span></div>}
-      >
-        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Shift</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{shell.productShift}</h3>
-          <p className="mt-3 text-sm leading-6 text-zinc-400">{shell.layoutRule}</p>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-          {shell.tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-3xl border p-4 text-left transition ${activeTab === tab.id ? "border-white bg-white text-black" : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900"}`}
-            >
-              <p className="text-xs uppercase tracking-[0.22em] opacity-70">{tab.ready ? "Ready" : "Waiting"}</p>
-              <h3 className="mt-2 font-semibold">{tab.label}</h3>
-              <p className={`mt-2 text-xs leading-5 ${activeTab === tab.id ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
-            </button>
-          ))}
-        </div>
-        <V51WorkspaceProgressRail activeTab={activeTab} setActiveTab={setActiveTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-      </Panel>
-
-      <div className="space-y-6">
-        <V51FocusedWorkspaceHeader activeTab={activeTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-        {contentMap[activeTab] || dashboardContent}
-      </div>
-    </div>
-  );
-}
-
-
 function buildV51WorkspaceHeaderState(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const dashboard = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -5348,27 +5321,6 @@ function buildV51WorkspaceHeaderText(activeTab = "dashboard", projectSession = d
     header.helperLine,
   ].join(newline);
 }
-
-function V51FocusedWorkspaceHeader({ activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const header = buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <div className="rounded-3xl border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{header.eyebrow}</p>
-          <h2 className="mt-3 text-2xl font-semibold text-zinc-100">{header.title}</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{header.description}</p>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">{header.helperLine}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-300">
-          Focus: <span className="font-semibold text-zinc-100">{header.primaryAction}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 function buildV51DashboardActionCards(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -6008,56 +5960,6 @@ function buildV51WorkspaceProgressRailText(activeTab = "dashboard", projectSessi
   ].join(newline);
 }
 
-function V51WorkspaceProgressRail({ activeTab, setActiveTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const rail = buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Workspace Progress</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">{rail.routeLabel}</h3>
-          <p className="mt-2 text-xs leading-5 text-zinc-500">{rail.advancedNote}</p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => rail.previousTab && setActiveTab(rail.previousTab.id)}
-            disabled={!rail.previousTab}
-            className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => rail.nextTab && setActiveTab(rail.nextTab.id)}
-            disabled={!rail.nextTab}
-            className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-        {rail.orderedTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`rounded-2xl border p-4 text-left transition ${tab.isCurrent ? "border-white bg-white text-black" : tab.completed ? "border-zinc-700 bg-zinc-900 text-zinc-100" : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900"}`}
-          >
-            <p className={`text-xs uppercase tracking-[0.22em] ${tab.isCurrent ? "text-zinc-700" : "text-zinc-600"}`}>{tab.status}</p>
-            <h4 className="mt-2 text-sm font-semibold">{tab.label}</h4>
-            <p className={`mt-2 text-xs leading-5 ${tab.isCurrent ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
 function buildV51LayoutRefactorHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const progressRail = buildV51WorkspaceProgressRailState("dashboard", projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -6259,55 +6161,6 @@ function buildV52PresentationHeroText(projectSession = defaultProjectSession, re
   ].join(newline);
 }
 
-function V52PublicBetaPresentationHero({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
-  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-black p-6 shadow-2xl shadow-black/30">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-stretch">
-        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">{hero.eyebrow}</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-zinc-100 md:text-5xl">{hero.title}</h1>
-          <p className="mt-5 max-w-3xl text-base leading-8 text-zinc-400">{hero.description}</p>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            {hero.heroActions.map((action, index) => (
-              <button
-                key={action.label}
-                type="button"
-                onClick={() => setActiveTab(action.targetTab)}
-                className={`rounded-2xl border px-5 py-3 text-sm font-semibold transition ${index === 0 ? "border-white bg-white text-black hover:bg-zinc-200" : "border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"}`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Public Beta Snapshot</p>
-          <h2 className="mt-4 text-2xl font-semibold text-zinc-100">{hero.projectLine}</h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-500">{hero.presentationShift}</p>
-
-          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Layout Readiness</p>
-            <p className="mt-2 text-lg font-semibold text-zinc-100">{hero.readinessLine}</p>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-2">
-            {hero.proofPoints.map((point) => (
-              <div key={point} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
-                {point}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-
 function buildV52PublicDemoScenarios() {
   const scenarios = [
     {
@@ -6468,36 +6321,6 @@ function buildV52PublicBetaValueStripText(projectSession = defaultProjectSession
   ].join(newline);
 }
 
-function V52PublicBetaValueStrip({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const strip = buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Why SoulFrame</p>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{strip.headline}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{strip.description}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-400">
-          V5.2.3: <span className="font-semibold text-zinc-100">Value Strip</span>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-        {strip.valueCards.map((card) => (
-          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{card.label}</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
-            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-
 function buildV52PublicBetaWorkflowPreview(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const workflowSteps = [
@@ -6565,49 +6388,6 @@ function buildV52PublicBetaWorkflowPreviewText(projectSession = defaultProjectSe
     preview.presentationShift,
   ].join(newline);
 }
-
-function V52PublicBetaWorkflowPreview({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
-  const preview = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">How It Works</p>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{preview.headline}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{preview.description}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-400">
-          V5.2.4: <span className="font-semibold text-zinc-100">Workflow Preview</span>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
-        {preview.workflowSteps.map((step) => (
-          <article key={step.number} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{step.number} · {step.label}</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{step.title}</h3>
-            <p className="mt-3 min-h-24 text-xs leading-5 text-zinc-500">{step.description}</p>
-            <button
-              type="button"
-              onClick={() => setActiveTab(step.targetTab)}
-              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
-            >
-              Open {step.label}
-            </button>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Optional: {preview.optionalArea}</p>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">{preview.optionalNote}</p>
-        <p className="mt-2 text-xs leading-5 text-zinc-600">{preview.presentationShift}</p>
-      </div>
-    </section>
-  );
-}
-
 
 function buildV52DashboardClarityCleanup(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const actionCards = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -6987,6 +6767,516 @@ function V52PublicBetaPresentationHandoffPanel({ projectSession, reviewMode, dra
       </div>
     </Panel>
   );
+}
+
+
+function buildV53ProductWorkspaceModuleSummary() {
+  return {
+    version: "v5.3",
+    feature: "Product Workspace Modularization",
+    modulePath: "src/product/ProductWorkspace.jsx",
+    extractedComponents: [
+      "V51ProductWorkspace",
+      "V51FocusedWorkspaceHeader",
+      "V51WorkspaceProgressRail",
+      "V52PublicBetaPresentationHero",
+      "V52PublicBetaValueStrip",
+      "V52PublicBetaWorkflowPreview",
+    ],
+    architectureMove: "Presentation components now live outside App.jsx while existing analysis/report builder logic stays stable for the first modularization pass.",
+    productOutcome: "SoulFrame keeps the same Product experience while creating a safer foundation for report sharing, export, and future code splitting.",
+  };
+}
+
+function buildV53ProductWorkspaceModuleText() {
+  const newline = String.fromCharCode(10);
+  const summary = buildV53ProductWorkspaceModuleSummary();
+
+  return [
+    "SOULFRAME V5.3 PRODUCT WORKSPACE MODULARIZATION",
+    "",
+    `Module: ${summary.modulePath}`,
+    `Extracted components: ${summary.extractedComponents.length}`,
+    "",
+    "ARCHITECTURE MOVE",
+    summary.architectureMove,
+    "",
+    "PRODUCT OUTCOME",
+    summary.productOutcome,
+  ].join(newline);
+}
+
+
+function buildV53CleanReportPreview(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const composer = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const control = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+
+  return {
+    version: "v5.3",
+    feature: "Clean Report Preview",
+    projectName: projectSession?.projectName || "Untitled AI Draft",
+    clientName: projectSession?.clientName || "Client",
+    trackType: projectSession?.trackType || "AI-generated music",
+    currentStage: projectSession?.currentStage || "Review",
+    reportTitle: composer.reportTitle,
+    reportPath: composer.reportPath,
+    genreFocus: composer.genreFocus,
+    qualityScore: qualityGate.score,
+    qualityLabel: qualityGate.label,
+    executiveSummary: composer.executiveSummary,
+    producerPriorities: composer.producerPlan.slice(0, 4),
+    clientSummary: outputPack.clientUpdate || composer.clientReadySummary,
+    beforeAfterLine: beforeAfter.clientSafeLine,
+    showComparison: reviewMode === "compare",
+    nextMove: control.nextMove,
+    clientNextStep: qualityGate.score >= 80
+      ? "The track is ready for a final human read-through before the next client-facing delivery step."
+      : "The next revision will focus on the clearest humanization priorities before the track is treated as final.",
+    recommendedOutput: control.recommendedOutput,
+    generatedStatus: activeAnalysis && activeAnalysis.status === "Ready"
+      ? "Analysis-backed preview"
+      : "Preview awaiting audio analysis",
+  };
+}
+
+function buildV53CleanReportPreviewText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null, audience = "producer") {
+  const newline = String.fromCharCode(10);
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const clientMode = audience === "client";
+
+  return [
+    "SOULFRAME CLEAN HUMANIZATION REPORT",
+    "",
+    report.reportTitle,
+    `${report.projectName} · ${report.genreFocus}`,
+    "",
+    clientMode ? "CLIENT SUMMARY" : "EXECUTIVE SUMMARY",
+    clientMode ? report.clientSummary : report.executiveSummary,
+    "",
+    ...(clientMode
+      ? []
+      : [
+          "PRODUCER PRIORITIES",
+          ...report.producerPriorities.map((item, index) => `${index + 1}. ${item}`),
+          "",
+        ]),
+    ...(report.showComparison
+      ? [
+          "BEFORE / AFTER",
+          report.beforeAfterLine,
+          "",
+        ]
+      : []),
+    clientMode ? "NEXT STEP" : "PRODUCER NEXT MOVE",
+    clientMode ? report.clientNextStep : report.nextMove,
+    "",
+    `Report quality: ${report.qualityScore}/100 · ${report.qualityLabel}`,
+    `Recommended output: ${report.recommendedOutput}`,
+    "",
+    "SoulFrame supports the review process. Final musical judgement and client communication remain human-led.",
+  ].join(newline);
+}
+
+
+function sanitizeV53ReportFilename(value = "soulframe-report") {
+  return String(value || "soulframe-report")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70) || "soulframe-report";
+}
+
+function buildV53DownloadableReportExport(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const baseName = sanitizeV53ReportFilename(report.projectName);
+  const producerText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "producer");
+  const clientText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "client");
+
+  return {
+    version: "v5.3",
+    feature: "Downloadable Report Export",
+    format: "txt",
+    producerFileName: `${baseName}-soulframe-producer-report.txt`,
+    clientFileName: `${baseName}-soulframe-client-report.txt`,
+    producerText,
+    clientText,
+    exportNote: "Reports are generated and downloaded locally in the browser. No report or audio file is uploaded to a server.",
+  };
+}
+
+function buildV53DownloadableReportExportText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const exportPack = buildV53DownloadableReportExport(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 DOWNLOADABLE REPORT EXPORT",
+    "",
+    `Format: ${exportPack.format.toUpperCase()}`,
+    `Producer file: ${exportPack.producerFileName}`,
+    `Client file: ${exportPack.clientFileName}`,
+    "",
+    "EXPORT NOTE",
+    exportPack.exportNote,
+  ].join(newline);
+}
+
+
+function buildV53ShareableReportDirection(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const slug = sanitizeV53ReportFilename(report.projectName);
+  const clientText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "client");
+
+  const shareTitle = `${report.projectName} — SoulFrame Humanization Report`;
+  const shareSummary = [
+    shareTitle,
+    "",
+    report.clientSummary,
+    "",
+    `Next step: ${report.clientNextStep}`,
+    "",
+    "Prepared with SoulFrame — AI Music Humanization Review Tool.",
+  ].join(String.fromCharCode(10));
+
+  return {
+    version: "v5.3",
+    feature: "Shareable Report Direction",
+    shareTitle,
+    shareSummary,
+    clientText,
+    routePreview: `/report/${slug}`,
+    shareMode: "Local text share",
+    privacyNote: "V5.3.4 does not create a public cloud report URL. Sharing uses browser-native text sharing or clipboard copy only.",
+    futureDirection: "A future backend can map the route preview to a secure, revocable report URL with project permissions.",
+  };
+}
+
+function buildV53ShareableReportDirectionText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const share = buildV53ShareableReportDirection(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 SHAREABLE REPORT DIRECTION",
+    "",
+    `Share mode: ${share.shareMode}`,
+    `Future route preview: ${share.routePreview}`,
+    "",
+    "PRIVACY NOTE",
+    share.privacyNote,
+    "",
+    "FUTURE DIRECTION",
+    share.futureDirection,
+  ].join(newline);
+}
+
+
+function buildV53BeforeAfterCaseStudy(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const comparison = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
+  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
+  const comparisonReady = reviewMode === "compare" && draftReady && humanizedReady;
+
+  const beforePriority = draftReady ? getHumanizationPriorityScore(draftAnalysis) : 0;
+  const afterPriority = humanizedReady ? getHumanizationPriorityScore(humanizedAnalysis) : 0;
+  const projectName = projectSession?.projectName || "Untitled AI Draft";
+
+  const metrics = [
+    {
+      label: "Brightness",
+      before: draftReady ? draftAnalysis.brightness || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.brightness || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Texture",
+      before: draftReady ? draftAnalysis.textureStability || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.textureStability || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Dynamics",
+      before: draftReady ? draftAnalysis.dynamics || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.dynamics || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Clipping Risk",
+      before: draftReady ? draftAnalysis.clippingRisk || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.clippingRisk || "Not available" : "Awaiting edit",
+    },
+  ];
+
+  const publicNarrative = comparisonReady
+    ? `${projectName} was reviewed as an original AI-generated draft and then compared against a humanized edit. ${comparison.mainExplanation} The comparison is used as decision support rather than as an automatic verdict on the music.`
+    : "Load the Before / After demo or switch to Before / After Review with both versions available to generate a complete case study.";
+
+  return {
+    version: "v5.3",
+    feature: "Before / After Case Study",
+    title: `${projectName} — Humanization Case Study`,
+    subtitle: "A clean before/after story showing how the revision changed the listening risks and what still needs a producer's ear.",
+    comparisonReady,
+    status: comparison.improvementLabel,
+    emptyState: "SoulFrame needs both the original AI draft and the humanized edit in Before / After mode before it can generate a credible comparison case study.",
+    improvementLabel: comparison.improvementLabel,
+    priorityChange: comparison.priorityChange,
+    beforePriority,
+    afterPriority,
+    metrics,
+    improvements: comparison.producerFocus.slice(0, 4),
+    clientSafeLine: comparison.clientSafeLine,
+    publicNarrative,
+    humanCheck: "Measured changes can support the explanation, but the producer should still confirm emotion, groove, tone, movement, and musical intent by ear.",
+    fileName: `${sanitizeV53ReportFilename(projectName)}-soulframe-before-after-case-study.txt`,
+    caseStudyPurpose: "Designed as a portfolio/demo-ready explanation of the humanization process without exposing private client material or overstating automated analysis.",
+  };
+}
+
+function buildV53BeforeAfterCaseStudyText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const study = buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  if (!study.comparisonReady) {
+    return [
+      "SOULFRAME V5.3 BEFORE / AFTER CASE STUDY",
+      "",
+      study.title,
+      "",
+      "STATUS",
+      study.status,
+      "",
+      study.emptyState,
+    ].join(newline);
+  }
+
+  return [
+    "SOULFRAME V5.3 BEFORE / AFTER CASE STUDY",
+    "",
+    study.title,
+    "",
+    "OUTCOME",
+    `${study.improvementLabel} · ${study.priorityChange}`,
+    "",
+    "CASE STUDY NARRATIVE",
+    study.publicNarrative,
+    "",
+    "WHAT CHANGED",
+    ...study.improvements.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "METRICS",
+    ...study.metrics.map((metric) => `- ${metric.label}: ${metric.before} → ${metric.after}`),
+    "",
+    "CLIENT-SAFE EXPLANATION",
+    study.clientSafeLine,
+    "",
+    "HUMAN CHECK",
+    study.humanCheck,
+  ].join(newline);
+}
+
+
+function buildV53ClientDeliveryExperience(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const readinessScore = Math.round(
+    Math.min(
+      100,
+      (qualityGate.score * 0.45) +
+      (handoff.handoffScore * 0.35) +
+      ((manifest.readyCount / Math.max(1, manifest.totalItems)) * 100 * 0.20)
+    )
+  );
+
+  const deliverables = [
+    {
+      label: "Producer Brief",
+      status: outputPack.producerBrief.length > 120 ? "Ready" : "Review",
+      detail: "Internal production direction for the final humanization pass.",
+    },
+    {
+      label: "Client Update",
+      status: outputPack.clientUpdate.length > 100 ? "Ready" : "Review",
+      detail: "Client-safe explanation of what changed and what happens next.",
+    },
+    {
+      label: "Revision Checklist",
+      status: outputPack.revisionChecklist.length > 0 ? "Ready" : "Review",
+      detail: "Practical revision tasks before final delivery.",
+    },
+  ];
+
+  const readinessLabel = readinessScore >= 85
+    ? "Ready for final human read-through"
+    : readinessScore >= 65
+      ? "Almost ready"
+      : "Needs another focused pass";
+
+  const clientMessage = outputPack.clientUpdate || report.clientSummary;
+
+  return {
+    version: "v5.3",
+    feature: "Client Delivery Experience",
+    title: `${report.projectName} — Delivery Handoff`,
+    subtitle: "A final producer-facing checkpoint for deciding what is ready to send, what still needs review, and how to communicate the next step clearly.",
+    readinessScore,
+    readinessLabel,
+    readinessNote: "Readiness combines report quality, handoff checks, and export completeness. It remains decision support rather than an automatic approval.",
+    deliveryStatus: handoff.handoffStatus,
+    recommendedOutput: report.recommendedOutput,
+    deliverySummary: handoff.finalRecommendation,
+    deliverables,
+    humanChecks: [
+      "Listen through the full track once without watching the analysis.",
+      "Confirm the revision still serves the emotional and musical intention.",
+      "Read the client message out loud and remove anything that sounds overly technical or automated.",
+      "Confirm filenames, version labels, and the actual files being delivered.",
+    ],
+    clientMessage,
+    nextMove: handoff.finalRecommendation,
+    fileName: `${sanitizeV53ReportFilename(report.projectName)}-soulframe-client-delivery-note.txt`,
+    deliveryPrinciple: "SoulFrame can organise the handoff, but a human producer should make the final call before anything is sent to a client.",
+  };
+}
+
+function buildV53ClientDeliveryExperienceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const delivery = buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 CLIENT DELIVERY EXPERIENCE",
+    "",
+    delivery.title,
+    "",
+    `Readiness: ${delivery.readinessScore}/100 · ${delivery.readinessLabel}`,
+    `Delivery status: ${delivery.deliveryStatus}`,
+    `Recommended output: ${delivery.recommendedOutput}`,
+    "",
+    "DELIVERY SUMMARY",
+    delivery.deliverySummary,
+    "",
+    "DELIVERABLES",
+    ...delivery.deliverables.map((item) => `- ${item.label}: ${item.status} — ${item.detail}`),
+    "",
+    "FINAL HUMAN CHECK",
+    ...delivery.humanChecks.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "CLIENT MESSAGE",
+    delivery.clientMessage,
+    "",
+    "NEXT MOVE",
+    delivery.nextMove,
+    "",
+    delivery.deliveryPrinciple,
+  ].join(newline);
+}
+
+
+function buildV53ReportSharingExportHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const cleanReport = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const exportPack = buildV53DownloadableReportExport(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const sharePack = buildV53ShareableReportDirection(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const delivery = buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const features = [
+    {
+      version: "V5.3.1",
+      title: "Product Workspace Modularization",
+      detail: "Moved key product presentation components out of the monolithic App.jsx to create safer module boundaries.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.2",
+      title: "Clean Report Preview",
+      detail: "Introduced a polished Producer / Client report presentation layer.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.3",
+      title: "Downloadable Report Export",
+      detail: `Added browser-local TXT export including ${exportPack.producerFileName}.`,
+      status: "Complete",
+    },
+    {
+      version: "V5.3.4",
+      title: "Shareable Report Direction",
+      detail: `Added browser-native text sharing and the future route model ${sharePack.routePreview}.`,
+      status: "Complete",
+    },
+    {
+      version: "V5.3.5",
+      title: "Before / After Case Study",
+      detail: "Turned humanization comparison into a cleaner portfolio/client-safe case study format.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.6",
+      title: "Client Delivery Experience",
+      detail: "Added a final delivery checkpoint with readiness, deliverables, human checks, and client messaging.",
+      status: "Complete",
+    },
+  ];
+
+  const completedCount = features.filter((feature) => feature.status === "Complete").length;
+  const readinessScore = Math.round((completedCount / features.length) * 100);
+
+  return {
+    version: "v5.3",
+    feature: "Report Sharing & Export Handoff",
+    title: "Report Sharing & Export Handoff",
+    subtitle: "The V5.3 report experience is now connected from clean preview through export, sharing direction, comparison storytelling, and final client delivery.",
+    releaseLabel: "SoulFrame V5.3.0 — Report Sharing & Export",
+    readinessScore,
+    readinessLabel: readinessScore === 100 ? "V5.3 feature set complete" : "V5.3 needs review",
+    readinessNote: "This score tracks the planned V5.3 feature set, not production backend readiness.",
+    outcome: `SoulFrame can now turn ${cleanReport.projectName} from an internal humanization review into a cleaner producer/client report, local download, browser-native share summary, before/after case study, and final delivery handoff.`,
+    features,
+    releaseChecks: [
+      "Producer and Client report modes remain clearly separated.",
+      "TXT report and delivery exports work entirely in the browser.",
+      "Share actions do not pretend that a live public report URL exists.",
+      "Before / After storytelling only claims a comparison when both versions are available.",
+      "Client delivery keeps a required final human listening and communication check.",
+      "V5.3 presentation components continue moving into dedicated product/report modules.",
+    ],
+    architectureBoundary: "V5.3 improves the report and delivery experience without turning the earlier V4.1 backend/API scaffold into a real backend. Local browser behaviour remains the source of truth for this release.",
+    backendNote: "Secure hosted report URLs, user accounts, permissions, database persistence, revocable links, and server-generated PDFs belong to a later real-backend phase.",
+    nextChapter: "V5.4 — UI Simplification & Codebase Cleanup",
+    fileName: `${sanitizeV53ReportFilename(cleanReport.projectName)}-soulframe-v5-3-handoff.txt`,
+  };
+}
+
+function buildV53ReportSharingExportHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 REPORT SHARING & EXPORT HANDOFF",
+    "",
+    handoff.releaseLabel,
+    `Readiness: ${handoff.readinessScore}/100 · ${handoff.readinessLabel}`,
+    "",
+    "OUTCOME",
+    handoff.outcome,
+    "",
+    "FEATURES",
+    ...handoff.features.map((feature) => `- ${feature.version} — ${feature.title}: ${feature.status}`),
+    "",
+    "RELEASE CHECKS",
+    ...handoff.releaseChecks.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "ARCHITECTURE BOUNDARY",
+    handoff.architectureBoundary,
+    "",
+    "BACKEND NOTE",
+    handoff.backendNote,
+    "",
+    `Next chapter: ${handoff.nextChapter}`,
+  ].join(newline);
 }
 
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
@@ -7821,7 +8111,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V5.1 real layout refactor prototype with a dashboard-first product shell, tabbed workflow direction, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
+    "V5.3 report sharing and export prototype with a dashboard-first product shell, modular product/report UI, cleaner producer/client reports, local downloads, browser-native share direction, before/after case studies, client delivery handoff, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
   ].join(newline);
 }
 
@@ -7962,7 +8252,7 @@ function AboutSoulFramePanel() {
         <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Arc</p>
         <p className="mt-3 text-2xl font-semibold text-zinc-100">Dashboard → Analyze → Report → Output → Advanced</p>
         <p className="mt-3 text-sm leading-7 text-zinc-400">
-          This is the V5.1 workflow SoulFrame is now moving into: give the producer a calm dashboard first, guide analysis in one workspace, shape the smarter humanization report, prepare the right output, and keep deeper technical systems available only when needed.
+          This is now the V5.3 product arc: give the producer a calm dashboard first, guide analysis in one workspace, turn the review into a cleaner producer/client report, prepare downloadable and share-ready outputs, finish with a human-led delivery check, and keep deeper technical systems available only when needed.
         </p>
       </div>
     </Panel>
@@ -8183,10 +8473,13 @@ export default function SoulFrameDraftReviewV2() {
 
   const productView = (
     <V51ProductWorkspace
-      projectSession={projectSession}
-      reviewMode={reviewMode}
-      draftAnalysis={draftAudioAnalysis}
-      humanizedAnalysis={humanizedAudioAnalysis}
+      shell={buildV51DashboardShellState(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      hero={buildV52PresentationHeroState(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      valueStrip={buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      workflowPreview={buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      getHeaderState={(activeTab) => buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      getProgressRailState={(activeTab) => buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      PanelComponent={Panel}
       dashboardContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
@@ -8207,6 +8500,17 @@ export default function SoulFrameDraftReviewV2() {
       reportContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedReportWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53CleanReportPreview
+            report={buildV53CleanReportPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
+            clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
+            exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            sharePack={buildV53ShareableReportDirection(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          />
+          <V53BeforeAfterCaseStudy
+            caseStudy={buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            caseStudyText={buildV53BeforeAfterCaseStudyText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8218,6 +8522,11 @@ export default function SoulFrameDraftReviewV2() {
       outputContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedOutputWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53ClientDeliveryExperience
+            delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            setActiveTab={setActiveTab}
+          />
           <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8227,6 +8536,11 @@ export default function SoulFrameDraftReviewV2() {
       advancedContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53ReportSharingExportHandoff
+            handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            setActiveTab={setActiveTab}
+          />
           <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8298,7 +8612,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.7 Beta Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.7 Report Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
