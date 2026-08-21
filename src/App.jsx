@@ -10,6 +10,7 @@ import {
 import { V53CleanReportPreview } from "./report/CleanReportPreview";
 import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
 import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
+import { V53ReportSharingExportHandoff } from "./report/ReportSharingExportHandoff";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1458,6 +1459,10 @@ function runSoulFrameTests() {
     buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Client Delivery Experience" &&
     buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).fileName.endsWith(".txt") &&
     buildV53ClientDeliveryExperienceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 CLIENT DELIVERY EXPERIENCE") &&
+    typeof V53ReportSharingExportHandoff === "function" &&
+    buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Sharing & Export Handoff" &&
+    buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).readinessScore === 100 &&
+    buildV53ReportSharingExportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 REPORT SHARING & EXPORT HANDOFF") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1514,7 +1519,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
-    buildProductSummaryText().includes("V5.1 real layout refactor prototype") &&
+    buildProductSummaryText().includes("V5.3 report sharing and export prototype") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
@@ -7170,6 +7175,110 @@ function buildV53ClientDeliveryExperienceText(projectSession = defaultProjectSes
   ].join(newline);
 }
 
+
+function buildV53ReportSharingExportHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const cleanReport = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const exportPack = buildV53DownloadableReportExport(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const sharePack = buildV53ShareableReportDirection(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const delivery = buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const features = [
+    {
+      version: "V5.3.1",
+      title: "Product Workspace Modularization",
+      detail: "Moved key product presentation components out of the monolithic App.jsx to create safer module boundaries.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.2",
+      title: "Clean Report Preview",
+      detail: "Introduced a polished Producer / Client report presentation layer.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.3",
+      title: "Downloadable Report Export",
+      detail: `Added browser-local TXT export including ${exportPack.producerFileName}.`,
+      status: "Complete",
+    },
+    {
+      version: "V5.3.4",
+      title: "Shareable Report Direction",
+      detail: `Added browser-native text sharing and the future route model ${sharePack.routePreview}.`,
+      status: "Complete",
+    },
+    {
+      version: "V5.3.5",
+      title: "Before / After Case Study",
+      detail: "Turned humanization comparison into a cleaner portfolio/client-safe case study format.",
+      status: "Complete",
+    },
+    {
+      version: "V5.3.6",
+      title: "Client Delivery Experience",
+      detail: "Added a final delivery checkpoint with readiness, deliverables, human checks, and client messaging.",
+      status: "Complete",
+    },
+  ];
+
+  const completedCount = features.filter((feature) => feature.status === "Complete").length;
+  const readinessScore = Math.round((completedCount / features.length) * 100);
+
+  return {
+    version: "v5.3",
+    feature: "Report Sharing & Export Handoff",
+    title: "Report Sharing & Export Handoff",
+    subtitle: "The V5.3 report experience is now connected from clean preview through export, sharing direction, comparison storytelling, and final client delivery.",
+    releaseLabel: "SoulFrame V5.3.0 — Report Sharing & Export",
+    readinessScore,
+    readinessLabel: readinessScore === 100 ? "V5.3 feature set complete" : "V5.3 needs review",
+    readinessNote: "This score tracks the planned V5.3 feature set, not production backend readiness.",
+    outcome: `SoulFrame can now turn ${cleanReport.projectName} from an internal humanization review into a cleaner producer/client report, local download, browser-native share summary, before/after case study, and final delivery handoff.`,
+    features,
+    releaseChecks: [
+      "Producer and Client report modes remain clearly separated.",
+      "TXT report and delivery exports work entirely in the browser.",
+      "Share actions do not pretend that a live public report URL exists.",
+      "Before / After storytelling only claims a comparison when both versions are available.",
+      "Client delivery keeps a required final human listening and communication check.",
+      "V5.3 presentation components continue moving into dedicated product/report modules.",
+    ],
+    architectureBoundary: "V5.3 improves the report and delivery experience without turning the earlier V4.1 backend/API scaffold into a real backend. Local browser behaviour remains the source of truth for this release.",
+    backendNote: "Secure hosted report URLs, user accounts, permissions, database persistence, revocable links, and server-generated PDFs belong to a later real-backend phase.",
+    nextChapter: "V5.4 — UI Simplification & Codebase Cleanup",
+    fileName: `${sanitizeV53ReportFilename(cleanReport.projectName)}-soulframe-v5-3-handoff.txt`,
+  };
+}
+
+function buildV53ReportSharingExportHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const handoff = buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 REPORT SHARING & EXPORT HANDOFF",
+    "",
+    handoff.releaseLabel,
+    `Readiness: ${handoff.readinessScore}/100 · ${handoff.readinessLabel}`,
+    "",
+    "OUTCOME",
+    handoff.outcome,
+    "",
+    "FEATURES",
+    ...handoff.features.map((feature) => `- ${feature.version} — ${feature.title}: ${feature.status}`),
+    "",
+    "RELEASE CHECKS",
+    ...handoff.releaseChecks.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "ARCHITECTURE BOUNDARY",
+    handoff.architectureBoundary,
+    "",
+    "BACKEND NOTE",
+    handoff.backendNote,
+    "",
+    `Next chapter: ${handoff.nextChapter}`,
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8002,7 +8111,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V5.1 real layout refactor prototype with a dashboard-first product shell, tabbed workflow direction, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
+    "V5.3 report sharing and export prototype with a dashboard-first product shell, modular product/report UI, cleaner producer/client reports, local downloads, browser-native share direction, before/after case studies, client delivery handoff, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
   ].join(newline);
 }
 
@@ -8143,7 +8252,7 @@ function AboutSoulFramePanel() {
         <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Arc</p>
         <p className="mt-3 text-2xl font-semibold text-zinc-100">Dashboard → Analyze → Report → Output → Advanced</p>
         <p className="mt-3 text-sm leading-7 text-zinc-400">
-          This is the V5.1 workflow SoulFrame is now moving into: give the producer a calm dashboard first, guide analysis in one workspace, shape the smarter humanization report, prepare the right output, and keep deeper technical systems available only when needed.
+          This is now the V5.3 product arc: give the producer a calm dashboard first, guide analysis in one workspace, turn the review into a cleaner producer/client report, prepare downloadable and share-ready outputs, finish with a human-led delivery check, and keep deeper technical systems available only when needed.
         </p>
       </div>
     </Panel>
@@ -8427,6 +8536,11 @@ export default function SoulFrameDraftReviewV2() {
       advancedContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53ReportSharingExportHandoff
+            handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            setActiveTab={setActiveTab}
+          />
           <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
           <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8498,7 +8612,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.6 Client Delivery</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.7 Report Handoff</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
