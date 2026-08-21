@@ -1,4 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  V51FocusedWorkspaceHeader,
+  V51ProductWorkspace,
+  V51WorkspaceProgressRail,
+  V52PublicBetaPresentationHero,
+  V52PublicBetaValueStrip,
+  V52PublicBetaWorkflowPreview,
+} from "./product/ProductWorkspace";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1426,6 +1434,9 @@ function runSoulFrameTests() {
     typeof V52DashboardClarityCleanupPanel === "function" &&
     typeof V52PublicBetaScreenshotGuidePanel === "function" &&
     typeof V52PublicBetaPresentationHandoffPanel === "function" &&
+    buildV53ProductWorkspaceModuleSummary().feature === "Product Workspace Modularization" &&
+    buildV53ProductWorkspaceModuleSummary().modulePath === "src/product/ProductWorkspace.jsx" &&
+    buildV53ProductWorkspaceModuleText().includes("SOULFRAME V5.3 PRODUCT WORKSPACE MODULARIZATION") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -5214,70 +5225,6 @@ function buildV51DashboardShellText(projectSession = defaultProjectSession, revi
   ].join(newline);
 }
 
-function V51ProductWorkspace({
-  projectSession,
-  reviewMode,
-  draftAnalysis,
-  humanizedAnalysis,
-  dashboardContent,
-  analyzeContent,
-  reportContent,
-  outputContent,
-  advancedContent,
-}) {
-  const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const [activeTab, setActiveTab] = useState(shell.defaultTab);
-
-  const contentMap = {
-    dashboard: typeof dashboardContent === "function" ? dashboardContent({ setActiveTab }) : dashboardContent,
-    analyze: typeof analyzeContent === "function" ? analyzeContent({ setActiveTab }) : analyzeContent,
-    report: typeof reportContent === "function" ? reportContent({ setActiveTab }) : reportContent,
-    output: typeof outputContent === "function" ? outputContent({ setActiveTab }) : outputContent,
-    advanced: typeof advancedContent === "function" ? advancedContent({ setActiveTab }) : advancedContent,
-  };
-
-  return (
-    <div className="space-y-6">
-      <V52PublicBetaPresentationHero projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
-      <V52PublicBetaValueStrip projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-      <V52PublicBetaWorkflowPreview projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} setActiveTab={setActiveTab} />
-      <Panel
-        title="V5.1 Dashboard Layout Shell"
-        subtitle="A real dashboard-first workspace, now being polished for public beta presentation."
-        action={<div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">V5.1.1: <span className="font-semibold text-zinc-100">Dashboard Shell</span></div>}
-      >
-        <div className="rounded-3xl border border-zinc-800 bg-black p-5">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Shift</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">{shell.productShift}</h3>
-          <p className="mt-3 text-sm leading-6 text-zinc-400">{shell.layoutRule}</p>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-          {shell.tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-3xl border p-4 text-left transition ${activeTab === tab.id ? "border-white bg-white text-black" : "border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-900"}`}
-            >
-              <p className="text-xs uppercase tracking-[0.22em] opacity-70">{tab.ready ? "Ready" : "Waiting"}</p>
-              <h3 className="mt-2 font-semibold">{tab.label}</h3>
-              <p className={`mt-2 text-xs leading-5 ${activeTab === tab.id ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
-            </button>
-          ))}
-        </div>
-        <V51WorkspaceProgressRail activeTab={activeTab} setActiveTab={setActiveTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-      </Panel>
-
-      <div className="space-y-6">
-        <V51FocusedWorkspaceHeader activeTab={activeTab} projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAnalysis} humanizedAnalysis={humanizedAnalysis} />
-        {contentMap[activeTab] || dashboardContent}
-      </div>
-    </div>
-  );
-}
-
-
 function buildV51WorkspaceHeaderState(activeTab = "dashboard", projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const dashboard = buildV50CleanDashboardPrioritySummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -5348,27 +5295,6 @@ function buildV51WorkspaceHeaderText(activeTab = "dashboard", projectSession = d
     header.helperLine,
   ].join(newline);
 }
-
-function V51FocusedWorkspaceHeader({ activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const header = buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <div className="rounded-3xl border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{header.eyebrow}</p>
-          <h2 className="mt-3 text-2xl font-semibold text-zinc-100">{header.title}</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">{header.description}</p>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">{header.helperLine}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-300">
-          Focus: <span className="font-semibold text-zinc-100">{header.primaryAction}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 function buildV51DashboardActionCards(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -6008,56 +5934,6 @@ function buildV51WorkspaceProgressRailText(activeTab = "dashboard", projectSessi
   ].join(newline);
 }
 
-function V51WorkspaceProgressRail({ activeTab, setActiveTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const rail = buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <div className="mt-4 rounded-3xl border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Workspace Progress</p>
-          <h3 className="mt-2 text-lg font-semibold text-zinc-100">{rail.routeLabel}</h3>
-          <p className="mt-2 text-xs leading-5 text-zinc-500">{rail.advancedNote}</p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => rail.previousTab && setActiveTab(rail.previousTab.id)}
-            disabled={!rail.previousTab}
-            className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => rail.nextTab && setActiveTab(rail.nextTab.id)}
-            disabled={!rail.nextTab}
-            className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-        {rail.orderedTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`rounded-2xl border p-4 text-left transition ${tab.isCurrent ? "border-white bg-white text-black" : tab.completed ? "border-zinc-700 bg-zinc-900 text-zinc-100" : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900"}`}
-          >
-            <p className={`text-xs uppercase tracking-[0.22em] ${tab.isCurrent ? "text-zinc-700" : "text-zinc-600"}`}>{tab.status}</p>
-            <h4 className="mt-2 text-sm font-semibold">{tab.label}</h4>
-            <p className={`mt-2 text-xs leading-5 ${tab.isCurrent ? "text-zinc-700" : "text-zinc-500"}`}>{tab.purpose}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
 function buildV51LayoutRefactorHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const progressRail = buildV51WorkspaceProgressRailState("dashboard", projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -6259,55 +6135,6 @@ function buildV52PresentationHeroText(projectSession = defaultProjectSession, re
   ].join(newline);
 }
 
-function V52PublicBetaPresentationHero({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
-  const hero = buildV52PresentationHeroState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-black p-6 shadow-2xl shadow-black/30">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-stretch">
-        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">{hero.eyebrow}</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-tight text-zinc-100 md:text-5xl">{hero.title}</h1>
-          <p className="mt-5 max-w-3xl text-base leading-8 text-zinc-400">{hero.description}</p>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            {hero.heroActions.map((action, index) => (
-              <button
-                key={action.label}
-                type="button"
-                onClick={() => setActiveTab(action.targetTab)}
-                className={`rounded-2xl border px-5 py-3 text-sm font-semibold transition ${index === 0 ? "border-white bg-white text-black hover:bg-zinc-200" : "border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"}`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-zinc-800 bg-zinc-950 p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Public Beta Snapshot</p>
-          <h2 className="mt-4 text-2xl font-semibold text-zinc-100">{hero.projectLine}</h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-500">{hero.presentationShift}</p>
-
-          <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Layout Readiness</p>
-            <p className="mt-2 text-lg font-semibold text-zinc-100">{hero.readinessLine}</p>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-2">
-            {hero.proofPoints.map((point) => (
-              <div key={point} className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-300">
-                {point}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-
 function buildV52PublicDemoScenarios() {
   const scenarios = [
     {
@@ -6468,36 +6295,6 @@ function buildV52PublicBetaValueStripText(projectSession = defaultProjectSession
   ].join(newline);
 }
 
-function V52PublicBetaValueStrip({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
-  const strip = buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Why SoulFrame</p>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{strip.headline}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{strip.description}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm text-zinc-400">
-          V5.2.3: <span className="font-semibold text-zinc-100">Value Strip</span>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-        {strip.valueCards.map((card) => (
-          <article key={card.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{card.label}</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{card.value}</h3>
-            <p className="mt-3 text-xs leading-5 text-zinc-500">{card.detail}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-
 function buildV52PublicBetaWorkflowPreview(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const shell = buildV51DashboardShellState(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
   const workflowSteps = [
@@ -6565,49 +6362,6 @@ function buildV52PublicBetaWorkflowPreviewText(projectSession = defaultProjectSe
     preview.presentationShift,
   ].join(newline);
 }
-
-function V52PublicBetaWorkflowPreview({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis, setActiveTab }) {
-  const preview = buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return (
-    <section className="rounded-[2rem] border border-zinc-800 bg-black p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">How It Works</p>
-          <h2 className="mt-2 text-2xl font-semibold text-zinc-100">{preview.headline}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">{preview.description}</p>
-        </div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-zinc-400">
-          V5.2.4: <span className="font-semibold text-zinc-100">Workflow Preview</span>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
-        {preview.workflowSteps.map((step) => (
-          <article key={step.number} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">{step.number} · {step.label}</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{step.title}</h3>
-            <p className="mt-3 min-h-24 text-xs leading-5 text-zinc-500">{step.description}</p>
-            <button
-              type="button"
-              onClick={() => setActiveTab(step.targetTab)}
-              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
-            >
-              Open {step.label}
-            </button>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-4 rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">Optional: {preview.optionalArea}</p>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">{preview.optionalNote}</p>
-        <p className="mt-2 text-xs leading-5 text-zinc-600">{preview.presentationShift}</p>
-      </div>
-    </section>
-  );
-}
-
 
 function buildV52DashboardClarityCleanup(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
   const actionCards = buildV51DashboardActionCards(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -6987,6 +6741,43 @@ function V52PublicBetaPresentationHandoffPanel({ projectSession, reviewMode, dra
       </div>
     </Panel>
   );
+}
+
+
+function buildV53ProductWorkspaceModuleSummary() {
+  return {
+    version: "v5.3",
+    feature: "Product Workspace Modularization",
+    modulePath: "src/product/ProductWorkspace.jsx",
+    extractedComponents: [
+      "V51ProductWorkspace",
+      "V51FocusedWorkspaceHeader",
+      "V51WorkspaceProgressRail",
+      "V52PublicBetaPresentationHero",
+      "V52PublicBetaValueStrip",
+      "V52PublicBetaWorkflowPreview",
+    ],
+    architectureMove: "Presentation components now live outside App.jsx while existing analysis/report builder logic stays stable for the first modularization pass.",
+    productOutcome: "SoulFrame keeps the same Product experience while creating a safer foundation for report sharing, export, and future code splitting.",
+  };
+}
+
+function buildV53ProductWorkspaceModuleText() {
+  const newline = String.fromCharCode(10);
+  const summary = buildV53ProductWorkspaceModuleSummary();
+
+  return [
+    "SOULFRAME V5.3 PRODUCT WORKSPACE MODULARIZATION",
+    "",
+    `Module: ${summary.modulePath}`,
+    `Extracted components: ${summary.extractedComponents.length}`,
+    "",
+    "ARCHITECTURE MOVE",
+    summary.architectureMove,
+    "",
+    "PRODUCT OUTCOME",
+    summary.productOutcome,
+  ].join(newline);
 }
 
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
@@ -8183,10 +7974,13 @@ export default function SoulFrameDraftReviewV2() {
 
   const productView = (
     <V51ProductWorkspace
-      projectSession={projectSession}
-      reviewMode={reviewMode}
-      draftAnalysis={draftAudioAnalysis}
-      humanizedAnalysis={humanizedAudioAnalysis}
+      shell={buildV51DashboardShellState(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      hero={buildV52PresentationHeroState(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      valueStrip={buildV52PublicBetaValueStrip(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      workflowPreview={buildV52PublicBetaWorkflowPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      getHeaderState={(activeTab) => buildV51WorkspaceHeaderState(activeTab, projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      getProgressRailState={(activeTab) => buildV51WorkspaceProgressRailState(activeTab, projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+      PanelComponent={Panel}
       dashboardContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51DashboardActionCardsPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
@@ -8298,7 +8092,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.2.7 Beta Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.1 Modular Workspace</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
