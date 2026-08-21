@@ -13,12 +13,15 @@ export function V53CleanReportPreview({
   report,
   producerText,
   clientText,
+  exportPack,
 }) {
   const [audience, setAudience] = useState("producer");
   const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
   const isClient = audience === "client";
   const currentText = isClient ? clientText : producerText;
+  const currentFileName = isClient ? exportPack?.clientFileName : exportPack?.producerFileName;
 
   const handleCopy = async () => {
     try {
@@ -30,6 +33,24 @@ export function V53CleanReportPreview({
     } catch {
       setCopied(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!currentText || !currentFileName) return;
+
+    const blob = new Blob([currentText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = currentFileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
+    window.setTimeout(() => setDownloaded(false), 1600);
   };
 
   return (
@@ -68,6 +89,14 @@ export function V53CleanReportPreview({
               className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
             >
               {copied ? "Copied" : "Copy Preview"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={!currentFileName}
+              className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {downloaded ? "Downloaded" : "Download TXT"}
             </button>
           </div>
         </div>
@@ -147,6 +176,16 @@ export function V53CleanReportPreview({
             <p className="mt-2 text-sm font-semibold text-zinc-200">Clean Report Preview</p>
             <p className="mt-2 text-xs leading-5 text-zinc-500">
               A cleaner producer/client presentation layer before downloadable and shareable reports.
+            </p>
+          </div>
+          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">V5.3.3</p>
+            <p className="mt-2 text-sm font-semibold text-zinc-200">Downloadable Report Export</p>
+            <p className="mt-2 break-all text-xs leading-5 text-zinc-500">
+              {currentFileName || "Report filename pending"}
+            </p>
+            <p className="mt-3 text-xs leading-5 text-zinc-600">
+              {exportPack?.exportNote}
             </p>
           </div>
         </aside>

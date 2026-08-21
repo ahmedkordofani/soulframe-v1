@@ -1442,6 +1442,9 @@ function runSoulFrameTests() {
     buildV53CleanReportPreview(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Clean Report Preview" &&
     buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "producer").includes("SOULFRAME CLEAN HUMANIZATION REPORT") &&
     buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "client").includes("CLIENT SUMMARY") &&
+    buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Downloadable Report Export" &&
+    buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).producerFileName.endsWith(".txt") &&
+    buildV53DownloadableReportExportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 DOWNLOADABLE REPORT EXPORT") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -6860,6 +6863,50 @@ function buildV53CleanReportPreviewText(projectSession = defaultProjectSession, 
   ].join(newline);
 }
 
+
+function sanitizeV53ReportFilename(value = "soulframe-report") {
+  return String(value || "soulframe-report")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70) || "soulframe-report";
+}
+
+function buildV53DownloadableReportExport(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const baseName = sanitizeV53ReportFilename(report.projectName);
+  const producerText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "producer");
+  const clientText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "client");
+
+  return {
+    version: "v5.3",
+    feature: "Downloadable Report Export",
+    format: "txt",
+    producerFileName: `${baseName}-soulframe-producer-report.txt`,
+    clientFileName: `${baseName}-soulframe-client-report.txt`,
+    producerText,
+    clientText,
+    exportNote: "Reports are generated and downloaded locally in the browser. No report or audio file is uploaded to a server.",
+  };
+}
+
+function buildV53DownloadableReportExportText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const exportPack = buildV53DownloadableReportExport(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 DOWNLOADABLE REPORT EXPORT",
+    "",
+    `Format: ${exportPack.format.toUpperCase()}`,
+    `Producer file: ${exportPack.producerFileName}`,
+    `Client file: ${exportPack.clientFileName}`,
+    "",
+    "EXPORT NOTE",
+    exportPack.exportNote,
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8085,6 +8132,7 @@ export default function SoulFrameDraftReviewV2() {
             report={buildV53CleanReportPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
             producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
             clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
+            exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
           />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8177,7 +8225,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.2 Clean Report</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.3 Download Export</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
