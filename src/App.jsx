@@ -8,6 +8,7 @@ import {
   V52PublicBetaWorkflowPreview,
 } from "./product/ProductWorkspace";
 import { V53CleanReportPreview } from "./report/CleanReportPreview";
+import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1448,6 +1449,10 @@ function runSoulFrameTests() {
     buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Shareable Report Direction" &&
     buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).routePreview.startsWith("/report/") &&
     buildV53ShareableReportDirectionText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 SHAREABLE REPORT DIRECTION") &&
+    typeof V53BeforeAfterCaseStudy === "function" &&
+    buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).feature === "Before / After Case Study" &&
+    buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).comparisonReady === true &&
+    buildV53BeforeAfterCaseStudyText(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V5.3 BEFORE / AFTER CASE STUDY") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -6958,6 +6963,108 @@ function buildV53ShareableReportDirectionText(projectSession = defaultProjectSes
   ].join(newline);
 }
 
+
+function buildV53BeforeAfterCaseStudy(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const comparison = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
+  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
+  const comparisonReady = reviewMode === "compare" && draftReady && humanizedReady;
+
+  const beforePriority = draftReady ? getHumanizationPriorityScore(draftAnalysis) : 0;
+  const afterPriority = humanizedReady ? getHumanizationPriorityScore(humanizedAnalysis) : 0;
+  const projectName = projectSession?.projectName || "Untitled AI Draft";
+
+  const metrics = [
+    {
+      label: "Brightness",
+      before: draftReady ? draftAnalysis.brightness || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.brightness || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Texture",
+      before: draftReady ? draftAnalysis.textureStability || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.textureStability || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Dynamics",
+      before: draftReady ? draftAnalysis.dynamics || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.dynamics || "Not available" : "Awaiting edit",
+    },
+    {
+      label: "Clipping Risk",
+      before: draftReady ? draftAnalysis.clippingRisk || "Not available" : "Awaiting draft",
+      after: humanizedReady ? humanizedAnalysis.clippingRisk || "Not available" : "Awaiting edit",
+    },
+  ];
+
+  const publicNarrative = comparisonReady
+    ? `${projectName} was reviewed as an original AI-generated draft and then compared against a humanized edit. ${comparison.mainExplanation} The comparison is used as decision support rather than as an automatic verdict on the music.`
+    : "Load the Before / After demo or switch to Before / After Review with both versions available to generate a complete case study.";
+
+  return {
+    version: "v5.3",
+    feature: "Before / After Case Study",
+    title: `${projectName} — Humanization Case Study`,
+    subtitle: "A clean before/after story showing how the revision changed the listening risks and what still needs a producer's ear.",
+    comparisonReady,
+    status: comparison.improvementLabel,
+    emptyState: "SoulFrame needs both the original AI draft and the humanized edit in Before / After mode before it can generate a credible comparison case study.",
+    improvementLabel: comparison.improvementLabel,
+    priorityChange: comparison.priorityChange,
+    beforePriority,
+    afterPriority,
+    metrics,
+    improvements: comparison.producerFocus.slice(0, 4),
+    clientSafeLine: comparison.clientSafeLine,
+    publicNarrative,
+    humanCheck: "Measured changes can support the explanation, but the producer should still confirm emotion, groove, tone, movement, and musical intent by ear.",
+    fileName: `${sanitizeV53ReportFilename(projectName)}-soulframe-before-after-case-study.txt`,
+    caseStudyPurpose: "Designed as a portfolio/demo-ready explanation of the humanization process without exposing private client material or overstating automated analysis.",
+  };
+}
+
+function buildV53BeforeAfterCaseStudyText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const study = buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  if (!study.comparisonReady) {
+    return [
+      "SOULFRAME V5.3 BEFORE / AFTER CASE STUDY",
+      "",
+      study.title,
+      "",
+      "STATUS",
+      study.status,
+      "",
+      study.emptyState,
+    ].join(newline);
+  }
+
+  return [
+    "SOULFRAME V5.3 BEFORE / AFTER CASE STUDY",
+    "",
+    study.title,
+    "",
+    "OUTCOME",
+    `${study.improvementLabel} · ${study.priorityChange}`,
+    "",
+    "CASE STUDY NARRATIVE",
+    study.publicNarrative,
+    "",
+    "WHAT CHANGED",
+    ...study.improvements.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "METRICS",
+    ...study.metrics.map((metric) => `- ${metric.label}: ${metric.before} → ${metric.after}`),
+    "",
+    "CLIENT-SAFE EXPLANATION",
+    study.clientSafeLine,
+    "",
+    "HUMAN CHECK",
+    study.humanCheck,
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8186,6 +8293,10 @@ export default function SoulFrameDraftReviewV2() {
             exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
             sharePack={buildV53ShareableReportDirection(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
           />
+          <V53BeforeAfterCaseStudy
+            caseStudy={buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            caseStudyText={buildV53BeforeAfterCaseStudyText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8277,7 +8388,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.4 Share Direction</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.5 Case Study</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
