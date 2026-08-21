@@ -1445,6 +1445,9 @@ function runSoulFrameTests() {
     buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Downloadable Report Export" &&
     buildV53DownloadableReportExport(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).producerFileName.endsWith(".txt") &&
     buildV53DownloadableReportExportText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 DOWNLOADABLE REPORT EXPORT") &&
+    buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Shareable Report Direction" &&
+    buildV53ShareableReportDirection(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).routePreview.startsWith("/report/") &&
+    buildV53ShareableReportDirectionText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 SHAREABLE REPORT DIRECTION") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -6907,6 +6910,54 @@ function buildV53DownloadableReportExportText(projectSession = defaultProjectSes
   ].join(newline);
 }
 
+
+function buildV53ShareableReportDirection(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const slug = sanitizeV53ReportFilename(report.projectName);
+  const clientText = buildV53CleanReportPreviewText(projectSession, reviewMode, draftAnalysis, humanizedAnalysis, "client");
+
+  const shareTitle = `${report.projectName} — SoulFrame Humanization Report`;
+  const shareSummary = [
+    shareTitle,
+    "",
+    report.clientSummary,
+    "",
+    `Next step: ${report.clientNextStep}`,
+    "",
+    "Prepared with SoulFrame — AI Music Humanization Review Tool.",
+  ].join(String.fromCharCode(10));
+
+  return {
+    version: "v5.3",
+    feature: "Shareable Report Direction",
+    shareTitle,
+    shareSummary,
+    clientText,
+    routePreview: `/report/${slug}`,
+    shareMode: "Local text share",
+    privacyNote: "V5.3.4 does not create a public cloud report URL. Sharing uses browser-native text sharing or clipboard copy only.",
+    futureDirection: "A future backend can map the route preview to a secure, revocable report URL with project permissions.",
+  };
+}
+
+function buildV53ShareableReportDirectionText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const share = buildV53ShareableReportDirection(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 SHAREABLE REPORT DIRECTION",
+    "",
+    `Share mode: ${share.shareMode}`,
+    `Future route preview: ${share.routePreview}`,
+    "",
+    "PRIVACY NOTE",
+    share.privacyNote,
+    "",
+    "FUTURE DIRECTION",
+    share.futureDirection,
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8133,6 +8184,7 @@ export default function SoulFrameDraftReviewV2() {
             producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
             clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
             exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            sharePack={buildV53ShareableReportDirection(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
           />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8225,7 +8277,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.3 Download Export</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.4 Share Direction</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>

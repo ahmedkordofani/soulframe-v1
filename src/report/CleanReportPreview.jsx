@@ -14,10 +14,13 @@ export function V53CleanReportPreview({
   producerText,
   clientText,
   exportPack,
+  sharePack,
 }) {
   const [audience, setAudience] = useState("producer");
   const [copied, setCopied] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const isClient = audience === "client";
   const currentText = isClient ? clientText : producerText;
@@ -51,6 +54,42 @@ export function V53CleanReportPreview({
     URL.revokeObjectURL(url);
     setDownloaded(true);
     window.setTimeout(() => setDownloaded(false), 1600);
+  };
+
+  const handleShare = async () => {
+    if (!sharePack?.shareSummary) return;
+
+    try {
+      if (navigator?.share) {
+        await navigator.share({
+          title: sharePack.shareTitle,
+          text: sharePack.shareSummary,
+        });
+        setShared(true);
+        window.setTimeout(() => setShared(false), 1600);
+        return;
+      }
+
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(sharePack.shareSummary);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 1600);
+      }
+    } catch {
+      setShared(false);
+    }
+  };
+
+  const handleCopyShareSummary = async () => {
+    if (!sharePack?.shareSummary || !navigator?.clipboard?.writeText) return;
+
+    try {
+      await navigator.clipboard.writeText(sharePack.shareSummary);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1600);
+    } catch {
+      setShareCopied(false);
+    }
   };
 
   return (
@@ -97,6 +136,14 @@ export function V53CleanReportPreview({
               className="rounded-2xl border border-zinc-800 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {downloaded ? "Downloaded" : "Download TXT"}
+            </button>
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={!sharePack?.shareSummary}
+              className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {shared ? "Shared" : shareCopied ? "Copied Share Text" : "Share Report"}
             </button>
           </div>
         </div>
@@ -187,6 +234,24 @@ export function V53CleanReportPreview({
             <p className="mt-3 text-xs leading-5 text-zinc-600">
               {exportPack?.exportNote}
             </p>
+          </div>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">V5.3.4</p>
+            <p className="mt-2 text-sm font-semibold text-zinc-200">Shareable Report Direction</p>
+            <p className="mt-2 break-all text-xs leading-5 text-zinc-500">
+              Future route: {sharePack?.routePreview || "/report/project"}
+            </p>
+            <p className="mt-3 text-xs leading-5 text-zinc-600">
+              {sharePack?.privacyNote}
+            </p>
+            <button
+              type="button"
+              onClick={handleCopyShareSummary}
+              disabled={!sharePack?.shareSummary}
+              className="mt-4 w-full rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {shareCopied ? "Share Summary Copied" : "Copy Share Summary"}
+            </button>
           </div>
         </aside>
       </div>
