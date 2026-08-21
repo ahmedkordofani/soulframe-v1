@@ -9,6 +9,7 @@ import {
 } from "./product/ProductWorkspace";
 import { V53CleanReportPreview } from "./report/CleanReportPreview";
 import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
+import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1453,6 +1454,10 @@ function runSoulFrameTests() {
     buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).feature === "Before / After Case Study" &&
     buildV53BeforeAfterCaseStudy(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).comparisonReady === true &&
     buildV53BeforeAfterCaseStudyText(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).includes("SOULFRAME V5.3 BEFORE / AFTER CASE STUDY") &&
+    typeof V53ClientDeliveryExperience === "function" &&
+    buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Client Delivery Experience" &&
+    buildV53ClientDeliveryExperience(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).fileName.endsWith(".txt") &&
+    buildV53ClientDeliveryExperienceText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 CLIENT DELIVERY EXPERIENCE") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -7065,6 +7070,106 @@ function buildV53BeforeAfterCaseStudyText(projectSession = defaultProjectSession
   ].join(newline);
 }
 
+
+function buildV53ClientDeliveryExperience(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  const readinessScore = Math.round(
+    Math.min(
+      100,
+      (qualityGate.score * 0.45) +
+      (handoff.handoffScore * 0.35) +
+      ((manifest.readyCount / Math.max(1, manifest.totalItems)) * 100 * 0.20)
+    )
+  );
+
+  const deliverables = [
+    {
+      label: "Producer Brief",
+      status: outputPack.producerBrief.length > 120 ? "Ready" : "Review",
+      detail: "Internal production direction for the final humanization pass.",
+    },
+    {
+      label: "Client Update",
+      status: outputPack.clientUpdate.length > 100 ? "Ready" : "Review",
+      detail: "Client-safe explanation of what changed and what happens next.",
+    },
+    {
+      label: "Revision Checklist",
+      status: outputPack.revisionChecklist.length > 0 ? "Ready" : "Review",
+      detail: "Practical revision tasks before final delivery.",
+    },
+  ];
+
+  const readinessLabel = readinessScore >= 85
+    ? "Ready for final human read-through"
+    : readinessScore >= 65
+      ? "Almost ready"
+      : "Needs another focused pass";
+
+  const clientMessage = outputPack.clientUpdate || report.clientSummary;
+
+  return {
+    version: "v5.3",
+    feature: "Client Delivery Experience",
+    title: `${report.projectName} — Delivery Handoff`,
+    subtitle: "A final producer-facing checkpoint for deciding what is ready to send, what still needs review, and how to communicate the next step clearly.",
+    readinessScore,
+    readinessLabel,
+    readinessNote: "Readiness combines report quality, handoff checks, and export completeness. It remains decision support rather than an automatic approval.",
+    deliveryStatus: handoff.handoffStatus,
+    recommendedOutput: report.recommendedOutput,
+    deliverySummary: handoff.finalRecommendation,
+    deliverables,
+    humanChecks: [
+      "Listen through the full track once without watching the analysis.",
+      "Confirm the revision still serves the emotional and musical intention.",
+      "Read the client message out loud and remove anything that sounds overly technical or automated.",
+      "Confirm filenames, version labels, and the actual files being delivered.",
+    ],
+    clientMessage,
+    nextMove: handoff.finalRecommendation,
+    fileName: `${sanitizeV53ReportFilename(report.projectName)}-soulframe-client-delivery-note.txt`,
+    deliveryPrinciple: "SoulFrame can organise the handoff, but a human producer should make the final call before anything is sent to a client.",
+  };
+}
+
+function buildV53ClientDeliveryExperienceText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const delivery = buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.3 CLIENT DELIVERY EXPERIENCE",
+    "",
+    delivery.title,
+    "",
+    `Readiness: ${delivery.readinessScore}/100 · ${delivery.readinessLabel}`,
+    `Delivery status: ${delivery.deliveryStatus}`,
+    `Recommended output: ${delivery.recommendedOutput}`,
+    "",
+    "DELIVERY SUMMARY",
+    delivery.deliverySummary,
+    "",
+    "DELIVERABLES",
+    ...delivery.deliverables.map((item) => `- ${item.label}: ${item.status} — ${item.detail}`),
+    "",
+    "FINAL HUMAN CHECK",
+    ...delivery.humanChecks.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "CLIENT MESSAGE",
+    delivery.clientMessage,
+    "",
+    "NEXT MOVE",
+    delivery.nextMove,
+    "",
+    delivery.deliveryPrinciple,
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8308,6 +8413,11 @@ export default function SoulFrameDraftReviewV2() {
       outputContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedOutputWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53ClientDeliveryExperience
+            delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            setActiveTab={setActiveTab}
+          />
           <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8388,7 +8498,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.5 Case Study</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.6 Client Delivery</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
