@@ -7,6 +7,7 @@ import {
   V52PublicBetaValueStrip,
   V52PublicBetaWorkflowPreview,
 } from "./product/ProductWorkspace";
+import { V53CleanReportPreview } from "./report/CleanReportPreview";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1437,6 +1438,10 @@ function runSoulFrameTests() {
     buildV53ProductWorkspaceModuleSummary().feature === "Product Workspace Modularization" &&
     buildV53ProductWorkspaceModuleSummary().modulePath === "src/product/ProductWorkspace.jsx" &&
     buildV53ProductWorkspaceModuleText().includes("SOULFRAME V5.3 PRODUCT WORKSPACE MODULARIZATION") &&
+    typeof V53CleanReportPreview === "function" &&
+    buildV53CleanReportPreview(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Clean Report Preview" &&
+    buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "producer").includes("SOULFRAME CLEAN HUMANIZATION REPORT") &&
+    buildV53CleanReportPreviewText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null, "client").includes("CLIENT SUMMARY") &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -6780,6 +6785,81 @@ function buildV53ProductWorkspaceModuleText() {
   ].join(newline);
 }
 
+
+function buildV53CleanReportPreview(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
+  const composer = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const control = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
+
+  return {
+    version: "v5.3",
+    feature: "Clean Report Preview",
+    projectName: projectSession?.projectName || "Untitled AI Draft",
+    clientName: projectSession?.clientName || "Client",
+    trackType: projectSession?.trackType || "AI-generated music",
+    currentStage: projectSession?.currentStage || "Review",
+    reportTitle: composer.reportTitle,
+    reportPath: composer.reportPath,
+    genreFocus: composer.genreFocus,
+    qualityScore: qualityGate.score,
+    qualityLabel: qualityGate.label,
+    executiveSummary: composer.executiveSummary,
+    producerPriorities: composer.producerPlan.slice(0, 4),
+    clientSummary: outputPack.clientUpdate || composer.clientReadySummary,
+    beforeAfterLine: beforeAfter.clientSafeLine,
+    showComparison: reviewMode === "compare",
+    nextMove: control.nextMove,
+    clientNextStep: qualityGate.score >= 80
+      ? "The track is ready for a final human read-through before the next client-facing delivery step."
+      : "The next revision will focus on the clearest humanization priorities before the track is treated as final.",
+    recommendedOutput: control.recommendedOutput,
+    generatedStatus: activeAnalysis && activeAnalysis.status === "Ready"
+      ? "Analysis-backed preview"
+      : "Preview awaiting audio analysis",
+  };
+}
+
+function buildV53CleanReportPreviewText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null, audience = "producer") {
+  const newline = String.fromCharCode(10);
+  const report = buildV53CleanReportPreview(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const clientMode = audience === "client";
+
+  return [
+    "SOULFRAME CLEAN HUMANIZATION REPORT",
+    "",
+    report.reportTitle,
+    `${report.projectName} · ${report.genreFocus}`,
+    "",
+    clientMode ? "CLIENT SUMMARY" : "EXECUTIVE SUMMARY",
+    clientMode ? report.clientSummary : report.executiveSummary,
+    "",
+    ...(clientMode
+      ? []
+      : [
+          "PRODUCER PRIORITIES",
+          ...report.producerPriorities.map((item, index) => `${index + 1}. ${item}`),
+          "",
+        ]),
+    ...(report.showComparison
+      ? [
+          "BEFORE / AFTER",
+          report.beforeAfterLine,
+          "",
+        ]
+      : []),
+    clientMode ? "NEXT STEP" : "PRODUCER NEXT MOVE",
+    clientMode ? report.clientNextStep : report.nextMove,
+    "",
+    `Report quality: ${report.qualityScore}/100 · ${report.qualityLabel}`,
+    `Recommended output: ${report.recommendedOutput}`,
+    "",
+    "SoulFrame supports the review process. Final musical judgement and client communication remain human-led.",
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -8001,6 +8081,11 @@ export default function SoulFrameDraftReviewV2() {
       reportContent={({ setActiveTab }) => (
         <div className="space-y-6">
           <V51FocusedReportWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+          <V53CleanReportPreview
+            report={buildV53CleanReportPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
+            clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
+          />
           <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
           <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
@@ -8092,7 +8177,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.1 Modular Workspace</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.2 Clean Report</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
