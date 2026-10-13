@@ -13,6 +13,7 @@ import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
 import { V53ReportSharingExportHandoff } from "./report/ReportSharingExportHandoff";
 import { V54ReportWorkspaceCleanup } from "./report/ReportWorkspaceCleanup";
 import { V54OutputWorkspaceCleanup, getV54OutputEvidenceStatus } from "./output/OutputWorkspace";
+import { V54AdvancedWorkspaceCleanup, ADVANCED_SECTIONS } from "./advanced/AdvancedWorkspace";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1470,6 +1471,10 @@ function runSoulFrameTests() {
     buildV54ReportWorkspaceCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).showComparison === false &&
     buildV54ReportWorkspaceCleanup(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).showComparison === true &&
     buildV54ReportWorkspaceCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.4 REPORT WORKSPACE CLEANUP") &&
+    typeof V54AdvancedWorkspaceCleanup === "function" &&
+    ADVANCED_SECTIONS.length === 4 &&
+    ADVANCED_SECTIONS[0].id === "technical" &&
+    ADVANCED_SECTIONS[3].id === "history" &&
     typeof V54OutputWorkspaceCleanup === "function" &&
     getV54OutputEvidenceStatus("draft", null, null).needsAnalysis === true &&
     getV54OutputEvidenceStatus("draft", { status: "Ready" }, null).label === "Draft analyzed" &&
@@ -8613,27 +8618,44 @@ export default function SoulFrameDraftReviewV2() {
         />
       )}
       advancedContent={({ setActiveTab }) => (
-        <div className="space-y-6">
-          <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V53ReportSharingExportHandoff
-            handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            setActiveTab={setActiveTab}
-          />
-          <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <PublicDemoNotice />
-          <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V41BackendScaffoldPanel />
-          <V41AnalysisEngineSeparationPanel />
-          <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-        </div>
+        <V54AdvancedWorkspaceCleanup
+          setActiveTab={setActiveTab}
+          technicalContent={
+            <div className="space-y-6">
+              <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+              <V41BackendScaffoldPanel />
+              <V41AnalysisEngineSeparationPanel />
+              <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          uxContent={
+            <div className="space-y-6">
+              <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          betaContent={
+            <div className="space-y-6">
+              <PublicDemoNotice />
+              <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+              <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          historyContent={
+            <div className="space-y-6">
+              <V53ReportSharingExportHandoff
+                handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+                handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+                setActiveTab={setActiveTab}
+              />
+              <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+        />
       )}
     />
   );
@@ -8691,7 +8713,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.2 Output Cleanup</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.3 Advanced Cleanup</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
