@@ -2,11 +2,9 @@
 
 **AI Music Humanization Review Tool**
 
-SoulFrame is a browser-based prototype for reviewing AI-generated music and turning technical observations into clearer human-led production decisions.
+SoulFrame is an experimental, browser-first tool for music producers reviewing AI-generated drafts. It turns basic audio measurements and review notes into human-led revision priorities, before/after comparisons, producer reports, and client communication.
 
-The product is built around a simple belief:
-
-> AI can assist the creative process, but the final emotional and musical decisions still need a human ear.
+**Principle:** AI can assist the creative process, but the final emotional and musical decisions still need a human ear.
 
 ## Live Demo
 
@@ -14,251 +12,114 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V5.3.0 — Report Sharing & Export**
+**V5.4.0 - UI Simplification & Codebase Cleanup** (release candidate until final QA, merge and tagging)
 
-SoulFrame now supports a cleaner path from AI-music review to producer/client reporting, local report export, browser-native sharing, before/after case-study presentation, and final client delivery preparation.
+V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
-The current product flow is:
+The Product flow remains: **Dashboard -> Analyze -> Report -> Output -> Advanced**.
 
-**Dashboard → Analyze → Report → Output → Advanced**
+## V5.4 Highlights
 
-Advanced remains optional so deeper technical and architectural material does not control the first impression of the product.
+- **V5.4.1 - Report Workspace Cleanup:** Prioritised the clean producer/client report. Comparison appears when two analyses are ready; deeper report tools are collapsed by default.
+- **V5.4.2 - Output Workspace Cleanup:** Organized client delivery, supporting outputs and saved projects into focused sections.
+- **V5.4.3 - Advanced Workspace Cleanup:** Grouped technical and historical panels into smaller navigable categories.
+- **V5.4.4 - Modularization and Bundle Optimization:** Lazy-loaded secondary pages, added React vendor chunking and removed the previous 500 KB single-chunk warning.
+- **V5.4.5 - Classic Demo Isolation:** Moved legacy demo presentation into a lazy-loaded module.
+- **V5.4.6 - Analysis Logic Extraction:** Moved 35 audio-analysis helpers into a dedicated module without changing their calculations.
+- **V5.4.7 - Report Logic Extraction:** Moved 28 report builders into a dedicated module and introduced the shared project template.
+- **V5.4.8 - Product State and Session Cleanup:** Extracted localStorage helpers and a React session hook while preserving storage keys and backup format.
+- **V5.4.9 - Architecture Integration and Regression Testing:** Added `npm run verify`, integration tests, GitHub Actions and a browser QA checklist.
+- **V5.4.10 - Final Architecture Review and Release Handoff:** Synced version documentation, documented architecture boundaries, release risks and acceptance gates.
 
-## What SoulFrame Does
+## Core Features
 
-SoulFrame helps producers review AI-generated music and organise the humanization process around practical questions:
+- Browser-local audio inspection and technical proxies for clipping, dynamics, brightness and texture variation
+- Producer review priorities and humanization action plans
+- Before/after review and a case-study presentation format
+- Producer/client report previews and TXT downloads
+- Browser-native text sharing or clipboard copy where supported
+- Saved project metadata, localStorage persistence, and JSON backup import/export
+- Classic Demo and educational/developer panels, separate from the primary workflow
 
-- What sounds technically or musically risky?
-- What should the producer listen to first?
-- What needs a human decision rather than another automated pass?
-- How can the findings be explained clearly to a client?
-- What should be delivered next?
+**Important:** The audio analysis does not reliably determine whether a recording was AI-generated, identify specific AI synthesis artifacts, or measure emotional authenticity. It supplies technical clues for human listening and review. Certain demo progress and planning sequences are simulated.
 
-The current prototype includes browser-safe audio inspection, humanization priorities, smarter report composition, before/after comparison, producer guidance, client-safe reporting, downloadable local reports, delivery preparation, saved local sessions, and backend/API planning scaffolds.
-
-## V5.3 — Report Sharing & Export
-
-### V5.3.1 — Product Workspace Modularization
-
-The Product workspace began moving out of the monolithic `App.jsx` file into dedicated modules.
-
-Key presentation components now live in:
-
-```text
-src/product/ProductWorkspace.jsx
-```
-
-This creates safer boundaries for future refactoring, report features, and code splitting while preserving the public Product experience.
-
-### V5.3.2 — Clean Report Preview
-
-Introduced a polished report presentation layer with separate:
-
-- Producer view
-- Client view
-- Executive/client summaries
-- Producer priorities
-- Before/after explanation
-- Recommended next move
-- Report quality and output details
-
-The goal is to make SoulFrame output feel closer to something a producer could genuinely review or send.
-
-### V5.3.3 — Downloadable Report Export
-
-Added real browser-local TXT export.
-
-Producer and Client reports generate separate project-based filenames and download without uploading report or audio data to a server.
-
-### V5.3.4 — Shareable Report Direction
-
-Added browser-native text sharing where supported, with clipboard fallback.
-
-SoulFrame also exposes the direction for future hosted report routes:
-
-```text
-/report/project-name
-```
-
-No fake public cloud URL is generated in V5.3. Secure hosted reports remain part of a later backend phase.
-
-### V5.3.5 — Before / After Case Study
-
-Before/after review can now become a cleaner case-study format showing:
-
-- Humanization Priority before and after
-- Brightness
-- Texture stability
-- Dynamics
-- Clipping risk
-- What changed
-- Client-safe explanation
-- Final human-check guidance
-
-The case study can also be copied or downloaded locally.
-
-### V5.3.6 — Client Delivery Experience
-
-The Output workspace now includes a final delivery checkpoint with:
-
-- Delivery readiness
-- Producer Brief status
-- Client Update status
-- Revision Checklist status
-- Final human listening checks
-- Client message preview
-- Delivery note copy/download
-- Clear next-step guidance
-
-The final delivery decision remains explicitly human-led.
-
-### V5.3.7 — Report Sharing & Export Handoff
-
-The V5.3 handoff confirms the complete planned feature set and clearly separates current browser-local behaviour from future backend capabilities.
-
-## Product Evolution
-
-### V4.0.0 — Deeper Audio Intelligence
-
-Expanded browser-safe audio analysis and humanization guidance.
-
-### V4.1.0 — Backend/API Prototype Scaffold
-
-Defined early API and backend architecture direction without presenting it as a live backend.
-
-### V4.2.0 — Smarter Humanization Reports
-
-Added smarter report composition, quality gates, output packs, final handoff logic, export manifests, and stronger before/after explanations.
-
-### V5.0.0 — Product UX Simplification
-
-Shifted SoulFrame away from a long technical-document experience toward a clearer product direction.
-
-### V5.1.0 — Real Layout Refactor
-
-Introduced the Dashboard / Analyze / Report / Output / Advanced workspace model.
-
-### V5.2.0 — Visual Polish & Public Beta Presentation
-
-Improved the public-facing hero, value proposition, workflow explanation, guided demo scenarios, screenshot strategy, and presentation readiness.
-
-### V5.3.0 — Report Sharing & Export
-
-Connected the analysis/report system to cleaner producer/client presentation, local downloads, sharing direction, case studies, and final delivery preparation.
-
-## Architecture
-
-Current stack:
-
-- React
-- Vite
-- Tailwind CSS
-- JavaScript
-- Web Audio API
-- LocalStorage
-- GitHub
-- Vercel
-
-Current modular areas include:
+## Project Structure
 
 ```text
 src/
-├── App.jsx
-├── product/
-│   └── ProductWorkspace.jsx
-└── report/
-    ├── CleanReportPreview.jsx
-    ├── BeforeAfterCaseStudy.jsx
-    ├── ClientDeliveryExperience.jsx
-    └── ReportSharingExportHandoff.jsx
+  App.jsx                      # Main shell and remaining UI/planning logic
+  analysis/audioAnalysis.js    # Browser audio measurements and review helpers
+  core/projectDefaults.js     # Shared project intake defaults
+  session/sessionStorage.js   # Local persistence and backup helpers
+  session/useProjectSessions.js
+  report/reportBuilders.js    # Report builder functions
+  report/CleanReportPreview.jsx
+  report/BeforeAfterCaseStudy.jsx
+  report/ClientDeliveryExperience.jsx
+  report/ReportSharingExportHandoff.jsx
+  report/ReportWorkspaceCleanup.jsx
+  product/ProductWorkspace.jsx
+  output/OutputWorkspace.jsx
+  advanced/AdvancedWorkspace.jsx
+  demo/ClassicDemo.jsx        # Lazy-loaded legacy interface
+  views/SecondaryViews.jsx    # Lazy-loaded secondary pages
+
+tests/
+  reportBuilders.test.mjs
+  sessionStorage.test.mjs
+  integration.test.mjs
+  architecture.test.mjs
+
+docs/
+  quality-checklist.md
+  architecture-v5.4.md
+  release-handoff-v5.4.md
 ```
 
-The codebase is still in transition. `App.jsx` remains large and contains substantial legacy builder and workspace logic. V5.3 begins the modularization process rather than claiming it is finished.
-
-## Privacy / Browser-Safe Behaviour
-
-The current audio-review prototype runs locally in the browser.
-
-V5.3 report downloads are also generated locally.
-
-SoulFrame does **not** currently provide:
-
-- user accounts
-- cloud project persistence
-- live public report URLs
-- database-backed report history
-- permissions or access control
-- revocable shared links
-- server-generated PDFs
-- a production backend/API
-
-The V4.1 backend work remains architectural/prototype scaffolding only.
+The architecture is substantially more modular than V5.3 but not fully separated. `App.jsx` still contains significant UI and legacy orchestration code.
 
 ## Development
 
-Install dependencies:
+Requires Node.js 22 (the version used by GitHub Actions).
 
 ```bash
-npm install
-```
-
-Run locally:
-
-```bash
+npm ci
 npm run dev
 ```
 
-Create a production build:
+Run automated tests:
 
 ```bash
-npm run build
+npm test
 ```
 
-## Current Development Note
+Run the tests and a production build together:
 
-The production bundle currently sits around Vite's default large-chunk warning threshold.
+```bash
+npm run verify
+```
 
-This is not blocking the prototype, but future cleanup should continue:
+The same verification runs in GitHub Actions on pushes to `main` and `v5-*` branches, and on pull requests. Browser acceptance testing remains necessary; see [docs/quality-checklist.md](docs/quality-checklist.md).
 
-- extracting large UI areas from `App.jsx`
-- separating builder/business logic
-- introducing route/component-level lazy loading
-- reducing repeated planning/prototype UI
-- improving code splitting
+## Privacy and Prototype Limitations
 
-## Roadmap
+Audio inspection and current report generation operate in the browser, with no required audio upload backend. Project/session data is stored in the browser and may be lost if local site data is cleared. Export a backup before clearing site data or testing migration.
 
-### V5.4 — UI Simplification & Codebase Cleanup
+SoulFrame does **not** yet provide authenticated accounts, persistent cloud projects, secure hosted report links, revocable sharing permissions, database-backed history, server PDFs, or a production API. The V4.1 API work is a prototype scaffold only.
 
-Planned direction:
+## Next Chapter
 
-- continue modularizing `App.jsx`
-- simplify overlapping V4/V5 panels
-- remove redundant prototype/planning surfaces
-- improve lazy loading and code splitting
-- reduce bundle size
-- tighten the public Product, Report, and Output experiences
-- preserve Classic Demo and deeper architecture without letting them dominate the main workflow
+**V6 - Backend and Real-World Validation (proposed)**
 
-### V6.0 — Real Backend/API Implementation
+Before designing cloud persistence or user accounts, validate the producer workflow with representative tracks and real feedback. Scope authentication, storage, report sharing, consent and audio/privacy handling deliberately. See [docs/architecture-v5.4.md](docs/architecture-v5.4.md) for remaining risks.
 
-Potential future work:
+## Release History
 
-- persistent projects
-- authenticated users
-- hosted reports
-- secure share links
-- report permissions
-- revocable links
-- database persistence
-- server-side export/PDF generation
-- real API endpoints
-- production deployment architecture
-
-These capabilities are not yet implemented.
-
-## Status
-
-SoulFrame remains an evolving prototype and public-beta product experiment.
-
-The focus is not to automate creative judgement. It is to make AI-assisted music review more understandable, more structured, and more useful to the producer who still has to make the final call.
+- V4.0.0 - Deeper Audio Intelligence
+- V4.1.0 - Backend/API Prototype Scaffold
+- V4.2.0 - Smarter Humanization Reports
+- V5.0.0 - Product UX Simplification
+- V5.1.0 - Real Layout Refactor
+- V5.2.0 - Visual Polish and Public Beta Presentation
+- V5.3.0 - Report Sharing and Export
+- V5.4.0 - UI Simplification and Codebase Cleanup (pending publication)

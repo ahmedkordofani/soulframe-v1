@@ -749,7 +749,7 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof SecondaryViews === "object" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V5.3 report sharing and export prototype") &&
+    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
     typeof SoulFrameFooter === "function" &&
@@ -888,7 +888,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
-    buildProductSummaryText().includes("V5.3 report sharing and export prototype") &&
+    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
@@ -6341,7 +6341,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V5.3 report sharing and export prototype with a dashboard-first product shell, modular product/report UI, cleaner producer/client reports, local downloads, browser-native share direction, before/after case studies, client delivery handoff, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
+    "V5.4 product cleanup and architecture refactor: focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. SoulFrame remains a prototype without hosted reports or a live backend.",
   ].join(newline);
 }
 
@@ -6555,7 +6555,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.9 Integration QA</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.10 Release Review</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
