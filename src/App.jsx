@@ -53,6 +53,18 @@ import {
 } from "./analysis/audioAnalysis";
 import { defaultProjectSession } from "./core/projectDefaults";
 import {
+  getSessionValue,
+  loadSavedSession,
+  loadSavedSetting,
+  saveSetting,
+  loadSavedProjects,
+  saveSavedProjects,
+  buildSavedProjectRecord,
+  buildSavedProjectsBackup,
+  parseSavedProjectsBackup,
+} from "./session/sessionStorage";
+import { useProjectSessions } from "./session/useProjectSessions";
+import {
   normalizeV42Text,
   detectV42GenreFocus,
   detectV42ReportPath,
@@ -273,12 +285,6 @@ const publicShareLinks = [
   { label: "GitHub Repository", href: "https://github.com/ahmedkordofani/soulframe-v1" },
   { label: "ChordOfAnnie", href: "https://chordofannie.com" },
 ];
-
-function getSessionValue(projectSession, key) {
-  const value = projectSession && projectSession[key];
-  if (typeof value === "string" && value.trim()) return value.trim();
-  return defaultProjectSession[key];
-}
 
 function makeClientSafeAction(actionItem) {
   const clientSafeMap = {
@@ -534,94 +540,6 @@ function buildClientUpdate(report, mode = "balanced", projectSession = defaultPr
   }
 
   return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioAndClueSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
-}
-
-function loadSavedSession() {
-  if (typeof window === "undefined") return defaultProjectSession;
-  try {
-    const saved = window.localStorage.getItem("soulframe-project-session");
-    return saved ? { ...defaultProjectSession, ...JSON.parse(saved) } : defaultProjectSession;
-  } catch (error) {
-    return defaultProjectSession;
-  }
-}
-
-function loadSavedSetting(key, fallback) {
-  if (typeof window === "undefined") return fallback;
-  try {
-    return window.localStorage.getItem(key) || fallback;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function saveSetting(key, value) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch (error) {
-    // Ignore local storage failures so the app keeps working.
-  }
-}
-
-function loadSavedProjects() {
-  if (typeof window === "undefined") return [];
-  try {
-    const saved = window.localStorage.getItem("soulframe-saved-projects");
-    const parsed = saved ? JSON.parse(saved) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveSavedProjects(projects) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem("soulframe-saved-projects", JSON.stringify(projects));
-  } catch (error) {
-    // Ignore local storage failures so the app keeps working.
-  }
-}
-
-function buildSavedProjectRecord(projectSession, reviewMode, selectedPreset) {
-  const now = new Date().toISOString();
-  return {
-    id: `soulframe-${Date.now()}`,
-    projectSession,
-    reviewMode,
-    selectedPreset,
-    savedAt: now,
-    title: getSessionValue(projectSession, "projectName"),
-    client: getSessionValue(projectSession, "clientName"),
-    stage: getSessionValue(projectSession, "currentStage"),
-  };
-}
-
-function buildSavedProjectsBackup(savedProjects) {
-  return JSON.stringify(
-    {
-      app: "SoulFrame",
-      type: "saved-projects-backup",
-      version: "3.5",
-      exportedAt: new Date().toISOString(),
-      projects: savedProjects,
-    },
-    null,
-    2
-  );
-}
-
-function parseSavedProjectsBackup(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (!parsed || parsed.type !== "saved-projects-backup" || !Array.isArray(parsed.projects)) {
-      return [];
-    }
-    return parsed.projects;
-  } catch (error) {
-    return [];
-  }
 }
 
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate, reportTone = "producer" }) {
@@ -6453,7 +6371,6 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
 
 export default function SoulFrameDraftReviewV2() {
   const [view, setView] = useState("product");
-  const [selectedPreset, setSelectedPreset] = useState(() => loadSavedSetting("soulframe-selected-preset", "marcel"));
   const [activeStep, setActiveStep] = useState(0);
   const [draftFile, setDraftFile] = useState("");
   const [humanizedFile, setHumanizedFile] = useState("");
@@ -6463,9 +6380,15 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedAudioMetadata, setHumanizedAudioMetadata] = useState(null);
   const [draftAudioAnalysis, setDraftAudioAnalysis] = useState(null);
   const [humanizedAudioAnalysis, setHumanizedAudioAnalysis] = useState(null);
-  const [reviewMode, setReviewMode] = useState(() => loadSavedSetting("soulframe-review-mode", "draft"));
-  const [projectSession, setProjectSession] = useState(() => loadSavedSession());
-  const [savedProjects, setSavedProjects] = useState(() => loadSavedProjects());
+  const {
+    selectedPreset, setSelectedPreset,
+    reviewMode, setReviewMode,
+    projectSession, setProjectSession,
+    savedProjects,
+    resetProjectSession, applyDemoPreset, saveDemoPresetAsProject,
+    saveProjectSnapshot, loadSavedProjectSnapshot, deleteSavedProject,
+    clearSavedProjects, importSavedProjectsBackup,
+  } = useProjectSessions({ demoPresets, onPresetApplied: () => setActiveStep(0) });
   const selectedReport = reviewMode === "compare" ? beforeAfterReport : draftReports[selectedPreset];
   const testsPassed = runSoulFrameTests();
 
@@ -6477,77 +6400,7 @@ export default function SoulFrameDraftReviewV2() {
 
   useEffect(() => () => { if (draftAudioUrl) URL.revokeObjectURL(draftAudioUrl); if (humanizedAudioUrl) URL.revokeObjectURL(humanizedAudioUrl); }, [draftAudioUrl, humanizedAudioUrl]);
 
-  useEffect(() => {
-    saveSetting("soulframe-project-session", JSON.stringify(projectSession));
-  }, [projectSession]);
-
-  useEffect(() => {
-    saveSetting("soulframe-selected-preset", selectedPreset);
-  }, [selectedPreset]);
-
-  useEffect(() => {
-    saveSetting("soulframe-review-mode", reviewMode);
-  }, [reviewMode]);
-
-  useEffect(() => {
-    saveSavedProjects(savedProjects);
-  }, [savedProjects]);
-
   function handleRunAnalysis() { setActiveStep(1); }
-
-  function resetProjectSession() {
-    setProjectSession(defaultProjectSession);
-    setSelectedPreset("marcel");
-    setReviewMode("draft");
-  }
-
-  function applyDemoPreset(presetKey) {
-    const preset = demoPresets[presetKey];
-    if (!preset) return;
-    setProjectSession({ ...defaultProjectSession, ...preset.projectSession });
-    setSelectedPreset(preset.selectedPreset || "marcel");
-    setReviewMode(preset.reviewMode || "draft");
-    setActiveStep(0);
-  }
-
-  function saveDemoPresetAsProject(presetKey) {
-    const preset = demoPresets[presetKey];
-    if (!preset) return;
-    const presetSession = { ...defaultProjectSession, ...preset.projectSession };
-    const record = buildSavedProjectRecord(presetSession, preset.reviewMode || "draft", preset.selectedPreset || "marcel");
-    setSavedProjects((current) => [record, ...current].slice(0, 24));
-  }
-
-  function saveProjectSnapshot() {
-    const record = buildSavedProjectRecord(projectSession, reviewMode, selectedPreset);
-    setSavedProjects((current) => [record, ...current].slice(0, 12));
-  }
-
-  function loadSavedProjectSnapshot(projectId) {
-    const savedProject = savedProjects.find((project) => project.id === projectId);
-    if (!savedProject) return;
-    setProjectSession({ ...defaultProjectSession, ...savedProject.projectSession });
-    setReviewMode(savedProject.reviewMode || "draft");
-    setSelectedPreset(savedProject.selectedPreset || "marcel");
-  }
-
-  function deleteSavedProject(projectId) {
-    setSavedProjects((current) => current.filter((project) => project.id !== projectId));
-  }
-
-  function clearSavedProjects() {
-    setSavedProjects([]);
-  }
-
-  function importSavedProjectsBackup(backupText) {
-    const importedProjects = parseSavedProjectsBackup(backupText);
-    if (!importedProjects.length) return;
-    setSavedProjects((current) => {
-      const existingIds = new Set(current.map((project) => project.id));
-      const freshImports = importedProjects.filter((project) => project && project.id && !existingIds.has(project.id));
-      return [...freshImports, ...current].slice(0, 24);
-    });
-  }
 
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
@@ -6702,7 +6555,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.7 Report Logic</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.8 Session State</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
