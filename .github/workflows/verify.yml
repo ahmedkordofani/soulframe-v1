@@ -1,0 +1,24 @@
+name: SoulFrame Quality Checks
+
+on:
+  push:
+    branches:
+      - main
+      - 'v5-*'
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run regression tests and production build
+        run: npm run verify
