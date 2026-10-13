@@ -12,6 +12,7 @@ import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
 import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
 import { V53ReportSharingExportHandoff } from "./report/ReportSharingExportHandoff";
 import { V54ReportWorkspaceCleanup } from "./report/ReportWorkspaceCleanup";
+import { V54OutputWorkspaceCleanup, getV54OutputEvidenceStatus } from "./output/OutputWorkspace";
 
 const analysisSteps = [
   "Uploading audio files",
@@ -1469,6 +1470,11 @@ function runSoulFrameTests() {
     buildV54ReportWorkspaceCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).showComparison === false &&
     buildV54ReportWorkspaceCleanup(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).showComparison === true &&
     buildV54ReportWorkspaceCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.4 REPORT WORKSPACE CLEANUP") &&
+    typeof V54OutputWorkspaceCleanup === "function" &&
+    getV54OutputEvidenceStatus("draft", null, null).needsAnalysis === true &&
+    getV54OutputEvidenceStatus("draft", { status: "Ready" }, null).label === "Draft analyzed" &&
+    getV54OutputEvidenceStatus("compare", { status: "Ready" }, null).label === "Comparison incomplete" &&
+    getV54OutputEvidenceStatus("compare", { status: "Ready" }, { status: "Ready" }).needsAnalysis === false &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -8584,18 +8590,27 @@ export default function SoulFrameDraftReviewV2() {
         />
       )}
       outputContent={({ setActiveTab }) => (
-        <div className="space-y-6">
-          <V51FocusedOutputWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V53ClientDeliveryExperience
-            delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            setActiveTab={setActiveTab}
-          />
-          <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
-        </div>
+        <V54OutputWorkspaceCleanup
+          evidence={getV54OutputEvidenceStatus(reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          setActiveTab={setActiveTab}
+          deliveryContent={
+            <V53ClientDeliveryExperience
+              delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              setActiveTab={setActiveTab}
+            />
+          }
+          supportingContent={
+            <div className="space-y-6">
+              <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          sessionsContent={
+            <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
+          }
+        />
       )}
       advancedContent={({ setActiveTab }) => (
         <div className="space-y-6">
@@ -8676,7 +8691,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.1 Report Cleanup</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.2 Output Cleanup</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
