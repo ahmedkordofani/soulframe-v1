@@ -11,6 +11,94 @@ import { V53CleanReportPreview } from "./report/CleanReportPreview";
 import { V53BeforeAfterCaseStudy } from "./report/BeforeAfterCaseStudy";
 import { V53ClientDeliveryExperience } from "./report/ClientDeliveryExperience";
 import { V53ReportSharingExportHandoff } from "./report/ReportSharingExportHandoff";
+import { V54ReportWorkspaceCleanup } from "./report/ReportWorkspaceCleanup";
+import { V54OutputWorkspaceCleanup, getV54OutputEvidenceStatus } from "./output/OutputWorkspace";
+import { V54AdvancedWorkspaceCleanup, ADVANCED_SECTIONS } from "./advanced/AdvancedWorkspace";
+import {
+  clampScore,
+  getScoreLabel,
+  getDeliveryReadiness,
+  formatFileSize,
+  formatDuration,
+  buildInitialAudioMetadata,
+  loadAudioDuration,
+  amplitudeToDb,
+  getClippingRisk,
+  getDynamicsLabel,
+  getBrightnessLabel,
+  getTextureStabilityLabel,
+  loadAudioHealthCheck,
+  getAudioHealthRecommendation,
+  buildArtifactClues,
+  buildListeningFocusItems,
+  getHumanizationPriorityScore,
+  getHumanizationPriorityLabel,
+  getHumanizationPriorityNote,
+  buildSectionReviewNotes,
+  buildHumanizationActionPlan,
+  getHumanizationDelta,
+  getTechnicalFormatNotes,
+  getTechnicalReadinessScore,
+  getTechnicalReadinessLabel,
+  buildAudioFactRows,
+  buildAudioFactsSentence,
+  buildArtifactClueSentence,
+  parseDbValue,
+  getRiskRank,
+  getDynamicsRank,
+  getComparisonLabel,
+  buildBeforeAfterComparison,
+  getBeforeAfterImprovementScore,
+  getBeforeAfterImprovementLabel,
+} from "./analysis/audioAnalysis";
+import { defaultProjectSession } from "./core/projectDefaults";
+import {
+  getSessionValue,
+  loadSavedSession,
+  loadSavedSetting,
+  saveSetting,
+  loadSavedProjects,
+  saveSavedProjects,
+  buildSavedProjectRecord,
+  buildSavedProjectsBackup,
+  parseSavedProjectsBackup,
+} from "./session/sessionStorage";
+import { useProjectSessions } from "./session/useProjectSessions";
+import {
+  normalizeV42Text,
+  detectV42GenreFocus,
+  detectV42ReportPath,
+  buildV42SuggestedEditOrder,
+  estimateV42RevisionDifficulty,
+  buildV42ToneOptions,
+  buildV42ReportContext,
+  buildV42SmarterReportText,
+  buildV42GenreRecommendationProfile,
+  buildV42GenreRecommendationText,
+  buildV42PathSpecificReportSections,
+  buildV42PathSpecificReportText,
+  buildV42ClientToneDrafts,
+  buildV42ClientToneDraftText,
+  buildV42BeforeAfterExplanation,
+  buildV42BeforeAfterExplanationText,
+  buildV42SmartReportComposer,
+  buildV42SmartReportComposerText,
+  buildV42ReportQualityGate,
+  buildV42ReportQualityGateText,
+  buildV42ReportOutputPack,
+  buildV42ReportOutputPackText,
+  buildV42FinalReportHandoff,
+  buildV42FinalReportHandoffText,
+  buildV42ReportExportManifest,
+  buildV42ReportExportManifestText,
+  buildV42ReportControlCenter,
+  buildV42ReportControlCenterText,
+} from "./report/reportBuilders";
+
+// Secondary pages are not needed until someone opens their corresponding header tab.
+const SecondaryViews = React.lazy(() => import("./views/SecondaryViews"));
+// Separate legacy demo presentation so Product does not request it on first load.
+const ClassicDemo = React.lazy(() => import("./demo/ClassicDemo"));
 
 const analysisSteps = [
   "Uploading audio files",
@@ -119,16 +207,7 @@ const artifactDatabase = [
   { name: "Waveform Instability", category: "Audio Stability", severity: "Moderate", description: "Unnatural energy spikes, unstable density, or inconsistent waveform behavior.", fix: "Gain riding, compression balancing, transient repair, and stem cleanup." },
 ];
 
-const defaultProjectSession = {
-  projectName: "Untitled AI Draft",
-  clientName: "Client",
-  trackType: "AI-generated song",
-  aiTool: "Not specified",
-  currentStage: "Raw AI Draft",
-  mainConcern: "Needs humanization review",
-  clientGoal: "Make the track feel more natural, emotional, and release-ready.",
-  producerNotes: "",
-};
+
 
 const demoPresets = {
   vocalDraft: {
@@ -206,453 +285,6 @@ const publicShareLinks = [
   { label: "GitHub Repository", href: "https://github.com/ahmedkordofani/soulframe-v1" },
   { label: "ChordOfAnnie", href: "https://chordofannie.com" },
 ];
-
-function clampScore(value) {
-  return Math.min(100, Math.max(0, Number(value) || 0));
-}
-
-function getScoreLabel(score) {
-  const value = clampScore(score);
-  if (value >= 90) return "Highly Humanized";
-  if (value >= 75) return "Mostly Human";
-  if (value >= 60) return "Moderate AI Presence";
-  if (value >= 40) return "Strong Synthetic Presence";
-  return "Heavy AI Artifacting";
-}
-
-function getDeliveryReadiness(score) {
-  if (score >= 85) return "Nearly Ready";
-  if (score >= 75) return "Close";
-  return "Needs Work";
-}
-
-function getSessionValue(projectSession, key) {
-  const value = projectSession && projectSession[key];
-  if (typeof value === "string" && value.trim()) return value.trim();
-  return defaultProjectSession[key];
-}
-
-function formatFileSize(bytes) {
-  if (!bytes) return "Unknown";
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function formatDuration(seconds) {
-  if (!Number.isFinite(seconds)) return "Reading...";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
-}
-
-function buildInitialAudioMetadata(file) {
-  return { name: file.name, type: file.type || "Unknown audio type", size: file.size, duration: null };
-}
-
-function loadAudioDuration(audioUrl, setMetadata) {
-  const audio = document.createElement("audio");
-  audio.preload = "metadata";
-  audio.onloadedmetadata = () => setMetadata((current) => (current ? { ...current, duration: audio.duration } : current));
-  audio.onerror = () => setMetadata((current) => (current ? { ...current, duration: Number.NaN } : current));
-  audio.src = audioUrl;
-}
-
-function amplitudeToDb(amplitude) {
-  if (!amplitude || amplitude <= 0) return "-∞ dB";
-  return `${(20 * Math.log10(amplitude)).toFixed(1)} dB`;
-}
-
-function getClippingRisk(peak) {
-  if (peak >= 0.999) return "High";
-  if (peak >= 0.97) return "Medium";
-  return "Low";
-}
-
-function getDynamicsLabel(dynamicRange) {
-  if (dynamicRange >= 0.22) return "Wide";
-  if (dynamicRange >= 0.12) return "Moderate";
-  return "Compressed";
-}
-
-function getBrightnessLabel(brightnessScore) {
-  if (!Number.isFinite(brightnessScore)) return "Unknown";
-  if (brightnessScore >= 0.42) return "Bright / Potentially Harsh";
-  if (brightnessScore >= 0.25) return "Balanced";
-  return "Dark / Warm";
-}
-
-function getTextureStabilityLabel(textureMovement) {
-  if (!Number.isFinite(textureMovement)) return "Unknown";
-  if (textureMovement >= 0.38) return "Unstable / Busy";
-  if (textureMovement >= 0.18) return "Moderate Movement";
-  return "Stable";
-}
-
-async function loadAudioHealthCheck(audioUrl, setAnalysis) {
-  try {
-    setAnalysis({ status: "Analyzing audio..." });
-    const response = await fetch(audioUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    const audioContext = new AudioContextClass();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    const channelData = audioBuffer.getChannelData(0);
-
-    let peak = 0;
-    let sumSquares = 0;
-    let sumAbsolute = 0;
-    let sumDelta = 0;
-    let zeroCrossings = 0;
-    const blockSize = Math.max(1, Math.floor(channelData.length / 120));
-    const blockRmsValues = [];
-
-    for (let i = 0; i < channelData.length; i += 1) {
-      const currentSample = channelData[i];
-      const previousSample = i > 0 ? channelData[i - 1] : currentSample;
-      const absoluteValue = Math.abs(currentSample);
-      peak = Math.max(peak, absoluteValue);
-      sumSquares += currentSample * currentSample;
-      sumAbsolute += absoluteValue;
-      sumDelta += Math.abs(currentSample - previousSample);
-      if (i > 0 && Math.sign(currentSample) !== Math.sign(previousSample)) zeroCrossings += 1;
-    }
-
-    for (let start = 0; start < channelData.length; start += blockSize) {
-      let blockSum = 0;
-      let count = 0;
-      for (let index = start; index < Math.min(start + blockSize, channelData.length); index += 1) {
-        blockSum += channelData[index] * channelData[index];
-        count += 1;
-      }
-      blockRmsValues.push(Math.sqrt(blockSum / Math.max(1, count)));
-    }
-
-    const rms = Math.sqrt(sumSquares / Math.max(1, channelData.length));
-    const loudestBlock = Math.max(...blockRmsValues);
-    const quietBlocks = blockRmsValues.filter((value) => value > 0.0001);
-    const quietestBlock = quietBlocks.length ? Math.min(...quietBlocks) : 0;
-    const dynamicRange = loudestBlock - quietestBlock;
-    const averageAbs = sumAbsolute / Math.max(1, channelData.length);
-    const averageDelta = sumDelta / Math.max(1, channelData.length);
-    const brightnessScore = averageAbs > 0 ? Math.min(1, averageDelta / Math.max(averageAbs * 4, 0.0001)) : 0;
-    const zeroCrossingRate = zeroCrossings / Math.max(1, channelData.length);
-    const textureMovement = Math.min(1, zeroCrossingRate * 20 + dynamicRange);
-
-    setAnalysis({
-      status: "Ready",
-      sampleRate: audioBuffer.sampleRate,
-      channels: audioBuffer.numberOfChannels,
-      peak,
-      peakDb: amplitudeToDb(peak),
-      rms,
-      averageEnergyDb: amplitudeToDb(rms),
-      clippingRisk: getClippingRisk(peak),
-      dynamics: getDynamicsLabel(dynamicRange),
-      dynamicRange,
-      brightnessScore,
-      brightness: getBrightnessLabel(brightnessScore),
-      zeroCrossingRate,
-      textureMovement,
-      textureStability: getTextureStabilityLabel(textureMovement),
-    });
-    audioContext.close();
-  } catch (error) {
-    setAnalysis({ status: "Unavailable" });
-  }
-}
-
-function getAudioHealthRecommendation(analysis) {
-  if (!analysis || analysis.status !== "Ready") return "Upload an audio file to generate real audio health notes.";
-  if (analysis.clippingRisk === "High") return "The file is very close to clipping. Leave more headroom before the next humanization or mastering pass.";
-  if (analysis.clippingRisk === "Medium") return "The file has limited headroom. Check loud sections before exporting the client version.";
-  if (analysis.brightness === "Bright / Potentially Harsh") return "The file has a bright texture profile. Check for harsh AI shimmer, metallic vocal edges, or brittle top-end.";
-  if (analysis.textureStability === "Unstable / Busy") return "The texture movement is busy. Check whether the track feels emotionally intentional or overly generated.";
-  if (analysis.dynamics === "Compressed") return "The file may be dynamically tight. Check whether the track still breathes emotionally.";
-  if (analysis.dynamics === "Wide") return "The file has strong dynamic movement. Preserve this while cleaning AI artifacts.";
-  return "The file looks technically stable. Focus the next pass on realism, emotion, and arrangement polish.";
-}
-
-function buildArtifactClues(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [{ title: "Waiting for audio", level: "Waiting", note: "Upload audio to generate early artifact clues." }];
-  }
-
-  const clues = [];
-
-  if (analysis.brightness === "Bright / Potentially Harsh") {
-    clues.push({
-      title: "Possible harsh AI shimmer",
-      level: "Review",
-      note: "The brightness profile suggests the top-end may need checking for metallic vocal edges, brittle cymbals, or synthetic gloss.",
-    });
-  }
-
-  if (analysis.textureStability === "Unstable / Busy") {
-    clues.push({
-      title: "Possible generated texture movement",
-      level: "Review",
-      note: "The texture movement is busy, so check whether the track feels emotionally intentional or artificially restless.",
-    });
-  }
-
-  if (analysis.dynamics === "Compressed") {
-    clues.push({
-      title: "Possible flat emotional movement",
-      level: "Review",
-      note: "The dynamics look tight. Listen for sections that feel loud but emotionally static.",
-    });
-  }
-
-  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
-    clues.push({
-      title: "Headroom may affect perception",
-      level: "Technical",
-      note: "Limited headroom can make AI harshness feel worse. Check gain staging before deeper humanization work.",
-    });
-  }
-
-  if (!clues.length) {
-    clues.push({
-      title: "No obvious technical artifact clue",
-      level: "Stable",
-      note: "The basic proxy scan looks stable. Focus the next listen on performance, arrangement, and emotional delivery.",
-    });
-  }
-
-  return clues;
-}
-
-function buildListeningFocusItems(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return ["Upload audio to unlock a producer listening focus." ];
-  }
-
-  const focusItems = [];
-
-  if (analysis.brightness === "Bright / Potentially Harsh") {
-    focusItems.push("Listen closely to vocal sibilance, cymbal splash, and bright synth layers for metallic AI edges.");
-  }
-
-  if (analysis.textureStability === "Unstable / Busy") {
-    focusItems.push("Check whether the texture movement supports the song emotionally or feels randomly generated.");
-  }
-
-  if (analysis.dynamics === "Compressed") {
-    focusItems.push("Look for places where the track needs more breath, contrast, or natural rise and fall.");
-  }
-
-  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
-    focusItems.push("Lower the gain or create more headroom before judging harshness or mastering loudness.");
-  }
-
-  if (!focusItems.length) {
-    focusItems.push("Focus on performance realism, emotional transitions, arrangement intention, and whether the track feels alive.");
-  }
-
-  return focusItems.slice(0, 4);
-}
-
-function getHumanizationPriorityScore(analysis) {
-  if (!analysis || analysis.status !== "Ready") return 0;
-
-  let score = 25;
-
-  if (analysis.brightness === "Bright / Potentially Harsh") score += 22;
-  if (analysis.textureStability === "Unstable / Busy") score += 22;
-  if (analysis.textureStability === "Moderate Movement") score += 10;
-  if (analysis.dynamics === "Compressed") score += 18;
-  if (analysis.clippingRisk === "High") score += 18;
-  if (analysis.clippingRisk === "Medium") score += 10;
-
-  const readinessScore = getTechnicalReadinessScore(analysis);
-  if (readinessScore < 70) score += 12;
-  if (readinessScore >= 90) score -= 8;
-
-  return clampScore(score);
-}
-
-function getHumanizationPriorityLabel(score) {
-  if (score >= 75) return "High Priority";
-  if (score >= 50) return "Medium Priority";
-  if (score > 0) return "Low Priority";
-  return "Waiting for Audio";
-}
-
-function getHumanizationPriorityNote(analysis) {
-  const score = getHumanizationPriorityScore(analysis);
-  const label = getHumanizationPriorityLabel(score);
-
-  if (label === "High Priority") {
-    return "This file should receive a focused humanization pass before client delivery. Prioritize realism, headroom, harshness control, and emotional movement.";
-  }
-
-  if (label === "Medium Priority") {
-    return "This file has some areas worth checking by ear. Focus on the sections that feel synthetic, overly bright, or emotionally flat.";
-  }
-
-  if (label === "Low Priority") {
-    return "This file looks technically stable from the current proxy scan. The next pass can focus more on taste, emotion, and final polish.";
-  }
-
-  return "Upload audio to generate a humanization priority score.";
-}
-
-function buildSectionReviewNotes(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      { section: "Intro", note: "Upload audio to generate section-by-section review notes." },
-      { section: "Verse", note: "Waiting for audio analysis." },
-      { section: "Chorus", note: "Waiting for audio analysis." },
-      { section: "Bridge", note: "Waiting for audio analysis." },
-      { section: "Outro", note: "Waiting for audio analysis." },
-    ];
-  }
-
-  const bright = analysis.brightness === "Bright / Potentially Harsh";
-  const busy = analysis.textureStability === "Unstable / Busy";
-  const compressed = analysis.dynamics === "Compressed";
-  const headroomRisk = analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium";
-
-  return [
-    {
-      section: "Intro",
-      note: busy
-        ? "Check whether the opening texture feels intentional or immediately too busy/generated. Simplify the first impression if needed."
-        : "Check whether the intro creates a clear emotional doorway into the track rather than simply starting the loop.",
-    },
-    {
-      section: "Verse",
-      note: bright
-        ? "Listen for metallic vocal edges, sharp sibilance, or brittle upper harmonics in the main storytelling section."
-        : "Focus on vocal realism, phrasing, groove pocket, and whether the verse feels performed rather than generated.",
-    },
-    {
-      section: "Chorus",
-      note: compressed
-        ? "Check whether the chorus lifts emotionally or stays flat because the dynamics are too tight. Add contrast if needed."
-        : "Make sure the chorus has a natural lift, emotional arrival, and enough width without losing the song's core feeling.",
-    },
-    {
-      section: "Bridge / Breakdown",
-      note: busy
-        ? "Use this section to reset the ear. Reduce unnecessary movement if the texture feels artificially restless."
-        : "Check whether the bridge gives the listener a meaningful change in emotion, space, or arrangement tension.",
-    },
-    {
-      section: "Outro",
-      note: headroomRisk
-        ? "Check the final loud moments for clipping, harshness, or over-limited decay before export."
-        : "Make sure the ending feels intentional, musical, and emotionally resolved rather than abruptly generated.",
-    },
-  ];
-}
-
-function buildHumanizationActionPlan(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [{ priority: "Waiting", action: "Upload audio", detail: "Upload an audio file to generate a humanization action plan." }];
-  }
-
-  const actions = [];
-
-  if (analysis.brightness === "Bright / Potentially Harsh") {
-    actions.push({
-      priority: "High",
-      action: "Smooth harsh top-end",
-      detail: "Check sibilance, cymbal splash, brittle synth highs, and metallic vocal edges. Use gentle EQ smoothing, de-essing, or subtle saturation rather than simply making the track darker.",
-    });
-  }
-
-  if (analysis.textureStability === "Unstable / Busy") {
-    actions.push({
-      priority: "High",
-      action: "Stabilize generated texture",
-      detail: "Identify layers that move too randomly. Simplify busy background parts, reduce competing motion, and make the arrangement feel more intentional.",
-    });
-  }
-
-  if (analysis.dynamics === "Compressed") {
-    actions.push({
-      priority: "Medium",
-      action: "Restore emotional movement",
-      detail: "Create more contrast between sections. Let verses breathe, allow choruses to lift naturally, and avoid over-limiting before the final export.",
-    });
-  }
-
-  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
-    actions.push({
-      priority: analysis.clippingRisk === "High" ? "High" : "Medium",
-      action: "Create safer headroom",
-      detail: "Lower the gain, rebalance loud sections, and leave space before judging harshness or applying mastering polish.",
-    });
-  }
-
-  if (!actions.length) {
-    actions.push({
-      priority: "Low",
-      action: "Focus on musical realism",
-      detail: "The proxy scan looks stable. Focus on phrasing, arrangement intention, emotional transitions, groove, and whether the track feels performed rather than generated.",
-    });
-  }
-
-  return actions.slice(0, 5);
-}
-
-function getHumanizationDelta(draftAnalysis, humanizedAnalysis) {
-  if (!draftAnalysis || !humanizedAnalysis || draftAnalysis.status !== "Ready" || humanizedAnalysis.status !== "Ready") {
-    return [{ label: "Waiting for comparison", status: "Waiting", note: "Upload both the draft and humanized edit to generate a before/after humanization delta." }];
-  }
-
-  const draftPriority = getHumanizationPriorityScore(draftAnalysis);
-  const humanizedPriority = getHumanizationPriorityScore(humanizedAnalysis);
-  const draftReadiness = getTechnicalReadinessScore(draftAnalysis);
-  const humanizedReadiness = getTechnicalReadinessScore(humanizedAnalysis);
-  const deltaItems = [];
-
-  deltaItems.push({
-    label: "Humanization Priority",
-    status: humanizedPriority < draftPriority ? "Improved" : humanizedPriority > draftPriority ? "Needs Review" : "Unchanged",
-    note: `Priority moved from ${draftPriority}/100 to ${humanizedPriority}/100. Lower is better here because it means fewer urgent humanization flags.`,
-  });
-
-  deltaItems.push({
-    label: "Technical Readiness",
-    status: humanizedReadiness > draftReadiness ? "Improved" : humanizedReadiness < draftReadiness ? "Needs Review" : "Unchanged",
-    note: `Readiness moved from ${draftReadiness}/100 to ${humanizedReadiness}/100. Higher suggests a cleaner delivery state.`,
-  });
-
-  if (draftAnalysis.brightness !== humanizedAnalysis.brightness) {
-    deltaItems.push({
-      label: "Brightness Profile",
-      status: humanizedAnalysis.brightness === "Bright / Potentially Harsh" ? "Needs Review" : "Changed",
-      note: `Brightness changed from ${draftAnalysis.brightness || "Unknown"} to ${humanizedAnalysis.brightness || "Unknown"}. Check whether the edit feels smoother without becoming dull.`,
-    });
-  }
-
-  if (draftAnalysis.textureStability !== humanizedAnalysis.textureStability) {
-    deltaItems.push({
-      label: "Texture Stability",
-      status: humanizedAnalysis.textureStability === "Unstable / Busy" ? "Needs Review" : "Changed",
-      note: `Texture stability changed from ${draftAnalysis.textureStability || "Unknown"} to ${humanizedAnalysis.textureStability || "Unknown"}. Listen for whether movement now feels more intentional.`,
-    });
-  }
-
-  if (draftAnalysis.clippingRisk !== humanizedAnalysis.clippingRisk) {
-    deltaItems.push({
-      label: "Headroom / Clipping Risk",
-      status: humanizedAnalysis.clippingRisk === "Low" ? "Improved" : "Needs Review",
-      note: `Clipping risk changed from ${draftAnalysis.clippingRisk} to ${humanizedAnalysis.clippingRisk}. This affects how harsh or controlled the edit feels.`,
-    });
-  }
-
-  if (draftAnalysis.dynamics !== humanizedAnalysis.dynamics) {
-    deltaItems.push({
-      label: "Dynamic Feel",
-      status: humanizedAnalysis.dynamics === "Compressed" ? "Needs Review" : "Changed",
-      note: `Dynamics changed from ${draftAnalysis.dynamics} to ${humanizedAnalysis.dynamics}. Check whether the edit breathes more naturally.`,
-    });
-  }
-
-  return deltaItems.slice(0, 6);
-}
 
 function makeClientSafeAction(actionItem) {
   const clientSafeMap = {
@@ -805,64 +437,6 @@ function getActionPlanToneLabel(tone) {
   return tone === "client" ? "Client-Safe Notes" : "Producer Notes";
 }
 
-function getTechnicalFormatNotes(analysis) {
-  if (!analysis || analysis.status !== "Ready") return [];
-
-  const notes = [];
-
-  if (analysis.channels === 1) {
-    notes.push("Mono file detected. Check stereo width before final delivery if the track is meant to feel wide.");
-  }
-
-  if (analysis.channels && analysis.channels >= 2) {
-    notes.push("Stereo file detected. Check that the width feels intentional and does not smear the vocal or low end.");
-  }
-
-  if (analysis.sampleRate && analysis.sampleRate < 44100) {
-    notes.push("Sample rate is below 44.1 kHz. Consider exporting at 44.1 kHz or 48 kHz for cleaner delivery.");
-  }
-
-  if (analysis.sampleRate && analysis.sampleRate >= 44100) {
-    notes.push("Sample rate is suitable for normal music delivery workflows.");
-  }
-
-  if (analysis.clippingRisk === "High" || analysis.clippingRisk === "Medium") {
-    notes.push("Headroom should be checked before sending this to a client or mastering stage.");
-  }
-
-  return notes;
-}
-
-function getTechnicalReadinessScore(analysis) {
-  if (!analysis || analysis.status !== "Ready") return null;
-
-  let score = 75;
-
-  if (analysis.clippingRisk === "High") score -= 30;
-  if (analysis.clippingRisk === "Medium") score -= 15;
-  if (analysis.clippingRisk === "Low") score += 5;
-
-  if (analysis.dynamics === "Compressed") score -= 12;
-  if (analysis.dynamics === "Moderate") score += 5;
-  if (analysis.dynamics === "Wide") score += 8;
-
-  if (analysis.sampleRate && analysis.sampleRate < 44100) score -= 10;
-  if (analysis.sampleRate && analysis.sampleRate >= 44100) score += 5;
-
-  if (analysis.channels === 1) score -= 5;
-  if (analysis.channels && analysis.channels >= 2) score += 5;
-
-  return clampScore(score);
-}
-
-function getTechnicalReadinessLabel(score) {
-  if (score === null) return "Waiting for audio";
-  if (score >= 85) return "Client-Ready Technically";
-  if (score >= 70) return "Mostly Stable";
-  if (score >= 55) return "Needs Technical Check";
-  return "Needs Repair Before Delivery";
-}
-
 function buildDeliveryChecklist(analysis, reviewMode = "draft") {
   const baseItems = [
     { label: "Confirm the track still feels emotionally natural after technical cleanup", status: "Creative Check" },
@@ -927,132 +501,6 @@ function buildDeliveryChecklistText(projectSession, checklist) {
   return lines.join(newline);
 }
 
-function buildAudioFactRows(metadata, analysis, label) {
-  const rows = [];
-  if (metadata) {
-    rows.push({ label: `${label} Duration`, value: formatDuration(metadata.duration) });
-    rows.push({ label: `${label} Size`, value: formatFileSize(metadata.size) });
-  }
-  if (analysis && analysis.status === "Ready") {
-    rows.push({ label: `${label} Peak`, value: analysis.peakDb });
-    rows.push({ label: `${label} Clipping Risk`, value: analysis.clippingRisk });
-    rows.push({ label: `${label} Dynamics`, value: analysis.dynamics });
-    if (analysis.sampleRate) rows.push({ label: `${label} Sample Rate`, value: `${analysis.sampleRate} Hz` });
-    if (analysis.channels) rows.push({ label: `${label} Channels`, value: `${analysis.channels}` });
-    rows.push({ label: `${label} Technical Readiness`, value: `${getTechnicalReadinessScore(analysis)}/100` });
-    if (analysis.brightness) rows.push({ label: `${label} Brightness`, value: analysis.brightness });
-    if (analysis.textureStability) rows.push({ label: `${label} Texture Stability`, value: analysis.textureStability });
-  } else if (analysis) {
-    rows.push({ label: `${label} Analysis`, value: analysis.status });
-  }
-  return rows;
-}
-
-function buildAudioFactsSentence(metadata, analysis, label = "uploaded file") {
-  const facts = [];
-  if (metadata) {
-    facts.push(`duration is ${formatDuration(metadata.duration)}`);
-    facts.push(`file size is ${formatFileSize(metadata.size)}`);
-  }
-  if (analysis && analysis.status === "Ready") {
-    facts.push(`peak level is ${analysis.peakDb}`);
-    facts.push(`clipping risk is ${analysis.clippingRisk.toLowerCase()}`);
-    facts.push(`dynamics are ${analysis.dynamics.toLowerCase()}`);
-    if (analysis.sampleRate) facts.push(`sample rate is ${analysis.sampleRate} Hz`);
-    if (analysis.channels) facts.push(`channels detected: ${analysis.channels}`);
-    facts.push(`technical readiness is ${getTechnicalReadinessScore(analysis)}/100`);
-    if (analysis.brightness) facts.push(`brightness profile is ${analysis.brightness.toLowerCase()}`);
-    if (analysis.textureStability) facts.push(`texture stability is ${analysis.textureStability.toLowerCase()}`);
-  }
-  if (!facts.length) return "";
-  return `I also checked the real audio file. The ${label} ${facts.join(", ")}.`;
-}
-
-function buildArtifactClueSentence(analysis) {
-  if (!analysis || analysis.status !== "Ready") return "";
-  const clues = buildArtifactClues(analysis).filter((clue) => clue.level !== "Stable" && clue.level !== "Waiting");
-  if (!clues.length) return "The early artifact clue scan did not flag any obvious technical warning signs.";
-  const clueTitles = clues.slice(0, 3).map((clue) => clue.title.toLowerCase()).join(", ");
-  return `The early artifact clue scan suggests checking for ${clueTitles}.`;
-}
-
-function parseDbValue(dbValue) {
-  if (typeof dbValue !== "string" || dbValue.includes("∞")) return null;
-  const parsed = Number.parseFloat(dbValue.replace("dB", ""));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function getRiskRank(risk) {
-  if (risk === "High") return 3;
-  if (risk === "Medium") return 2;
-  if (risk === "Low") return 1;
-  return 0;
-}
-
-function getDynamicsRank(dynamics) {
-  if (dynamics === "Wide") return 3;
-  if (dynamics === "Moderate") return 2;
-  if (dynamics === "Compressed") return 1;
-  return 0;
-}
-
-function getComparisonLabel(beforeValue, afterValue, lowerIsBetter = false) {
-  if (beforeValue === null || afterValue === null) return "Needs both files";
-  if (beforeValue === afterValue) return "No major change";
-  const improved = lowerIsBetter ? afterValue < beforeValue : afterValue > beforeValue;
-  return improved ? "Improved" : "Changed";
-}
-
-function buildBeforeAfterComparison(draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis) {
-  if (!draftMetadata || !humanizedMetadata || !draftAnalysis || !humanizedAnalysis) return [];
-  if (draftAnalysis.status !== "Ready" || humanizedAnalysis.status !== "Ready") return [];
-
-  const draftDuration = Number.isFinite(draftMetadata.duration) ? draftMetadata.duration : null;
-  const editDuration = Number.isFinite(humanizedMetadata.duration) ? humanizedMetadata.duration : null;
-  const durationChange = draftDuration !== null && editDuration !== null ? editDuration - draftDuration : null;
-  const draftPeak = parseDbValue(draftAnalysis.peakDb);
-  const editPeak = parseDbValue(humanizedAnalysis.peakDb);
-  const headroomChange = draftPeak !== null && editPeak !== null ? editPeak - draftPeak : null;
-
-  return [
-    { label: "Duration Change", before: draftDuration !== null ? formatDuration(draftDuration) : "Unknown", after: editDuration !== null ? formatDuration(editDuration) : "Unknown", change: durationChange !== null ? `${durationChange >= 0 ? "+" : ""}${durationChange.toFixed(1)} sec` : "Unknown", verdict: Math.abs(durationChange || 0) <= 2 ? "Nearly matched" : "Changed" },
-    { label: "Peak / Headroom", before: draftAnalysis.peakDb, after: humanizedAnalysis.peakDb, change: headroomChange !== null ? `${headroomChange >= 0 ? "+" : ""}${headroomChange.toFixed(1)} dB` : "Unknown", verdict: getComparisonLabel(draftPeak, editPeak, true) },
-    { label: "Clipping Risk", before: draftAnalysis.clippingRisk, after: humanizedAnalysis.clippingRisk, change: `${draftAnalysis.clippingRisk} → ${humanizedAnalysis.clippingRisk}`, verdict: getComparisonLabel(getRiskRank(draftAnalysis.clippingRisk), getRiskRank(humanizedAnalysis.clippingRisk), true) },
-    { label: "Dynamics", before: draftAnalysis.dynamics, after: humanizedAnalysis.dynamics, change: `${draftAnalysis.dynamics} → ${humanizedAnalysis.dynamics}`, verdict: getComparisonLabel(getDynamicsRank(draftAnalysis.dynamics), getDynamicsRank(humanizedAnalysis.dynamics), false) },
-  ];
-}
-
-function getBeforeAfterImprovementScore(draftAnalysis, humanizedAnalysis) {
-  if (!draftAnalysis || !humanizedAnalysis) return null;
-  if (draftAnalysis.status !== "Ready" || humanizedAnalysis.status !== "Ready") return null;
-
-  let score = 50;
-  const draftPeak = parseDbValue(draftAnalysis.peakDb);
-  const editPeak = parseDbValue(humanizedAnalysis.peakDb);
-  const clippingChange = getRiskRank(draftAnalysis.clippingRisk) - getRiskRank(humanizedAnalysis.clippingRisk);
-  const dynamicsChange = getDynamicsRank(humanizedAnalysis.dynamics) - getDynamicsRank(draftAnalysis.dynamics);
-
-  score += clippingChange * 15;
-  score += dynamicsChange * 12;
-
-  if (draftPeak !== null && editPeak !== null) {
-    const extraHeadroom = draftPeak - editPeak;
-    if (extraHeadroom >= 1) score += 12;
-    else if (extraHeadroom >= 0.3) score += 6;
-    else if (extraHeadroom <= -1) score -= 10;
-  }
-
-  return clampScore(score);
-}
-
-function getBeforeAfterImprovementLabel(score) {
-  if (score === null) return "Waiting for both files";
-  if (score >= 80) return "Strong Technical Improvement";
-  if (score >= 65) return "Clear Technical Improvement";
-  if (score >= 50) return "Subtle Technical Improvement";
-  return "Needs Another Pass";
-}
-
 function buildHumanizationBrief(projectSession, report) {
   return `${getSessionValue(projectSession, "projectName")} for ${getSessionValue(projectSession, "clientName")} is a ${getSessionValue(projectSession, "trackType")} at the ${getSessionValue(projectSession, "currentStage")} stage. AI tool: ${getSessionValue(projectSession, "aiTool")}. Main concern: ${getSessionValue(projectSession, "mainConcern")}. Client goal: ${getSessionValue(projectSession, "clientGoal")} Current SoulFrame focus: ${report.priorities[0]}.`;
 }
@@ -1092,94 +540,6 @@ function buildClientUpdate(report, mode = "balanced", projectSession = defaultPr
   }
 
   return `I've reviewed ${projectName} for ${clientName} and mapped out the main areas affecting realism. The current SoulFrame humanization score is ${score}/100, with the main focus now being ${topPriorities}. The key areas identified were ${topIssues}. ${audioAndClueSentence} I'll use these points to guide the next pass so the track feels more natural, more polished, and closer to client-ready without changing the original direction too much.`.trim();
-}
-
-function loadSavedSession() {
-  if (typeof window === "undefined") return defaultProjectSession;
-  try {
-    const saved = window.localStorage.getItem("soulframe-project-session");
-    return saved ? { ...defaultProjectSession, ...JSON.parse(saved) } : defaultProjectSession;
-  } catch (error) {
-    return defaultProjectSession;
-  }
-}
-
-function loadSavedSetting(key, fallback) {
-  if (typeof window === "undefined") return fallback;
-  try {
-    return window.localStorage.getItem(key) || fallback;
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function saveSetting(key, value) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch (error) {
-    // Ignore local storage failures so the app keeps working.
-  }
-}
-
-function loadSavedProjects() {
-  if (typeof window === "undefined") return [];
-  try {
-    const saved = window.localStorage.getItem("soulframe-saved-projects");
-    const parsed = saved ? JSON.parse(saved) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveSavedProjects(projects) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem("soulframe-saved-projects", JSON.stringify(projects));
-  } catch (error) {
-    // Ignore local storage failures so the app keeps working.
-  }
-}
-
-function buildSavedProjectRecord(projectSession, reviewMode, selectedPreset) {
-  const now = new Date().toISOString();
-  return {
-    id: `soulframe-${Date.now()}`,
-    projectSession,
-    reviewMode,
-    selectedPreset,
-    savedAt: now,
-    title: getSessionValue(projectSession, "projectName"),
-    client: getSessionValue(projectSession, "clientName"),
-    stage: getSessionValue(projectSession, "currentStage"),
-  };
-}
-
-function buildSavedProjectsBackup(savedProjects) {
-  return JSON.stringify(
-    {
-      app: "SoulFrame",
-      type: "saved-projects-backup",
-      version: "3.5",
-      exportedAt: new Date().toISOString(),
-      projects: savedProjects,
-    },
-    null,
-    2
-  );
-}
-
-function parseSavedProjectsBackup(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (!parsed || parsed.type !== "saved-projects-backup" || !Array.isArray(parsed.projects)) {
-      return [];
-    }
-    return parsed.projects;
-  } catch (error) {
-    return [];
-  }
 }
 
 function buildFullReportText({ report, reviewMode, projectSession, draftAudioMetadata, humanizedAudioMetadata, draftAudioAnalysis, humanizedAudioAnalysis, clientUpdate, reportTone = "producer" }) {
@@ -1338,6 +698,8 @@ function runSoulFrameTests() {
   const reportTestsPassed = Object.values(draftReports).every((report) => report.issues.length > 0 && report.priorities.length > 0 && report.scores.length > 0);
   const audioTestsPassed =
     amplitudeToDb(1) === "0.0 dB" &&
+    getClippingRisk(0.999) === "High" &&
+    getTechnicalReadinessScore(null) === null &&
     getClippingRisk(0.98) === "Medium" &&
     getDynamicsLabel(0.15) === "Moderate" &&
     getBrightnessLabel(0.5) === "Bright / Potentially Harsh" &&
@@ -1385,21 +747,14 @@ function runSoulFrameTests() {
     buildSavedProjectRecord(defaultProjectSession, "draft", "marcel").title === "Untitled AI Draft" &&
     demoPresets.beforeAfter.reviewMode === "compare" &&
     demoWalkthroughSteps.length === 5 &&
-    typeof HowSoulFrameWorksPanel === "function" &&
+    typeof SecondaryViews === "object" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V5.1 real layout refactor") &&
-    typeof DemoWalkthroughPanel === "function" &&
+    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
     typeof SoulFrameFooter === "function" &&
-    typeof DemoReadinessBanner === "function" &&
+    typeof ClassicDemo === "object" &&
     typeof PublicDemoNotice === "function" &&
-    typeof DemoUseCasesPanel === "function" &&
-    typeof PublicLaunchChecklist === "function" &&
-    typeof PublicDemoStats === "function" &&
-    typeof ReleaseNotesPanel === "function" &&
-    typeof PublicRoadmapPreview === "function" &&
-    typeof ShareSoulFramePanel === "function" &&
     typeof V41BackendScaffoldPanel === "function" &&
     typeof V41AnalysisEngineSeparationPanel === "function" &&
     typeof V41MockApiResponsePanel === "function" &&
@@ -1463,6 +818,20 @@ function runSoulFrameTests() {
     buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Sharing & Export Handoff" &&
     buildV53ReportSharingExportHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).readinessScore === 100 &&
     buildV53ReportSharingExportHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.3 REPORT SHARING & EXPORT HANDOFF") &&
+    typeof V54ReportWorkspaceCleanup === "function" &&
+    buildV54ReportWorkspaceCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Report Workspace Cleanup" &&
+    buildV54ReportWorkspaceCleanup(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).showComparison === false &&
+    buildV54ReportWorkspaceCleanup(defaultProjectSession, "compare", { status: "Ready", brightness: "Bright / Potentially Harsh", textureStability: "Unstable / Busy", dynamics: "Compressed", clippingRisk: "High" }, { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).showComparison === true &&
+    buildV54ReportWorkspaceCleanupText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.4 REPORT WORKSPACE CLEANUP") &&
+    typeof V54AdvancedWorkspaceCleanup === "function" &&
+    ADVANCED_SECTIONS.length === 4 &&
+    ADVANCED_SECTIONS[0].id === "technical" &&
+    ADVANCED_SECTIONS[3].id === "history" &&
+    typeof V54OutputWorkspaceCleanup === "function" &&
+    getV54OutputEvidenceStatus("draft", null, null).needsAnalysis === true &&
+    getV54OutputEvidenceStatus("draft", { status: "Ready" }, null).label === "Draft analyzed" &&
+    getV54OutputEvidenceStatus("compare", { status: "Ready" }, null).label === "Comparison incomplete" &&
+    getV54OutputEvidenceStatus("compare", { status: "Ready" }, { status: "Ready" }).needsAnalysis === false &&
     buildV41AdapterContractText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V4.1 FRONTEND API ADAPTER") &&
     buildV41AdapterState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).uiState === "ready" &&
     buildV42ReportContext(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }).version === "v4.2" &&
@@ -1519,7 +888,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
-    buildProductSummaryText().includes("V5.3 report sharing and export prototype") &&
+    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
@@ -1872,27 +1241,7 @@ function QuickStartGuide({ applyDemoPreset, setView }) {
   );
 }
 
-function DemoReadinessBanner() {
-  const items = [
-    { label: "Prototype", value: "V4.2 smarter reports" },
-    { label: "Analysis", value: "Browser-based audio review" },
-    { label: "Demo", value: "Presets work without uploads" },
-    { label: "Privacy", value: "Saved sessions stay local" },
-  ];
 
-  return (
-    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5 shadow-2xl">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.label}</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-100">{item.value}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function PublicDemoNotice() {
   return (
@@ -1914,131 +1263,15 @@ function PublicDemoNotice() {
   );
 }
 
-function DemoUseCasesPanel() {
-  const useCases = [
-    {
-      title: "Freelance producer workflow",
-      note: "Use SoulFrame to organize review notes before sending a clearer update to a client.",
-    },
-    {
-      title: "AI vocal humanization",
-      note: "Check metallic tone, cracking, flat phrasing, and emotional delivery before the next vocal pass.",
-    },
-    {
-      title: "Instrumental texture cleanup",
-      note: "Review shimmer, buzzing residue, repetition, and generated movement in AI instrumental drafts.",
-    },
-    {
-      title: "Before / after review",
-      note: "Compare an AI draft against a humanized edit and identify what improved before final delivery.",
-    },
-  ];
 
-  return (
-    <Panel title="Demo Use Cases" subtitle="The main ways SoulFrame can be tested, explained, or shown as a public prototype.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {useCases.map((useCase) => (
-          <article key={useCase.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <h3 className="font-semibold text-zinc-100">{useCase.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{useCase.note}</p>
-          </article>
-        ))}
-      </div>
-    </Panel>
-  );
-}
 
-function PublicLaunchChecklist() {
-  const checklist = [
-    { label: "Live demo is accessible", status: "Ready" },
-    { label: "README explains the current version", status: "Ready" },
-    { label: "Demo presets work without uploads", status: "Ready" },
-    { label: "Project links are easy to find", status: "Ready" },
-    { label: "Client names are neutralized", status: "Ready" },
-    { label: "Public prototype limitations are clear", status: "Ready" },
-  ];
 
-  return (
-    <Panel title="Public Launch Checklist" subtitle="A lightweight readiness checklist for sharing SoulFrame as a public prototype.">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {checklist.map((item) => (
-          <div key={item.label} className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-black p-4">
-            <p className="text-sm text-zinc-200">{item.label}</p>
-            <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{item.status}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
 
-function PublicDemoStats({ savedProjectsCount }) {
-  const stats = [
-    { label: "Demo Presets", value: Object.keys(demoPresets).length },
-    { label: "Artifact Types", value: artifactDatabase.length },
-    { label: "Walkthrough Steps", value: demoWalkthroughSteps.length },
-    { label: "Saved Sessions", value: savedProjectsCount },
-  ];
 
-  return (
-    <Panel title="Public Demo Stats" subtitle="A quick snapshot of what is currently available inside this SoulFrame prototype.">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{stat.label}</p>
-            <p className="mt-3 text-3xl font-bold text-zinc-100">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
 
-function ReleaseNotesPanel() {
-  const releaseNotes = [
-    "Improved first-time visitor flow with Quick Start and demo launchers.",
-    "Added public-facing context so visitors understand the prototype clearly.",
-    "Added launch checklist, demo stats, use cases, share links, and public footer links.",
-    "Improved saved project sessions with an empty state and backup import/export support.",
-    "Neutralized demo naming for a cleaner public repository.",
-  ];
 
-  return (
-    <Panel title="V3.5 Release Notes" subtitle="A concise summary of what changed in the current public demo polish release.">
-      <div className="space-y-3">
-        {releaseNotes.map((note, index) => (
-          <div key={note} className="flex gap-3 rounded-2xl border border-zinc-800 bg-black p-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
-            <p className="text-sm leading-6 text-zinc-300">{note}</p>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  );
-}
 
-function PublicRoadmapPreview() {
-  const roadmap = [
-    { version: "V4.0", title: "Deeper Audio Intelligence", note: "More detailed frequency, texture, harshness, and humanization scoring." },
-    { version: "V4.1", title: "Backend/API Prototype", note: "Move beyond local-only analysis toward a more scalable product structure." },
-    { version: "V4.2", title: "Smarter Reports", note: "Genre-aware recommendations, clearer client language, and better edit priorities." },
-    { version: "V5.0", title: "Public Beta Direction", note: "Shareable reports, stronger branding, saved cloud sessions, and beta-ready polish." },
-  ];
 
-  return (
-    <Panel title="Roadmap Preview" subtitle="A transparent look at where SoulFrame can grow after the current public demo release.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {roadmap.map((item) => (
-          <article key={item.version} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">{item.version}</p>
-            <h3 className="mt-3 font-semibold text-zinc-100">{item.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{item.note}</p>
-          </article>
-        ))}
-      </div>
-    </Panel>
-  );
-}
 
 function buildV41BackendArchitecturePlan() {
   return {
@@ -2667,164 +1900,21 @@ function V41FrontendApiAdapterPanel({ projectSession, reviewMode, draftAnalysis,
 }
 
 
-function normalizeV42Text(value) {
-  return String(value || "").toLowerCase();
-}
 
-function detectV42GenreFocus(projectSession = {}) {
-  const context = [
-    projectSession.projectName,
-    projectSession.trackType,
-    projectSession.clientGoal,
-    projectSession.mainConcern,
-    projectSession.producerNotes,
-  ].map(normalizeV42Text).join(" ");
 
-  if (context.includes("hip hop") || context.includes("hip-hop") || context.includes("trap") || context.includes("rap")) return "Hip-Hop / Rap";
-  if (context.includes("r&b") || context.includes("rnb") || context.includes("soul")) return "R&B / Soul";
-  if (context.includes("edm") || context.includes("dubstep") || context.includes("dance") || context.includes("electronic")) return "Electronic / EDM";
-  if (context.includes("rock") || context.includes("guitar") || context.includes("band")) return "Rock / Guitar-led";
-  if (context.includes("cinematic") || context.includes("score") || context.includes("film")) return "Cinematic / Score";
-  if (context.includes("lofi") || context.includes("lo-fi") || context.includes("ambient")) return "Lo-Fi / Ambient";
-  if (context.includes("pop")) return "Pop";
-  return "General music";
-}
 
-function detectV42ReportPath(projectSession = {}, reviewMode = "draft") {
-  const context = [
-    projectSession.projectName,
-    projectSession.trackType,
-    projectSession.clientGoal,
-    projectSession.mainConcern,
-    projectSession.producerNotes,
-  ].map(normalizeV42Text).join(" ");
 
-  if (reviewMode === "compare") return "Before / After Humanization Report";
-  if (context.includes("vocal") || context.includes("voice") || context.includes("singer") || context.includes("lyrics")) return "Vocal Humanization Report";
-  if (context.includes("instrumental") || context.includes("beat") || context.includes("score") || context.includes("loop")) return "Instrumental Humanization Report";
-  return "General AI Draft Humanization Report";
-}
 
-function buildV42SuggestedEditOrder(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return [
-      "Upload or load a demo track so SoulFrame can route the report around the active analysis.",
-      "Confirm the project type and main concern in Project Intake.",
-      "Generate the client update only after the analysis has a clear direction.",
-    ];
-  }
 
-  const moves = [];
 
-  if (analysis.clippingRisk === "Medium" || analysis.clippingRisk === "High") {
-    moves.push("Fix headroom and clipping risk first so every later decision is easier to judge.");
-  }
 
-  if (analysis.brightness === "Bright / Potentially Harsh") {
-    moves.push("Control brittle top-end and harsh shimmer before making emotional or mix-balance decisions.");
-  }
 
-  if (analysis.textureStability === "Unstable / Busy") {
-    moves.push("Smooth generated texture movement so the track feels less synthetic and more intentional.");
-  }
 
-  if (analysis.dynamics === "Compressed") {
-    moves.push("Restore movement and contrast so the performance feels less flat.");
-  }
 
-  moves.push("Check section transitions and add human variation where the arrangement feels too looped.");
-  moves.push("Convert the technical findings into a short client-safe revision note.");
 
-  return moves.slice(0, 5);
-}
 
-function estimateV42RevisionDifficulty(analysis) {
-  if (!analysis || analysis.status !== "Ready") {
-    return {
-      label: "Waiting for analysis",
-      note: "Difficulty will be estimated once an audio file or demo preset has active analysis data.",
-    };
-  }
 
-  const priorityScore = getHumanizationPriorityScore(analysis);
 
-  if (priorityScore >= 75) {
-    return {
-      label: "High difficulty",
-      note: "This needs a focused humanization pass before it should be presented as final.",
-    };
-  }
-
-  if (priorityScore >= 45) {
-    return {
-      label: "Medium difficulty",
-      note: "The draft is workable, but the report should guide one clear revision pass.",
-    };
-  }
-
-  return {
-    label: "Low difficulty",
-    note: "The draft is close enough for polish, client language, and final delivery checks.",
-  };
-}
-
-function buildV42ToneOptions(reportPath) {
-  return [
-    {
-      label: "Professional",
-      use: `Best for formal client updates connected to a ${reportPath.toLowerCase()}.`,
-    },
-    {
-      label: "Encouraging",
-      use: "Best when the client needs reassurance that the draft is moving in the right direction.",
-    },
-    {
-      label: "Direct",
-      use: "Best when the revision needs clear technical priorities without over-explaining.",
-    },
-  ];
-}
-
-function buildV42ReportContext(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const reportPath = detectV42ReportPath(projectSession, reviewMode);
-  const genreFocus = detectV42GenreFocus(projectSession);
-  const difficulty = estimateV42RevisionDifficulty(analysis);
-  const suggestedEditOrder = buildV42SuggestedEditOrder(analysis);
-  const priorityScore = analysis && analysis.status === "Ready" ? getHumanizationPriorityScore(analysis) : null;
-
-  return {
-    version: "v4.2",
-    feature: "Smarter Humanization Report Router",
-    reportPath,
-    genreFocus,
-    difficulty,
-    suggestedEditOrder,
-    toneOptions: buildV42ToneOptions(reportPath),
-    priorityScore,
-    clientSummaryFocus: suggestedEditOrder[suggestedEditOrder.length - 1],
-  };
-}
-
-function buildV42SmarterReportText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const newline = String.fromCharCode(10);
-  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
-
-  return [
-    "SOULFRAME V4.2 SMARTER HUMANIZATION REPORT ROUTER",
-    "",
-    `Version: ${context.version}`,
-    `Report path: ${context.reportPath}`,
-    `Genre focus: ${context.genreFocus}`,
-    `Revision difficulty: ${context.difficulty.label}`,
-    `Humanization priority: ${context.priorityScore === null ? "Waiting" : `${context.priorityScore}/100`}`,
-    "",
-    "SUGGESTED EDIT ORDER",
-    ...context.suggestedEditOrder.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    "CLIENT TONE OPTIONS",
-    ...context.toneOptions.map((item) => `- ${item.label}: ${item.use}`),
-  ].join(newline);
-}
 
 function V42SmarterReportRouterPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -2872,164 +1962,9 @@ function V42SmarterReportRouterPanel({ projectSession, reviewMode, draftAnalysis
 }
 
 
-function buildV42GenreRecommendationProfile(genreFocus = "General music", reportPath = "General AI Draft Humanization Report", analysis = null) {
-  const normalizedGenre = normalizeV42Text(genreFocus);
-  const normalizedPath = normalizeV42Text(reportPath);
-  const isReady = analysis && analysis.status === "Ready";
 
-  const shared = {
-    emotionalTarget: "Keep the track intentional, less synthetic, and easier for a listener to trust.",
-    priority: isReady ? getHumanizationPriorityLabel(getHumanizationPriorityScore(analysis)) : "Waiting for analysis",
-  };
 
-  if (normalizedPath.includes("vocal")) {
-    return {
-      title: "Vocal Humanization Focus",
-      listeningLens: "Lead emotion, vocal texture, breath, phrasing, and how naturally the vocal sits in the track.",
-      musicalMoves: [
-        "Check whether the vocal feels emotionally present rather than pasted on top of the beat.",
-        "Soften harsh generated sibilance, metallic air, or brittle vocal edges before widening or brightening.",
-        "Add subtle automation so phrases breathe and important lines feel intentionally supported.",
-      ],
-      clientAngle: "Frame the revision around improving emotional delivery, vocal realism, and listener connection.",
-      ...shared,
-    };
-  }
 
-  if (normalizedPath.includes("instrumental")) {
-    return {
-      title: "Instrumental Humanization Focus",
-      listeningLens: "Arrangement movement, groove variation, texture depth, and whether the instrumental feels looped or performed.",
-      musicalMoves: [
-        "Look for repeated patterns that need small human variations across sections.",
-        "Shape transitions so the arrangement feels guided rather than generated in blocks.",
-        "Use texture cleanup only after the groove and section movement feel intentional.",
-      ],
-      clientAngle: "Frame the revision around making the instrumental feel more arranged, dynamic, and emotionally directed.",
-      ...shared,
-    };
-  }
-
-  if (normalizedPath.includes("before / after")) {
-    return {
-      title: "Before / After Humanization Focus",
-      listeningLens: "Whether the humanized edit improves emotion, clarity, movement, and client-readiness compared with the original draft.",
-      musicalMoves: [
-        "Compare the most obvious artificial texture in the original against the humanized version.",
-        "Check whether the edit improved feel without over-processing the track.",
-        "Use the report to explain what changed in simple client-safe language.",
-      ],
-      clientAngle: "Frame the revision around clear improvement from draft to humanized edit.",
-      ...shared,
-    };
-  }
-
-  if (normalizedGenre.includes("hip-hop") || normalizedGenre.includes("rap")) {
-    return {
-      title: "Hip-Hop / Rap Focus",
-      listeningLens: "Drum weight, vocal pocket, low-end confidence, space around the lead, and whether the beat feels alive.",
-      musicalMoves: [
-        "Prioritize the pocket between drums, bass, and vocal before polishing decorative textures.",
-        "Keep the low end controlled but not over-cleaned, because weight is part of the emotional impact.",
-        "Remove brittle AI shimmer that distracts from the groove or vocal presence.",
-      ],
-      clientAngle: "Frame the revision around stronger pocket, cleaner impact, and more natural energy.",
-      ...shared,
-    };
-  }
-
-  if (normalizedGenre.includes("r&b") || normalizedGenre.includes("soul")) {
-    return {
-      title: "R&B / Soul Focus",
-      listeningLens: "Warmth, vocal intimacy, groove softness, chord movement, and emotional smoothness.",
-      musicalMoves: [
-        "Protect warmth and intimacy before chasing brightness.",
-        "Smooth any plastic top-end that makes the vocal or keys feel less human.",
-        "Use subtle dynamic movement so the track breathes instead of feeling grid-locked.",
-      ],
-      clientAngle: "Frame the revision around warmth, emotion, and a more natural human feel.",
-      ...shared,
-    };
-  }
-
-  if (normalizedGenre.includes("electronic") || normalizedGenre.includes("edm")) {
-    return {
-      title: "Electronic / EDM Focus",
-      listeningLens: "Impact, controlled brightness, drop energy, transition design, and synthetic texture that still feels intentional.",
-      musicalMoves: [
-        "Keep bright energy exciting without letting harshness become fatiguing.",
-        "Make transitions, risers, and drops feel designed rather than randomly generated.",
-        "Tighten low-end impact after harshness and texture movement are under control.",
-      ],
-      clientAngle: "Frame the revision around energy, impact, and cleaner controlled intensity.",
-      ...shared,
-    };
-  }
-
-  if (normalizedGenre.includes("rock") || normalizedGenre.includes("guitar")) {
-    return {
-      title: "Rock / Guitar-led Focus",
-      listeningLens: "Performance feel, guitar realism, drum movement, section energy, and believable dynamics.",
-      musicalMoves: [
-        "Protect performance imperfections that make the track feel played rather than generated.",
-        "Check guitar tails, transitions, and drum fills for natural movement.",
-        "Avoid over-polishing if the genre needs grit, body, and human edge.",
-      ],
-      clientAngle: "Frame the revision around performance realism, energy, and natural dynamics.",
-      ...shared,
-    };
-  }
-
-  if (normalizedGenre.includes("cinematic") || normalizedGenre.includes("score")) {
-    return {
-      title: "Cinematic / Score Focus",
-      listeningLens: "Emotional arc, space, build, contrast, and whether sections support the intended scene or mood.",
-      musicalMoves: [
-        "Shape dynamics around emotional storytelling before detailed mix polish.",
-        "Check whether swells, impacts, and transitions feel placed with intention.",
-        "Clean artificial textures only where they distract from the scene or mood.",
-      ],
-      clientAngle: "Frame the revision around emotional arc, scene support, and controlled atmosphere.",
-      ...shared,
-    };
-  }
-
-  return {
-    title: "General Music Focus",
-    listeningLens: "Overall emotion, clarity, movement, texture realism, and whether the track feels intentionally produced.",
-    musicalMoves: [
-      "Start with the issue that most affects listener trust.",
-      "Balance technical cleanup with musical feel instead of treating the report like a checklist.",
-      "Use the final client note to explain the next pass in simple language.",
-    ],
-    clientAngle: "Frame the revision around making the track feel more natural, intentional, and ready for feedback.",
-    ...shared,
-  };
-}
-
-function buildV42GenreRecommendationText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const newline = String.fromCharCode(10);
-  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
-  const profile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, analysis);
-
-  return [
-    "SOULFRAME V4.2 GENRE-AWARE RECOMMENDATION LAYER",
-    "",
-    `Report path: ${context.reportPath}`,
-    `Genre focus: ${context.genreFocus}`,
-    `Recommendation profile: ${profile.title}`,
-    `Priority: ${profile.priority}`,
-    "",
-    "LISTENING LENS",
-    profile.listeningLens,
-    "",
-    "MUSICAL MOVES",
-    ...profile.musicalMoves.map((move, index) => `${index + 1}. ${move}`),
-    "",
-    "CLIENT ANGLE",
-    profile.clientAngle,
-  ].join(newline);
-}
 
 function V42GenreRecommendationPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -3076,111 +2011,9 @@ function V42GenreRecommendationPanel({ projectSession, reviewMode, draftAnalysis
 }
 
 
-function buildV42PathSpecificReportSections(reportPath = "General AI Draft Humanization Report", genreFocus = "General music", analysis = null) {
-  const normalizedPath = normalizeV42Text(reportPath);
-  const isReady = analysis && analysis.status === "Ready";
-  const priorityLabel = isReady ? getHumanizationPriorityLabel(getHumanizationPriorityScore(analysis)) : "Waiting for analysis";
-  const artifactSentence = isReady ? buildArtifactClueSentence(analysis) : "SoulFrame is waiting for active analysis before writing path-specific artifact guidance.";
 
-  if (normalizedPath.includes("vocal")) {
-    return [
-      {
-        title: "Vocal Realism",
-        purpose: "Check whether the vocal feels emotionally present, believable, and connected to the track.",
-        reportFocus: "Mention vocal tone, phrase support, generated edges, breath, sibilance, and how naturally the vocal sits in the mix.",
-      },
-      {
-        title: "Emotional Delivery",
-        purpose: "Judge whether the performance feels like a human delivery rather than a rendered vocal layer.",
-        reportFocus: "Explain how the next pass should improve intimacy, expression, dynamic movement, and listener connection.",
-      },
-      {
-        title: "Technical Risk",
-        purpose: priorityLabel,
-        reportFocus: artifactSentence,
-      },
-    ];
-  }
 
-  if (normalizedPath.includes("instrumental")) {
-    return [
-      {
-        title: "Arrangement Movement",
-        purpose: "Check whether sections evolve naturally instead of feeling like repeated generated blocks.",
-        reportFocus: "Mention intro, verse, hook, breakdown, transitions, fills, automation, and musical variation.",
-      },
-      {
-        title: "Texture Depth",
-        purpose: "Judge whether the instrumental has enough depth, contrast, and believable production intention.",
-        reportFocus: "Explain how the next pass should shape groove, space, warmth, energy, and section contrast.",
-      },
-      {
-        title: "Technical Risk",
-        purpose: priorityLabel,
-        reportFocus: artifactSentence,
-      },
-    ];
-  }
 
-  if (normalizedPath.includes("before / after")) {
-    return [
-      {
-        title: "Improvement Check",
-        purpose: "Compare whether the humanized version clearly improves the original draft.",
-        reportFocus: "Mention what changed in feel, texture, clarity, movement, and client-readiness.",
-      },
-      {
-        title: "Remaining Gap",
-        purpose: "Identify what still needs attention after the humanized edit.",
-        reportFocus: "Explain whether the next pass should focus on polish, emotional movement, harshness control, or arrangement clarity.",
-      },
-      {
-        title: "Client Explanation",
-        purpose: priorityLabel,
-        reportFocus: "Use simple before/after language so the client understands the value of the humanized revision.",
-      },
-    ];
-  }
-
-  return [
-    {
-      title: "Overall Human Feel",
-      purpose: "Check whether the draft feels intentional, emotional, and trustworthy.",
-      reportFocus: `Use the ${genreFocus} context to explain the strongest humanization opportunity.`,
-    },
-    {
-      title: "Main Revision Direction",
-      purpose: "Turn the analysis into one clear next-pass direction.",
-      reportFocus: "Avoid overwhelming the client with every technical detail. Lead with the main fix.",
-    },
-    {
-      title: "Technical Risk",
-      purpose: priorityLabel,
-      reportFocus: artifactSentence,
-    },
-  ];
-}
-
-function buildV42PathSpecificReportText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const newline = String.fromCharCode(10);
-  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
-  const sections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, analysis);
-
-  return [
-    "SOULFRAME V4.2 PATH-SPECIFIC REPORT BUILDER",
-    "",
-    `Report path: ${context.reportPath}`,
-    `Genre focus: ${context.genreFocus}`,
-    "",
-    "REPORT SECTIONS",
-    ...sections.flatMap((section, index) => [
-      `${index + 1}. ${section.title}`,
-      `Purpose: ${section.purpose}`,
-      `Report focus: ${section.reportFocus}`,
-      "",
-    ]),
-  ].join(newline);
-}
 
 function V42PathSpecificReportPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -3217,55 +2050,9 @@ function V42PathSpecificReportPanel({ projectSession, reviewMode, draftAnalysis,
 }
 
 
-function buildV42ClientToneDrafts(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
-  const genreProfile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, analysis);
-  const reportSections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, analysis);
-  const mainMove = context.suggestedEditOrder[0] || "Shape the next pass around the clearest humanization priority.";
-  const sectionFocus = reportSections[0]?.title || "Humanization Focus";
-  const clientAngle = genreProfile.clientAngle;
-  const difficulty = context.difficulty.label;
-  const priority = context.priorityScore === null ? "not scored yet" : `${context.priorityScore}/100`;
 
-  return [
-    {
-      tone: "Professional",
-      bestFor: "Formal client updates, project records, and polished delivery notes.",
-      draft: `I reviewed the track through SoulFrame's ${context.reportPath.toLowerCase()} path. The current focus is ${sectionFocus.toLowerCase()}, with a ${difficulty.toLowerCase()} revision profile and a humanization priority of ${priority}. The next pass should focus on this first: ${mainMove} ${clientAngle}`,
-    },
-    {
-      tone: "Encouraging",
-      bestFor: "Clients who need reassurance that the track is moving in the right direction.",
-      draft: `The track has a clear direction, and the next revision can make it feel more natural and intentional. SoulFrame is routing this as a ${context.reportPath.toLowerCase()}, so the focus is on ${sectionFocus.toLowerCase()}. The main move now is: ${mainMove} ${clientAngle}`,
-    },
-    {
-      tone: "Direct",
-      bestFor: "Fast revision notes when the client mainly needs the next action.",
-      draft: `SoulFrame route: ${context.reportPath}. Main focus: ${sectionFocus}. Difficulty: ${difficulty}. Priority: ${priority}. Next move: ${mainMove}`,
-    },
-  ];
-}
 
-function buildV42ClientToneDraftText(projectSession = defaultProjectSession, reviewMode = "draft", analysis = null) {
-  const newline = String.fromCharCode(10);
-  const context = buildV42ReportContext(projectSession, reviewMode, analysis);
-  const drafts = buildV42ClientToneDrafts(projectSession, reviewMode, analysis);
 
-  return [
-    "SOULFRAME V4.2 CLIENT TONE DRAFT LAYER",
-    "",
-    `Report path: ${context.reportPath}`,
-    `Genre focus: ${context.genreFocus}`,
-    "",
-    "TONE DRAFTS",
-    ...drafts.flatMap((item) => [
-      `${item.tone}`,
-      `Best for: ${item.bestFor}`,
-      item.draft,
-      "",
-    ]),
-  ].join(newline);
-}
 
 function V42ClientToneDraftPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
@@ -3295,121 +2082,9 @@ function V42ClientToneDraftPanel({ projectSession, reviewMode, draftAnalysis, hu
 }
 
 
-function buildV42BeforeAfterExplanation(draftAnalysis = null, humanizedAnalysis = null) {
-  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
-  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
 
-  if (!draftReady && !humanizedReady) {
-    return {
-      mode: "Waiting for comparison",
-      headline: "SoulFrame needs an original draft and a humanized edit before it can explain the before/after difference.",
-      improvementLabel: "Waiting",
-      priorityChange: "Not available yet",
-      mainExplanation: "Use Before / After Review mode when both versions are ready.",
-      producerFocus: [
-        "Upload or load the original AI draft.",
-        "Upload or load the humanized edit.",
-        "Use the comparison to explain what changed in simple client-safe language.",
-      ],
-      clientSafeLine: "I will compare the original draft with the humanized version once both versions are available.",
-    };
-  }
 
-  if (draftReady && !humanizedReady) {
-    const draftScore = getHumanizationPriorityScore(draftAnalysis);
 
-    return {
-      mode: "Draft-only explanation",
-      headline: "SoulFrame has the original draft, but it still needs the humanized edit for a true comparison.",
-      improvementLabel: "Comparison incomplete",
-      priorityChange: `Original draft humanization priority: ${draftScore}/100`,
-      mainExplanation: "The current report can explain what needs work, but it cannot yet prove what improved.",
-      producerFocus: buildV42SuggestedEditOrder(draftAnalysis).slice(0, 3),
-      clientSafeLine: "The draft has been reviewed, and the next step is to compare it against the humanized edit once that version is ready.",
-    };
-  }
-
-  if (!draftReady && humanizedReady) {
-    const humanizedScore = getHumanizationPriorityScore(humanizedAnalysis);
-
-    return {
-      mode: "Humanized-only explanation",
-      headline: "SoulFrame has the humanized version, but it still needs the original draft to explain the improvement clearly.",
-      improvementLabel: "Comparison incomplete",
-      priorityChange: `Humanized edit humanization priority: ${humanizedScore}/100`,
-      mainExplanation: "The current report can describe the edited version, but it cannot show what changed from the original.",
-      producerFocus: buildV42SuggestedEditOrder(humanizedAnalysis).slice(0, 3),
-      clientSafeLine: "The humanized version is ready for review, and the original draft can be added if a clearer before/after explanation is needed.",
-    };
-  }
-
-  const draftScore = getHumanizationPriorityScore(draftAnalysis);
-  const humanizedScore = getHumanizationPriorityScore(humanizedAnalysis);
-  const scoreChange = draftScore - humanizedScore;
-  const improved = scoreChange > 0;
-  const unchanged = scoreChange === 0;
-
-  const brightnessImproved = draftAnalysis.brightness === "Bright / Potentially Harsh" && humanizedAnalysis.brightness !== "Bright / Potentially Harsh";
-  const textureImproved = draftAnalysis.textureStability === "Unstable / Busy" && humanizedAnalysis.textureStability !== "Unstable / Busy";
-  const dynamicsImproved = draftAnalysis.dynamics === "Compressed" && humanizedAnalysis.dynamics !== "Compressed";
-  const clippingImproved = (draftAnalysis.clippingRisk === "Medium" || draftAnalysis.clippingRisk === "High") && humanizedAnalysis.clippingRisk === "Low";
-
-  const improvements = [
-    brightnessImproved ? "Top-end harshness appears more controlled in the humanized edit." : null,
-    textureImproved ? "Generated texture movement appears more stable and intentional." : null,
-    dynamicsImproved ? "Dynamic movement appears less compressed and more natural." : null,
-    clippingImproved ? "Headroom and clipping risk appear cleaner in the humanized edit." : null,
-  ].filter(Boolean);
-
-  if (improvements.length === 0) {
-    improvements.push(
-      improved
-        ? "The humanized edit shows a better overall priority score, but the producer should still confirm the musical feel by ear."
-        : "The difference is subtle, so the report should focus on what still needs attention rather than overstating the improvement."
-    );
-  }
-
-  return {
-    mode: "Before / After explanation",
-    headline: improved
-      ? "The humanized edit appears to reduce the main humanization risk."
-      : unchanged
-        ? "The humanized edit appears close to the original in measured humanization priority."
-        : "The humanized edit may still need another pass before it clearly improves the original draft.",
-    improvementLabel: improved ? "Improved" : unchanged ? "Similar" : "Needs another pass",
-    priorityChange: `Original: ${draftScore}/100 → Humanized: ${humanizedScore}/100`,
-    mainExplanation: improvements[0],
-    producerFocus: improvements,
-    clientSafeLine: improved
-      ? "The humanized version improves the main listening risks while keeping the explanation client-safe and easy to understand."
-      : "The comparison shows that another focused pass may be needed before presenting the edit as a clear improvement.",
-  };
-}
-
-function buildV42BeforeAfterExplanationText(draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const explanation = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 BEFORE/AFTER EXPLANATION LAYER",
-    "",
-    `Mode: ${explanation.mode}`,
-    `Result: ${explanation.improvementLabel}`,
-    `Priority change: ${explanation.priorityChange}`,
-    "",
-    "HEADLINE",
-    explanation.headline,
-    "",
-    "MAIN EXPLANATION",
-    explanation.mainExplanation,
-    "",
-    "PRODUCER FOCUS",
-    ...explanation.producerFocus.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    "CLIENT-SAFE LINE",
-    explanation.clientSafeLine,
-  ].join(newline);
-}
 
 function V42BeforeAfterExplanationPanel({ draftAnalysis, humanizedAnalysis }) {
   const explanation = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
@@ -3451,73 +2126,9 @@ function V42BeforeAfterExplanationPanel({ draftAnalysis, humanizedAnalysis }) {
 }
 
 
-function buildV42SmartReportComposer(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
-  const genreProfile = buildV42GenreRecommendationProfile(context.genreFocus, context.reportPath, activeAnalysis);
-  const reportSections = buildV42PathSpecificReportSections(context.reportPath, context.genreFocus, activeAnalysis);
-  const toneDrafts = buildV42ClientToneDrafts(projectSession, reviewMode, activeAnalysis);
-  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
-  const selectedTone = toneDrafts.find((item) => item.tone === "Professional") || toneDrafts[0];
 
-  const reportTitle = `${context.reportPath} — ${context.genreFocus}`;
-  const confidenceLine = context.priorityScore === null
-    ? "SoulFrame is waiting for active analysis before giving a final humanization priority."
-    : `Humanization priority is ${context.priorityScore}/100, with a ${context.difficulty.label.toLowerCase()} revision profile.`;
 
-  return {
-    version: "v4.2",
-    feature: "Smart Report Composer",
-    reportTitle,
-    reportPath: context.reportPath,
-    genreFocus: context.genreFocus,
-    confidenceLine,
-    executiveSummary: `${genreProfile.title}: ${genreProfile.listeningLens}`,
-    producerPlan: context.suggestedEditOrder.slice(0, 4),
-    reportSections,
-    clientReadySummary: selectedTone.draft,
-    beforeAfterLine: beforeAfter.clientSafeLine,
-    exportReadiness: [
-      activeAnalysis && activeAnalysis.status === "Ready" ? "Audio analysis available" : "Waiting for audio analysis",
-      context.reportPath ? "Report path selected" : "Report path waiting",
-      context.genreFocus ? "Genre focus selected" : "Genre focus waiting",
-      reportSections.length >= 3 ? "Path-specific sections ready" : "Report sections incomplete",
-      selectedTone?.draft ? "Client tone draft ready" : "Client tone draft waiting",
-    ],
-  };
-}
 
-function buildV42SmartReportComposerText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const report = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 SMART REPORT COMPOSER",
-    "",
-    `Title: ${report.reportTitle}`,
-    `Version: ${report.version}`,
-    `Path: ${report.reportPath}`,
-    `Genre: ${report.genreFocus}`,
-    "",
-    "EXECUTIVE SUMMARY",
-    report.executiveSummary,
-    "",
-    "CONFIDENCE LINE",
-    report.confidenceLine,
-    "",
-    "PRODUCER PLAN",
-    ...report.producerPlan.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    "CLIENT-READY SUMMARY",
-    report.clientReadySummary,
-    "",
-    "BEFORE/AFTER LINE",
-    report.beforeAfterLine,
-    "",
-    "EXPORT READINESS",
-    ...report.exportReadiness.map((item) => `- ${item}`),
-  ].join(newline);
-}
 
 function V42SmartReportComposerPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const report = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -3571,96 +2182,9 @@ function V42SmartReportComposerPanel({ projectSession, reviewMode, draftAnalysis
 }
 
 
-function buildV42ReportQualityGate(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
-  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
 
-  const checks = [
-    {
-      label: "Analysis available",
-      passed: !!activeAnalysis && activeAnalysis.status === "Ready",
-      guidance: "Load a real audio file or demo preset before treating the report as final.",
-    },
-    {
-      label: "Report path selected",
-      passed: !!context.reportPath && context.reportPath !== "General AI Draft Humanization Report",
-      guidance: "Add clearer project intake details if the report path is still too general.",
-    },
-    {
-      label: "Genre focus detected",
-      passed: !!context.genreFocus && context.genreFocus !== "General music",
-      guidance: "Add genre language in Project Intake if the report needs more musical context.",
-    },
-    {
-      label: "Producer plan is focused",
-      passed: composedReport.producerPlan.length >= 3,
-      guidance: "The producer plan should include at least three usable revision priorities.",
-    },
-    {
-      label: "Client summary is ready",
-      passed: composedReport.clientReadySummary && composedReport.clientReadySummary.length > 120,
-      guidance: "The client summary should be clear enough to send without heavy rewriting.",
-    },
-    {
-      label: "Before/after explanation handled",
-      passed: reviewMode !== "compare" || beforeAfter.improvementLabel !== "Waiting",
-      guidance: "For comparison reports, make sure both original and humanized versions are available.",
-    },
-  ];
 
-  const passedCount = checks.filter((check) => check.passed).length;
-  const score = Math.round((passedCount / checks.length) * 100);
 
-  let label = "Needs setup";
-  let recommendation = "Complete the missing setup steps before presenting this as a finished SoulFrame report.";
-
-  if (score >= 85) {
-    label = "Client-ready";
-    recommendation = "The report is structured enough to share after a final producer read-through.";
-  } else if (score >= 60) {
-    label = "Producer-ready";
-    recommendation = "The report is useful internally, but one focused pass would make the client-facing version stronger.";
-  } else if (score >= 35) {
-    label = "Draft report";
-    recommendation = "The report has a direction, but it still needs better intake, analysis, or client wording.";
-  }
-
-  return {
-    version: "v4.2",
-    feature: "Report Quality Gate",
-    score,
-    label,
-    recommendation,
-    passedCount,
-    totalChecks: checks.length,
-    checks,
-    missingItems: checks.filter((check) => !check.passed).map((check) => check.guidance),
-  };
-}
-
-function buildV42ReportQualityGateText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const gate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 REPORT QUALITY GATE",
-    "",
-    `Score: ${gate.score}/100`,
-    `Status: ${gate.label}`,
-    `Passed: ${gate.passedCount}/${gate.totalChecks}`,
-    "",
-    "RECOMMENDATION",
-    gate.recommendation,
-    "",
-    "CHECKS",
-    ...gate.checks.map((check) => `- ${check.passed ? "PASS" : "REVIEW"}: ${check.label}`),
-    "",
-    "MISSING / REVIEW ITEMS",
-    ...(gate.missingItems.length ? gate.missingItems.map((item) => `- ${item}`) : ["- No major missing items detected."]),
-  ].join(newline);
-}
 
 function V42ReportQualityGatePanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const gate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -3703,81 +2227,9 @@ function V42ReportQualityGatePanel({ projectSession, reviewMode, draftAnalysis, 
 }
 
 
-function buildV42ReportOutputPack(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
-  const toneDrafts = buildV42ClientToneDrafts(projectSession, reviewMode, activeAnalysis);
-  const beforeAfter = buildV42BeforeAfterExplanation(draftAnalysis, humanizedAnalysis);
 
-  const producerBrief = [
-    `Report: ${composedReport.reportTitle}`,
-    composedReport.confidenceLine,
-    "",
-    "Producer plan:",
-    ...composedReport.producerPlan.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    `Quality gate: ${qualityGate.label} (${qualityGate.score}/100)`,
-    `Next action: ${qualityGate.recommendation}`,
-  ].join(String.fromCharCode(10));
 
-  const clientUpdate = toneDrafts.find((item) => item.tone === "Professional")?.draft || composedReport.clientReadySummary;
 
-  const revisionChecklist = [
-    "Revision Checklist",
-    ...context.suggestedEditOrder.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    "Before/After note:",
-    beforeAfter.clientSafeLine,
-    "",
-    "Quality checks:",
-    ...qualityGate.checks.map((check) => `${check.passed ? "[x]" : "[ ]"} ${check.label}`),
-  ].join(String.fromCharCode(10));
-
-  return {
-    version: "v4.2",
-    feature: "Report Output Pack",
-    producerBrief,
-    clientUpdate,
-    revisionChecklist,
-    outputTypes: [
-      {
-        label: "Producer Brief",
-        use: "Internal production direction before making the next edit.",
-        content: producerBrief,
-      },
-      {
-        label: "Client Update",
-        use: "Client-safe message for explaining the next revision direction.",
-        content: clientUpdate,
-      },
-      {
-        label: "Revision Checklist",
-        use: "Practical task list before final polish or delivery.",
-        content: revisionChecklist,
-      },
-    ],
-  };
-}
-
-function buildV42ReportOutputPackText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const pack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 REPORT OUTPUT PACK",
-    "",
-    "PRODUCER BRIEF",
-    pack.producerBrief,
-    "",
-    "CLIENT UPDATE",
-    pack.clientUpdate,
-    "",
-    "REVISION CHECKLIST",
-    pack.revisionChecklist,
-  ].join(newline);
-}
 
 function V42ReportOutputPackPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const pack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -3803,95 +2255,9 @@ function V42ReportOutputPackPanel({ projectSession, reviewMode, draftAnalysis, h
 }
 
 
-function buildV42FinalReportHandoff(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
 
-  const handoffSteps = [
-    {
-      label: "Confirm producer direction",
-      done: qualityGate.score >= 60,
-      note: qualityGate.score >= 60
-        ? "The report direction is clear enough for producer review."
-        : "Tighten the intake, analysis, or report path before using this as the main direction.",
-    },
-    {
-      label: "Choose client tone",
-      done: outputPack.clientUpdate && outputPack.clientUpdate.length > 100,
-      note: "Use the client update if the wording matches the relationship and project context.",
-    },
-    {
-      label: "Check revision task order",
-      done: composedReport.producerPlan.length >= 3,
-      note: "The revision checklist should guide the next edit pass without overwhelming the workflow.",
-    },
-    {
-      label: "Review before/after clarity",
-      done: reviewMode !== "compare" || composedReport.beforeAfterLine.length > 80,
-      note: "Comparison projects should explain what improved without overselling the result.",
-    },
-    {
-      label: "Final human read-through",
-      done: false,
-      note: "SoulFrame can structure the report, but the producer still makes the final judgement before sending.",
-    },
-  ];
 
-  const readyCount = handoffSteps.filter((step) => step.done).length;
-  const handoffScore = Math.round((readyCount / handoffSteps.length) * 100);
 
-  let handoffStatus = "Needs producer review";
-  let finalRecommendation = "Review the output pack carefully before using it in a client message.";
-
-  if (handoffScore >= 80 && qualityGate.score >= 80) {
-    handoffStatus = "Ready for final read-through";
-    finalRecommendation = "The report is ready for a final human read-through before export or client sharing.";
-  } else if (handoffScore >= 60) {
-    handoffStatus = "Almost ready";
-    finalRecommendation = "The report has a strong structure, but one pass on wording and context would help.";
-  }
-
-  return {
-    version: "v4.2",
-    feature: "Final Report Handoff",
-    handoffScore,
-    handoffStatus,
-    finalRecommendation,
-    reportTitle: composedReport.reportTitle,
-    qualityGateLabel: qualityGate.label,
-    qualityGateScore: qualityGate.score,
-    handoffSteps,
-    finalOutputs: [
-      "Producer Brief",
-      "Client Update",
-      "Revision Checklist",
-    ],
-  };
-}
-
-function buildV42FinalReportHandoffText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 FINAL REPORT HANDOFF",
-    "",
-    `Report: ${handoff.reportTitle}`,
-    `Handoff score: ${handoff.handoffScore}/100`,
-    `Status: ${handoff.handoffStatus}`,
-    `Quality gate: ${handoff.qualityGateLabel} (${handoff.qualityGateScore}/100)`,
-    "",
-    "FINAL RECOMMENDATION",
-    handoff.finalRecommendation,
-    "",
-    "HANDOFF STEPS",
-    ...handoff.handoffSteps.map((step) => `- ${step.done ? "READY" : "REVIEW"}: ${step.label} — ${step.note}`),
-    "",
-    "FINAL OUTPUTS",
-    ...handoff.finalOutputs.map((item) => `- ${item}`),
-  ].join(newline);
-}
 
 function V42FinalReportHandoffPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -3936,91 +2302,9 @@ function V42FinalReportHandoffPanel({ projectSession, reviewMode, draftAnalysis,
 }
 
 
-function buildV42ReportExportManifest(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const composedReport = buildV42SmartReportComposer(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
 
-  const safeProjectName = (projectSession.projectName || "SoulFrame Project").trim();
-  const timestamp = new Date().toISOString();
 
-  const manifestItems = [
-    {
-      fileLabel: "Producer Brief",
-      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_producer_brief_v4_2.txt`,
-      source: "V4.2 Report Output Pack",
-      ready: outputPack.producerBrief.length > 120,
-      purpose: "Internal production direction for the next humanization pass.",
-    },
-    {
-      fileLabel: "Client Update",
-      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_client_update_v4_2.txt`,
-      source: "V4.2 Client Tone Drafts",
-      ready: outputPack.clientUpdate.length > 100,
-      purpose: "Client-safe communication explaining the revision direction.",
-    },
-    {
-      fileLabel: "Revision Checklist",
-      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_revision_checklist_v4_2.txt`,
-      source: "V4.2 Suggested Edit Order",
-      ready: outputPack.revisionChecklist.length > 100,
-      purpose: "Practical task list before final polish or delivery.",
-    },
-    {
-      fileLabel: "Full Smart Report",
-      suggestedFilename: `${safeProjectName.replace(/\s+/g, "_")}_smart_report_v4_2.txt`,
-      source: "V4.2 Smart Report Composer",
-      ready: composedReport.exportReadiness.filter((item) => !item.toLowerCase().includes("waiting")).length >= 3,
-      purpose: "Complete structured summary of the active SoulFrame report.",
-    },
-  ];
 
-  const readyCount = manifestItems.filter((item) => item.ready).length;
-
-  return {
-    version: "v4.2",
-    feature: "Report Export Manifest",
-    projectName: safeProjectName,
-    createdAt: timestamp,
-    reportTitle: composedReport.reportTitle,
-    qualityGate: `${qualityGate.label} (${qualityGate.score}/100)`,
-    handoffStatus: `${handoff.handoffStatus} (${handoff.handoffScore}/100)`,
-    readyCount,
-    totalItems: manifestItems.length,
-    manifestItems,
-    exportRecommendation: readyCount === manifestItems.length
-      ? "All V4.2 report outputs are structured and ready for a final human read-through before export."
-      : "Some report outputs still need review before the export pack should be treated as complete.",
-  };
-}
-
-function buildV42ReportExportManifestText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 REPORT EXPORT MANIFEST",
-    "",
-    `Project: ${manifest.projectName}`,
-    `Report: ${manifest.reportTitle}`,
-    `Created: ${manifest.createdAt}`,
-    `Quality gate: ${manifest.qualityGate}`,
-    `Handoff status: ${manifest.handoffStatus}`,
-    `Ready outputs: ${manifest.readyCount}/${manifest.totalItems}`,
-    "",
-    "EXPORT RECOMMENDATION",
-    manifest.exportRecommendation,
-    "",
-    "MANIFEST ITEMS",
-    ...manifest.manifestItems.flatMap((item) => [
-      `- ${item.ready ? "READY" : "REVIEW"}: ${item.fileLabel}`,
-      `  Filename: ${item.suggestedFilename}`,
-      `  Source: ${item.source}`,
-      `  Purpose: ${item.purpose}`,
-    ]),
-  ].join(newline);
-}
 
 function V42ReportExportManifestPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -4057,93 +2341,9 @@ function V42ReportExportManifestPanel({ projectSession, reviewMode, draftAnalysi
 }
 
 
-function buildV42ReportControlCenter(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const activeAnalysis = reviewMode === "compare" ? humanizedAnalysis || draftAnalysis : draftAnalysis;
-  const context = buildV42ReportContext(projectSession, reviewMode, activeAnalysis);
-  const qualityGate = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const handoff = buildV42FinalReportHandoff(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const manifest = buildV42ReportExportManifest(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-  const outputPack = buildV42ReportOutputPack(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
 
-  let nextMove = "Load or analyze audio before using the report outputs.";
-  if (qualityGate.score >= 85 && handoff.handoffScore >= 80) {
-    nextMove = "Do a final human read-through, then use the client update or export pack.";
-  } else if (qualityGate.score >= 60) {
-    nextMove = "Use the producer brief internally, then tighten client wording before sharing.";
-  } else if (activeAnalysis && activeAnalysis.status === "Ready") {
-    nextMove = "Improve project intake details so SoulFrame can route the report more precisely.";
-  }
 
-  const recommendedOutput = qualityGate.score >= 80
-    ? "Client Update"
-    : qualityGate.score >= 60
-      ? "Producer Brief"
-      : "Revision Checklist";
 
-  const controlCards = [
-    {
-      label: "Report Route",
-      value: context.reportPath,
-      note: `Genre focus: ${context.genreFocus}`,
-    },
-    {
-      label: "Quality Gate",
-      value: `${qualityGate.score}/100`,
-      note: qualityGate.label,
-    },
-    {
-      label: "Handoff",
-      value: `${handoff.handoffScore}/100`,
-      note: handoff.handoffStatus,
-    },
-    {
-      label: "Exports Ready",
-      value: `${manifest.readyCount}/${manifest.totalItems}`,
-      note: manifest.exportRecommendation,
-    },
-  ];
-
-  const warnings = [
-    ...(qualityGate.missingItems || []),
-    ...(manifest.manifestItems || []).filter((item) => !item.ready).map((item) => `${item.fileLabel} still needs review before export.`),
-  ].slice(0, 4);
-
-  return {
-    version: "v4.2",
-    feature: "Report Control Center",
-    nextMove,
-    recommendedOutput,
-    reportPath: context.reportPath,
-    genreFocus: context.genreFocus,
-    controlCards,
-    warnings,
-    clientUpdatePreview: outputPack.clientUpdate,
-    statusLabel: qualityGate.score >= 85 ? "Ready for final review" : qualityGate.score >= 60 ? "Usable with producer review" : "Needs setup",
-  };
-}
-
-function buildV42ReportControlCenterText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
-  const newline = String.fromCharCode(10);
-  const center = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
-
-  return [
-    "SOULFRAME V4.2 REPORT CONTROL CENTER",
-    "",
-    `Status: ${center.statusLabel}`,
-    `Report path: ${center.reportPath}`,
-    `Genre focus: ${center.genreFocus}`,
-    `Recommended output: ${center.recommendedOutput}`,
-    "",
-    "NEXT MOVE",
-    center.nextMove,
-    "",
-    "CONTROL CARDS",
-    ...center.controlCards.map((card) => `- ${card.label}: ${card.value} — ${card.note}`),
-    "",
-    "WARNINGS",
-    ...(center.warnings.length ? center.warnings.map((item) => `- ${item}`) : ["- No major warnings detected."]),
-  ].join(newline);
-}
 
 function V42ReportControlCenterPanel({ projectSession, reviewMode, draftAnalysis, humanizedAnalysis }) {
   const center = buildV42ReportControlCenter(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
@@ -7279,6 +5479,55 @@ function buildV53ReportSharingExportHandoffText(projectSession = defaultProjectS
   ].join(newline);
 }
 
+
+function buildV54ReportWorkspaceCleanup(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const focused = buildV51ReportWorkspaceSummary(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const quality = buildV42ReportQualityGate(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+  const draftReady = draftAnalysis && draftAnalysis.status === "Ready";
+  const humanizedReady = humanizedAnalysis && humanizedAnalysis.status === "Ready";
+
+  return {
+    version: "v5.4",
+    feature: "Report Workspace Cleanup",
+    headline: focused.headline,
+    nextMove: focused.nextMove,
+    recommendedOutput: focused.recommendedOutput,
+    canContinueToOutput: focused.canContinueToOutput,
+    qualityScore: quality.score,
+    qualityLabel: quality.label,
+    showComparison: reviewMode === "compare" && Boolean(draftReady && humanizedReady),
+    visiblePriority: "Clean report preview first, before/after evidence only when available, detailed report tools collapsed by default.",
+    preservedTools: [
+      "Report Control Center",
+      "Smart Report Composer",
+      "Report Quality Gate",
+      "Before / After Explanation",
+      "Project Workflow",
+      "Revision Plan",
+    ],
+  };
+}
+
+function buildV54ReportWorkspaceCleanupText(projectSession = defaultProjectSession, reviewMode = "draft", draftAnalysis = null, humanizedAnalysis = null) {
+  const newline = String.fromCharCode(10);
+  const cleanup = buildV54ReportWorkspaceCleanup(projectSession, reviewMode, draftAnalysis, humanizedAnalysis);
+
+  return [
+    "SOULFRAME V5.4 REPORT WORKSPACE CLEANUP",
+    "",
+    `Status: ${cleanup.headline}`,
+    `Quality: ${cleanup.qualityScore}/100 - ${cleanup.qualityLabel}`,
+    `Recommended output: ${cleanup.recommendedOutput}`,
+    `Comparison visible: ${cleanup.showComparison ? "Yes" : "No"}`,
+    "",
+    "VISIBLE PRIORITY",
+    cleanup.visiblePriority,
+    "",
+    "PRESERVED DETAILED TOOLS",
+    ...cleanup.preservedTools.map((tool) => `- ${tool}`),
+  ].join(newline);
+}
+
 function ProjectIntake({ projectSession, setProjectSession, selectedReport, resetProjectSession, saveProjectSnapshot, savedProjectsCount, applyDemoPreset, saveDemoPresetAsProject }) {
   const fields = [
     { key: "projectName", label: "Project Name", placeholder: "Untitled AI Draft" },
@@ -7345,23 +5594,7 @@ function ProjectIntake({ projectSession, setProjectSession, selectedReport, rese
   );
 }
 
-function ProjectSnapshot({ reviewMode, selectedReport, projectSession, draftAudioMetadata, humanizedAudioMetadata }) {
-  const items = [
-    { label: "Project", value: getSessionValue(projectSession, "projectName"), note: `Client: ${getSessionValue(projectSession, "clientName")}` },
-    { label: "Current Stage", value: getSessionValue(projectSession, "currentStage"), note: reviewMode === "compare" ? "Checking your humanized pass before client delivery." : "Finding what needs to be fixed before Edit 1." },
-    { label: "Main Concern", value: getSessionValue(projectSession, "mainConcern"), note: "The main issue brought into the review." },
-    { label: "Delivery Readiness", value: getDeliveryReadiness(selectedReport.score), note: "Based on the current simulated SoulFrame score." },
-  ];
-  if (draftAudioMetadata) items.push({ label: "Draft Duration", value: formatDuration(draftAudioMetadata.duration), note: `${formatFileSize(draftAudioMetadata.size)} - ${draftAudioMetadata.type}` });
-  if (reviewMode === "compare" && humanizedAudioMetadata) items.push({ label: "Edit Duration", value: formatDuration(humanizedAudioMetadata.duration), note: `${formatFileSize(humanizedAudioMetadata.size)} - ${humanizedAudioMetadata.type}` });
-  return (
-    <Panel title="Project Snapshot" subtitle="A quick overview of this client session, now connected to the uploaded audio file.">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {items.map((item) => <article key={item.label} className="rounded-3xl border border-zinc-800 bg-black p-5"><p className="text-xs uppercase tracking-wide text-zinc-500">{item.label}</p><h3 className="mt-3 text-lg font-semibold text-zinc-100">{item.value}</h3><p className="mt-2 text-sm text-zinc-400">{item.note}</p></article>)}
-      </div>
-    </Panel>
-  );
-}
+
 
 function SavedProjectHistory({ savedProjects, loadSavedProjectSnapshot, deleteSavedProject, clearSavedProjects, importSavedProjectsBackup }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -7502,10 +5735,7 @@ function RevisionPlan({ selectedReport, reviewMode }) {
   );
 }
 
-function RevisionTimeline({ reviewMode, selectedReport }) {
-  const timeline = buildRevisionTimeline(reviewMode, selectedReport);
-  return <Panel title="Revision History" subtitle="A simple project timeline from raw AI draft to client-ready final polish."><div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">{timeline.map((step, index) => <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span><h3 className="mt-4 font-semibold text-zinc-100">{step.title}</h3><p className="mt-2 text-sm text-zinc-400">{step.status}</p><p className="mt-3 text-sm text-zinc-200">{step.focus}</p></article>)}</div></Panel>;
-}
+
 
 function BeforeAfterComparisonSummary({ draftMetadata, humanizedMetadata, draftAnalysis, humanizedAnalysis, reviewMode }) {
   if (reviewMode !== "compare") return null;
@@ -8111,222 +6341,8 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V5.3 report sharing and export prototype with a dashboard-first product shell, modular product/report UI, cleaner producer/client reports, local downloads, browser-native share direction, before/after case studies, client delivery handoff, V4 audio intelligence, V4.2 smarter reports, V4.1 backend/API scaffolding, and local project sessions.",
+    "V5.4 product cleanup and architecture refactor: focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. SoulFrame remains a prototype without hosted reports or a live backend.",
   ].join(newline);
-}
-
-function ShareSoulFramePanel() {
-  const [copyStatus, setCopyStatus] = useState("Copy Links");
-  const [downloadStatus, setDownloadStatus] = useState("Download Links");
-
-  async function handleCopyLinks() {
-    try {
-      await navigator.clipboard.writeText(buildShareLinksText());
-      setCopyStatus("Copied");
-      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
-    } catch (error) {
-      setCopyStatus("Copy failed");
-      window.setTimeout(() => setCopyStatus("Copy Links"), 1500);
-    }
-  }
-
-  function handleDownloadLinks() {
-    const downloaded = downloadTextFile("SoulFrame_Public_Links.txt", buildShareLinksText());
-    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
-    window.setTimeout(() => setDownloadStatus("Download Links"), 1500);
-  }
-
-  return (
-    <Panel
-      title="Share SoulFrame"
-      subtitle="A clean public link kit for sharing the live demo, repository, and ChordOfAnnie home base."
-      action={
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyLinks}>{copyStatus}</Button>
-          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadLinks}>{downloadStatus}</Button>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {publicShareLinks.map((link) => (
-          <a
-            key={link.label}
-            href={link.href}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-3xl border border-zinc-800 bg-black p-5 transition hover:bg-zinc-900"
-          >
-            <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Public Link</p>
-            <h3 className="mt-3 text-lg font-semibold text-zinc-100">{link.label}</h3>
-            <p className="mt-3 break-words text-sm leading-6 text-zinc-400">{link.href}</p>
-          </a>
-        ))}
-      </div>
-      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Share line</p>
-        <p className="mt-3 text-sm leading-7 text-zinc-300">
-          SoulFrame is a browser-based AI music humanization review tool built to help producers inspect AI-generated drafts, identify artifact clues, and turn analysis into clearer revision plans and client-ready updates.
-        </p>
-      </div>
-    </Panel>
-  );
-}
-
-function AboutSoulFramePanel() {
-  const [copyStatus, setCopyStatus] = useState("Copy Product Summary");
-  const [downloadStatus, setDownloadStatus] = useState("Download Product Summary");
-  const pillars = [
-    {
-      title: "Listen",
-      note: "Upload AI-generated drafts and inspect real audio facts like waveform, duration, headroom, dynamics, brightness, and texture movement.",
-    },
-    {
-      title: "Detect",
-      note: "Use lightweight browser-based analysis to surface early artifact clues, humanization priority, and section-by-section review prompts.",
-    },
-    {
-      title: "Guide",
-      note: "Turn review results into producer-focused action plans, client-safe notes, revision checklists, and next-pass priorities.",
-    },
-    {
-      title: "Export",
-      note: "Copy or download producer reports, client reports, client action plans, summaries, checklists, and saved project sessions.",
-    },
-  ];
-
-  async function handleCopyProductSummary() {
-    try {
-      await navigator.clipboard.writeText(buildProductSummaryText());
-      setCopyStatus("Copied");
-      window.setTimeout(() => setCopyStatus("Copy Product Summary"), 1500);
-    } catch (error) {
-      setCopyStatus("Copy failed");
-      window.setTimeout(() => setCopyStatus("Copy Product Summary"), 1500);
-    }
-  }
-
-  function handleDownloadProductSummary() {
-    const downloaded = downloadTextFile("SoulFrame_Product_Summary.txt", buildProductSummaryText());
-    setDownloadStatus(downloaded ? "Downloaded" : "Download failed");
-    window.setTimeout(() => setDownloadStatus("Download Product Summary"), 1500);
-  }
-
-  return (
-    <Panel
-      title="About SoulFrame"
-      subtitle="A second set of ears for humanizing AI-generated music."
-      action={
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button className="border border-zinc-800 bg-black text-zinc-100 hover:bg-zinc-900" onClick={handleCopyProductSummary}>{copyStatus}</Button>
-          <Button className="border border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={handleDownloadProductSummary}>{downloadStatus}</Button>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="rounded-3xl border border-zinc-800 bg-black p-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Mission</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">Humanize sound. Bring soul back into music.</h3>
-          <p className="mt-4 text-sm leading-7 text-zinc-400">
-            SoulFrame is built to support producers working with AI-generated music. It does not replace taste, emotion, or human judgement. It helps organize the listening process so synthetic drafts can be shaped into something more intentional, musical, and alive.
-          </p>
-        </article>
-        <article className="rounded-3xl border border-zinc-800 bg-black p-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Current Stage</p>
-          <h3 className="mt-3 text-2xl font-semibold text-zinc-100">V5.1 real layout refactor prototype</h3>
-          <p className="mt-4 text-sm leading-7 text-zinc-400">
-            The app now opens into a dashboard-first Product workspace with focused Dashboard, Analyze, Report, Output, and Advanced tabs. It still preserves V4 audio intelligence, V4.1 backend/API planning, V4.2 smarter reports, browser-safe analysis, saved sessions, demo presets, and the older Classic Demo view.
-          </p>
-        </article>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {pillars.map((pillar) => (
-          <article key={pillar.title} className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5">
-            <h3 className="text-lg font-semibold text-zinc-100">{pillar.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{pillar.note}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-5 rounded-3xl border border-zinc-800 bg-black p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Product Arc</p>
-        <p className="mt-3 text-2xl font-semibold text-zinc-100">Dashboard → Analyze → Report → Output → Advanced</p>
-        <p className="mt-3 text-sm leading-7 text-zinc-400">
-          This is now the V5.3 product arc: give the producer a calm dashboard first, guide analysis in one workspace, turn the review into a cleaner producer/client report, prepare downloadable and share-ready outputs, finish with a human-led delivery check, and keep deeper technical systems available only when needed.
-        </p>
-      </div>
-    </Panel>
-  );
-}
-
-function DemoWalkthroughPanel() {
-  return (
-    <Panel title="Demo Walkthrough" subtitle="A guided product story for screenshots, live demos, and explaining SoulFrame quickly.">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {demoWalkthroughSteps.map((step, index) => (
-          <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-100">{index + 1}</span>
-            <h3 className="mt-4 font-semibold text-zinc-100">{step.title}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">{step.note}</p>
-          </article>
-        ))}
-      </div>
-      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Suggested demo line</p>
-        <p className="mt-3 text-lg leading-8 text-zinc-200">
-          SoulFrame helps a producer move from an AI-generated draft to a clearer humanization plan, then export the right notes for their own workflow or for client communication.
-        </p>
-      </div>
-    </Panel>
-  );
-}
-
-function HowSoulFrameWorksPanel() {
-  const workflow = [
-    {
-      title: "1. Intake the project",
-      note: "Capture the project name, client, track type, AI tool, current stage, main concern, client goal, and private producer notes.",
-    },
-    {
-      title: "2. Inspect the audio",
-      note: "Upload the draft and optionally the humanized edit. SoulFrame reads browser-based audio facts such as duration, waveform, peak, clipping risk, dynamics, brightness, and texture movement.",
-    },
-    {
-      title: "3. Surface humanization clues",
-      note: "The app converts measurable audio proxies into early artifact clues, listening focus points, priority scores, section notes, and before/after deltas.",
-    },
-    {
-      title: "4. Turn clues into actions",
-      note: "SoulFrame generates producer action plans, client-safe wording, revision checklists, delivery checks, and session summaries.",
-    },
-    {
-      title: "5. Export and communicate",
-      note: "Copy or download reports, client action plans, client-safe summaries, revision checklists, delivery checklists, saved projects, and product summaries.",
-    },
-  ];
-
-  return (
-    <Panel title="How SoulFrame Works" subtitle="The full product logic from AI draft to client-ready revision planning.">
-      <div className="space-y-4">
-        {workflow.map((step) => (
-          <article key={step.title} className="rounded-3xl border border-zinc-800 bg-black p-6">
-            <h3 className="text-xl font-semibold text-zinc-100">{step.title}</h3>
-            <p className="mt-3 text-sm leading-7 text-zinc-400">{step.note}</p>
-          </article>
-        ))}
-      </div>
-      <div className="mt-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">Important note</p>
-        <p className="mt-3 text-sm leading-7 text-zinc-400">
-          SoulFrame does not claim to replace the producer's ear. The current version uses browser-based audio analysis and producer-guided logic to support decisions, structure the review, and make the client workflow clearer.
-        </p>
-      </div>
-    </Panel>
-  );
-}
-
-function ArtifactDatabase() {
-  return <Panel title="Artifact Database" subtitle="The early SoulFrame knowledge base of common AI music artifacts."><div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">{artifactDatabase.map((artifact) => <article key={artifact.name} className="rounded-3xl border border-zinc-800 bg-black p-5"><div className="mb-3 flex items-start justify-between gap-3"><div><h3 className="font-semibold text-zinc-100">{artifact.name}</h3><p className="mt-1 text-xs text-zinc-500">{artifact.category}</p></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300">{artifact.severity}</span></div><p className="text-sm text-zinc-400">{artifact.description}</p><div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4"><p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Common Fix</p><p className="text-sm text-zinc-200">{artifact.fix}</p></div></article>)}</div></Panel>;
 }
 
 function AnalysisProgress({ activeStep }) {
@@ -8355,7 +6371,6 @@ function ReviewSetupPanel({ reviewMode, setReviewMode, draftFile, humanizedFile,
 
 export default function SoulFrameDraftReviewV2() {
   const [view, setView] = useState("product");
-  const [selectedPreset, setSelectedPreset] = useState(() => loadSavedSetting("soulframe-selected-preset", "marcel"));
   const [activeStep, setActiveStep] = useState(0);
   const [draftFile, setDraftFile] = useState("");
   const [humanizedFile, setHumanizedFile] = useState("");
@@ -8365,9 +6380,15 @@ export default function SoulFrameDraftReviewV2() {
   const [humanizedAudioMetadata, setHumanizedAudioMetadata] = useState(null);
   const [draftAudioAnalysis, setDraftAudioAnalysis] = useState(null);
   const [humanizedAudioAnalysis, setHumanizedAudioAnalysis] = useState(null);
-  const [reviewMode, setReviewMode] = useState(() => loadSavedSetting("soulframe-review-mode", "draft"));
-  const [projectSession, setProjectSession] = useState(() => loadSavedSession());
-  const [savedProjects, setSavedProjects] = useState(() => loadSavedProjects());
+  const {
+    selectedPreset, setSelectedPreset,
+    reviewMode, setReviewMode,
+    projectSession, setProjectSession,
+    savedProjects,
+    resetProjectSession, applyDemoPreset, saveDemoPresetAsProject,
+    saveProjectSnapshot, loadSavedProjectSnapshot, deleteSavedProject,
+    clearSavedProjects, importSavedProjectsBackup,
+  } = useProjectSessions({ demoPresets, onPresetApplied: () => setActiveStep(0) });
   const selectedReport = reviewMode === "compare" ? beforeAfterReport : draftReports[selectedPreset];
   const testsPassed = runSoulFrameTests();
 
@@ -8379,77 +6400,7 @@ export default function SoulFrameDraftReviewV2() {
 
   useEffect(() => () => { if (draftAudioUrl) URL.revokeObjectURL(draftAudioUrl); if (humanizedAudioUrl) URL.revokeObjectURL(humanizedAudioUrl); }, [draftAudioUrl, humanizedAudioUrl]);
 
-  useEffect(() => {
-    saveSetting("soulframe-project-session", JSON.stringify(projectSession));
-  }, [projectSession]);
-
-  useEffect(() => {
-    saveSetting("soulframe-selected-preset", selectedPreset);
-  }, [selectedPreset]);
-
-  useEffect(() => {
-    saveSetting("soulframe-review-mode", reviewMode);
-  }, [reviewMode]);
-
-  useEffect(() => {
-    saveSavedProjects(savedProjects);
-  }, [savedProjects]);
-
   function handleRunAnalysis() { setActiveStep(1); }
-
-  function resetProjectSession() {
-    setProjectSession(defaultProjectSession);
-    setSelectedPreset("marcel");
-    setReviewMode("draft");
-  }
-
-  function applyDemoPreset(presetKey) {
-    const preset = demoPresets[presetKey];
-    if (!preset) return;
-    setProjectSession({ ...defaultProjectSession, ...preset.projectSession });
-    setSelectedPreset(preset.selectedPreset || "marcel");
-    setReviewMode(preset.reviewMode || "draft");
-    setActiveStep(0);
-  }
-
-  function saveDemoPresetAsProject(presetKey) {
-    const preset = demoPresets[presetKey];
-    if (!preset) return;
-    const presetSession = { ...defaultProjectSession, ...preset.projectSession };
-    const record = buildSavedProjectRecord(presetSession, preset.reviewMode || "draft", preset.selectedPreset || "marcel");
-    setSavedProjects((current) => [record, ...current].slice(0, 24));
-  }
-
-  function saveProjectSnapshot() {
-    const record = buildSavedProjectRecord(projectSession, reviewMode, selectedPreset);
-    setSavedProjects((current) => [record, ...current].slice(0, 12));
-  }
-
-  function loadSavedProjectSnapshot(projectId) {
-    const savedProject = savedProjects.find((project) => project.id === projectId);
-    if (!savedProject) return;
-    setProjectSession({ ...defaultProjectSession, ...savedProject.projectSession });
-    setReviewMode(savedProject.reviewMode || "draft");
-    setSelectedPreset(savedProject.selectedPreset || "marcel");
-  }
-
-  function deleteSavedProject(projectId) {
-    setSavedProjects((current) => current.filter((project) => project.id !== projectId));
-  }
-
-  function clearSavedProjects() {
-    setSavedProjects([]);
-  }
-
-  function importSavedProjectsBackup(backupText) {
-    const importedProjects = parseSavedProjectsBackup(backupText);
-    if (!importedProjects.length) return;
-    setSavedProjects((current) => {
-      const existingIds = new Set(current.map((project) => project.id));
-      const freshImports = importedProjects.filter((project) => project && project.id && !existingIds.has(project.id));
-      return [...freshImports, ...current].slice(0, 24);
-    });
-  }
 
   function handleDraftFileChange(event) {
     const file = event.target.files && event.target.files[0];
@@ -8498,111 +6449,103 @@ export default function SoulFrameDraftReviewV2() {
         </div>
       )}
       reportContent={({ setActiveTab }) => (
-        <div className="space-y-6">
-          <V51FocusedReportWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V53CleanReportPreview
-            report={buildV53CleanReportPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
-            clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
-            exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            sharePack={buildV53ShareableReportDirection(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-          />
-          <V53BeforeAfterCaseStudy
-            caseStudy={buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            caseStudyText={buildV53BeforeAfterCaseStudyText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-          />
-          <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
-          <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
-        </div>
+        <V54ReportWorkspaceCleanup
+          summary={buildV54ReportWorkspaceCleanup(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          setActiveTab={setActiveTab}
+          primaryContent={
+            <V53CleanReportPreview
+              report={buildV53CleanReportPreview(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              producerText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "producer")}
+              clientText={buildV53CleanReportPreviewText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis, "client")}
+              exportPack={buildV53DownloadableReportExport(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              sharePack={buildV53ShareableReportDirection(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            />
+          }
+          comparisonContent={
+            <V53BeforeAfterCaseStudy
+              caseStudy={buildV53BeforeAfterCaseStudy(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              caseStudyText={buildV53BeforeAfterCaseStudyText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+            />
+          }
+          detailsContent={
+            <>
+              <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              {reviewMode === "compare" ? <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} /> : null}
+              <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
+              <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
+            </>
+          }
+        />
       )}
       outputContent={({ setActiveTab }) => (
-        <div className="space-y-6">
-          <V51FocusedOutputWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V53ClientDeliveryExperience
-            delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            setActiveTab={setActiveTab}
-          />
-          <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
-        </div>
+        <V54OutputWorkspaceCleanup
+          evidence={getV54OutputEvidenceStatus(reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+          setActiveTab={setActiveTab}
+          deliveryContent={
+            <V53ClientDeliveryExperience
+              delivery={buildV53ClientDeliveryExperience(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              deliveryText={buildV53ClientDeliveryExperienceText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+              setActiveTab={setActiveTab}
+            />
+          }
+          supportingContent={
+            <div className="space-y-6">
+              <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          sessionsContent={
+            <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
+          }
+        />
       )}
       advancedContent={({ setActiveTab }) => (
-        <div className="space-y-6">
-          <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V53ReportSharingExportHandoff
-            handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
-            setActiveTab={setActiveTab}
-          />
-          <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
-          <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <PublicDemoNotice />
-          <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V41BackendScaffoldPanel />
-          <V41AnalysisEngineSeparationPanel />
-          <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-          <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-        </div>
+        <V54AdvancedWorkspaceCleanup
+          setActiveTab={setActiveTab}
+          technicalContent={
+            <div className="space-y-6">
+              <V51FocusedAdvancedWorkspacePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+              <V41BackendScaffoldPanel />
+              <V41AnalysisEngineSeparationPanel />
+              <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          uxContent={
+            <div className="space-y-6">
+              <V52DashboardClarityCleanupPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+              <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          betaContent={
+            <div className="space-y-6">
+              <PublicDemoNotice />
+              <V52PublicBetaScreenshotGuidePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} setActiveTab={setActiveTab} />
+              <V52PublicBetaPresentationHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+          historyContent={
+            <div className="space-y-6">
+              <V53ReportSharingExportHandoff
+                handoff={buildV53ReportSharingExportHandoff(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+                handoffText={buildV53ReportSharingExportHandoffText(projectSession, reviewMode, draftAudioAnalysis, humanizedAudioAnalysis)}
+                setActiveTab={setActiveTab}
+              />
+              <V51LayoutRefactorHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
+            </div>
+          }
+        />
       )}
     />
   );
 
-  const demoView = (
-    <div className="space-y-6">
-      <QuickStartGuide applyDemoPreset={applyDemoPreset} setView={setView} />
-      <DemoReadinessBanner />
-      <PublicDemoNotice />
-      <V50ProductDashboardPreviewPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50ProductNavigationBlueprintPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50ProgressiveDisclosurePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50TabbedWorkflowShellPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50CleanDashboardPriorityPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50AdvancedPanelCollapseStrategyPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V50PublicBetaUxHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V41BackendScaffoldPanel />
-      <V41AnalysisEngineSeparationPanel />
-      <V41MockApiResponsePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V41FrontendApiAdapterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42SmarterReportRouterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42GenreRecommendationPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42PathSpecificReportPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42ClientToneDraftPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42BeforeAfterExplanationPanel draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42SmartReportComposerPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42ReportQualityGatePanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42ReportOutputPackPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42FinalReportHandoffPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42ReportExportManifestPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <V42ReportControlCenterPanel projectSession={projectSession} reviewMode={reviewMode} draftAnalysis={draftAudioAnalysis} humanizedAnalysis={humanizedAudioAnalysis} />
-      <DemoUseCasesPanel />
-      <PublicLaunchChecklist />
-      <PublicDemoStats savedProjectsCount={savedProjects.length} />
-      <ReleaseNotesPanel />
-      <PublicRoadmapPreview />
-      <ProjectIntake projectSession={projectSession} setProjectSession={setProjectSession} selectedReport={selectedReport} resetProjectSession={resetProjectSession} saveProjectSnapshot={saveProjectSnapshot} savedProjectsCount={savedProjects.length} applyDemoPreset={applyDemoPreset} saveDemoPresetAsProject={saveDemoPresetAsProject} />
-      <ProjectSnapshot reviewMode={reviewMode} selectedReport={selectedReport} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} />
-      <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <ReviewSetupPanel reviewMode={reviewMode} setReviewMode={setReviewMode} draftFile={draftFile} humanizedFile={humanizedFile} draftAudioUrl={draftAudioUrl} humanizedAudioUrl={humanizedAudioUrl} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} handleDraftFileChange={handleDraftFileChange} handleHumanizedFileChange={handleHumanizedFileChange} selectedPreset={selectedPreset} setSelectedPreset={setSelectedPreset} handleRunAnalysis={handleRunAnalysis} testsPassed={testsPassed} />
-        {activeStep > 0 && activeStep < analysisSteps.length ? <AnalysisProgress activeStep={activeStep} /> : <ReportView report={selectedReport} reviewMode={reviewMode} projectSession={projectSession} draftAudioMetadata={draftAudioMetadata} humanizedAudioMetadata={humanizedAudioMetadata} draftAudioAnalysis={draftAudioAnalysis} humanizedAudioAnalysis={humanizedAudioAnalysis} selectedPreset={selectedPreset} />}
-      </div>
-      <ProjectWorkflow reviewMode={reviewMode} selectedReport={selectedReport} />
-      <RevisionPlan selectedReport={selectedReport} reviewMode={reviewMode} />
-      <RevisionTimeline reviewMode={reviewMode} selectedReport={selectedReport} />
-    </div>
-  );
+  
 
   return (
     <main className="min-h-screen bg-black px-4 py-8 text-white md:px-8">
@@ -8612,7 +6555,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.3.7 Report Handoff</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.10 Release Review</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
@@ -8629,7 +6572,95 @@ export default function SoulFrameDraftReviewV2() {
           </div>
         </header>
         <ErrorBoundary>
-          {view === "product" ? productView : view === "database" ? <ArtifactDatabase /> : view === "about" ? <AboutSoulFramePanel /> : view === "walkthrough" ? <DemoWalkthroughPanel /> : view === "how" ? <HowSoulFrameWorksPanel /> : view === "share" ? <ShareSoulFramePanel /> : demoView}
+          {view === "product" ? productView : view === "demo" ? (
+            <React.Suspense fallback={<Panel title="Loading Classic Demo" subtitle="Opening the legacy review experience..." />}>
+              <ClassicDemo
+                Panel={Panel}
+                shared={{
+                AnalysisProgress,
+                ProjectIntake,
+                ProjectWorkflow,
+                PublicDemoNotice,
+                QuickStartGuide,
+                ReportView,
+                ReviewSetupPanel,
+                RevisionPlan,
+                SavedProjectHistory,
+                V41AnalysisEngineSeparationPanel,
+                V41BackendScaffoldPanel,
+                V41FrontendApiAdapterPanel,
+                V41MockApiResponsePanel,
+                V42BeforeAfterExplanationPanel,
+                V42ClientToneDraftPanel,
+                V42FinalReportHandoffPanel,
+                V42GenreRecommendationPanel,
+                V42PathSpecificReportPanel,
+                V42ReportControlCenterPanel,
+                V42ReportExportManifestPanel,
+                V42ReportOutputPackPanel,
+                V42ReportQualityGatePanel,
+                V42SmartReportComposerPanel,
+                V42SmarterReportRouterPanel,
+                V50AdvancedPanelCollapseStrategyPanel,
+                V50CleanDashboardPriorityPanel,
+                V50ProductDashboardPreviewPanel,
+                V50ProductNavigationBlueprintPanel,
+                V50ProgressiveDisclosurePanel,
+                V50PublicBetaUxHandoffPanel,
+                V50TabbedWorkflowShellPanel
+                }}
+                state={{
+                applyDemoPreset,
+                setView,
+                projectSession,
+                reviewMode,
+                draftAudioAnalysis,
+                humanizedAudioAnalysis,
+                savedProjects,
+                setProjectSession,
+                selectedReport,
+                resetProjectSession,
+                saveProjectSnapshot,
+                saveDemoPresetAsProject,
+                draftAudioMetadata,
+                humanizedAudioMetadata,
+                loadSavedProjectSnapshot,
+                deleteSavedProject,
+                clearSavedProjects,
+                importSavedProjectsBackup,
+                setReviewMode,
+                draftFile,
+                humanizedFile,
+                draftAudioUrl,
+                humanizedAudioUrl,
+                handleDraftFileChange,
+                handleHumanizedFileChange,
+                selectedPreset,
+                setSelectedPreset,
+                handleRunAnalysis,
+                testsPassed,
+                activeStep,
+                analysisSteps
+                }}
+                helpers={{ getSessionValue, getDeliveryReadiness, formatDuration, formatFileSize, buildRevisionTimeline }}
+                demoStats={{ presets: Object.keys(demoPresets).length, artifacts: artifactDatabase.length, steps: demoWalkthroughSteps.length }}
+              />
+            </React.Suspense>
+          ) : (
+            <React.Suspense fallback={<Panel title="Loading" subtitle="Opening the requested SoulFrame page..." />}>
+              <SecondaryViews
+                page={view}
+                Panel={Panel}
+                Button={Button}
+                publicShareLinks={publicShareLinks}
+                buildShareLinksText={buildShareLinksText}
+                downloadTextFile={downloadTextFile}
+                buildProductSummaryText={buildProductSummaryText}
+                demoWalkthroughSteps={demoWalkthroughSteps}
+                artifactDatabase={artifactDatabase}
+              />
+            </React.Suspense>
+          )}
         </ErrorBoundary>
         <SoulFrameFooter setView={setView} />
       </div>
