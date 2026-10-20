@@ -4,8 +4,9 @@ import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
+import { isAllowedLocalRequest, setLocalSecurityHeaders, checkDeclaredContentLength, createLocalRateLimiter } from './requestSecurity.mjs';
 
-export const API_VERSION = 'v6.0.6';
+export const API_VERSION = 'v6.0.7';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
@@ -16,6 +17,7 @@ export const API_CAPABILITIES = Object.freeze({
   metadataBackupImport: true,
   hostedReports: false,
   authentication: false,
+  localSecurityHardening: true,
 });
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -63,6 +65,7 @@ function writeJson(response, statusCode, payload, requestMethod = 'GET', extraHe
 }
 
 async function readJson(request, maxBytes = MAX_BODY_BYTES) {
+  checkDeclaredContentLength(request, maxBytes);
   const type = request.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
   if (type !== 'application/json') throw new ProjectStoreError(415, 'Use application/json');
   const chunks = [];
@@ -77,27 +80,24 @@ async function readJson(request, maxBytes = MAX_BODY_BYTES) {
 }
 
 function requestIsLocal(request) {
-  const host = request.headers.host || '';
-  if (!/^(?:localhost|127\.0\.0\.1)(?::\d{1,5})?$/i.test(host)) return false;
-  const origin = request.headers.origin;
-  if (!origin) return true; // Local CLI requests without an Origin header.
-  const allowedOrigins = new Set([
-    'http://localhost:5173', 'http://127.0.0.1:5173',
-    'http://localhost:8787', 'http://127.0.0.1:8787',
-  ]);
-  if (process.env.SOULFRAME_ALLOWED_ORIGIN) allowedOrigins.add(process.env.SOULFRAME_ALLOWED_ORIGIN);
-  return allowedOrigins.has(origin);
+  return isAllowedLocalRequest(request);
 }
 
 export function createApiHandler({ store = new LocalProjectStore() } = {}) {
+  const limiter = createLocalRateLimiter();
   return async (request, response) => {
     const method = request.method || 'GET';
     try {
+      setLocalSecurityHeaders(response);
       if (!requestIsLocal(request)) {
         writeJson(response, 403, { ok: false, error: 'Local development API only' }, method);
         return;
       }
       const url = new URL(request.url || '/', 'http://127.0.0.1');
+      if (!limiter.allow(method, url.pathname)) {
+        writeJson(response, 429, { ok: false, error: 'Local API request rate exceeded. Retry shortly.' }, method, { 'Retry-After': '60' });
+        return;
+      }
       if (url.pathname === '/api/health') {
         if (method !== 'GET' && method !== 'HEAD') {
           writeJson(response, 405, { ok: false, error: 'Method not allowed' }, method, { Allow: 'GET, HEAD' });
@@ -206,7 +206,11 @@ export function createApiHandler({ store = new LocalProjectStore() } = {}) {
 // V6.0.1 test compatibility: handler remains callable on its own.
 export const handleApiRequest = createApiHandler();
 export function createSoulFrameApiServer(options = {}) {
-  return createServer(createApiHandler(options));
+  const server = createServer(createApiHandler(options));
+  server.headersTimeout = 15_000;
+  server.requestTimeout = 30_000;
+  server.maxHeadersCount = 64;
+  return server;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

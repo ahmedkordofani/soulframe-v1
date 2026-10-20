@@ -36,7 +36,7 @@ async function makeBackup(name) {
 
 test('health advertises only local metadata import, not hosting or authentication', () => fixture(async ({ base }) => {
   const data = await (await fetch(base + '/api/health')).json();
-  assert.equal(data.version, 'v6.0.6');
+  assert.equal(data.version, 'v6.0.7');
   assert.equal(data.capabilities.metadataBackupImport, true);
   assert.equal(data.capabilities.audioUpload, false);
   assert.equal(data.capabilities.authentication, false);

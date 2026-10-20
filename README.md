@@ -175,3 +175,10 @@ The local API remains unauthenticated, bound to loopback and intended for demons
 - No backup import, remote sync, audio upload, accounts, or cloud hosting has been added.
 
 Recovery snapshots share the same local database file as active projects, so they do not protect against total file loss or corruption. See [V6.0.5 recovery documentation](docs/v6-project-recovery.md).
+
+
+## V6.0.7 - Local Backend Security and Privacy Hardening
+
+The loopback-only development API now validates browser request context more strictly, sends defensive response headers, rejects announced oversized JSON bodies early, limits repeated metadata requests and uses HTTP timeouts. The existing local project database and backup format remain unchanged.
+
+This is not login authentication, authorization, encryption at rest or a secure public deployment. Keep the API bound to 127.0.0.1, keep .soulframe-local private, and use demo metadata until a proper security architecture is implemented.
