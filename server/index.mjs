@@ -1,13 +1,14 @@
-// SoulFrame V6.0.8 - loopback-only, process-token-protected metadata API.
+// SoulFrame V6.0.9 - loopback-only metadata API with explicit deployment guard.
 // Listen only on loopback; no cloud authentication or hosted user data.
 import { createServer } from 'node:http';
+import { assertLocalRuntime } from './runtimeGuard.mjs';
 import { generateLocalAccessToken, isLocalRequestAuthorized, isValidLocalAccessToken } from './localAccess.mjs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
 import { isAllowedLocalRequest, setLocalSecurityHeaders, checkDeclaredContentLength, createLocalRateLimiter } from './requestSecurity.mjs';
 
-export const API_VERSION = 'v6.0.8';
+export const API_VERSION = 'v6.0.9';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
@@ -20,6 +21,8 @@ export const API_CAPABILITIES = Object.freeze({
   authentication: false,
   localSecurityHardening: true,
   localOwnerAccess: true,
+  hostedDeployment: false,
+  deploymentGuard: true,
 });
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -85,7 +88,8 @@ function requestIsLocal(request) {
   return isAllowedLocalRequest(request);
 }
 
-export function createApiHandler({ store = new LocalProjectStore(), authToken = generateLocalAccessToken() } = {}) {
+export function createApiHandler({ store = new LocalProjectStore(), authToken = generateLocalAccessToken(), environment = process.env } = {}) {
+  assertLocalRuntime(environment);
   // Test fixtures can explicitly opt out with authToken:null.
   // Normal CLI and programmatic factories use a strong generated token by default.
   if (authToken !== null && !isValidLocalAccessToken(authToken)) {
@@ -246,7 +250,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       console.log('Local project access token (enter under Product > Output > Saved Projects):');
       console.log(authToken);
       console.log('This token expires when the API stops. Do not share it or paste it into public issues.');
-      console.log('Local-only, single-owner protection. No hosted accounts, no remote sync, no audio upload.');
+      console.log('Local-only, single-owner protection. NOT approved for hosted deployment. No remote sync or audio uploads.');
     });
   }
 }

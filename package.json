@@ -11,7 +11,8 @@
     "test": "node --test",
     "verify": "npm run test && npm run build",
     "dev:api": "node --watch server/index.mjs",
-    "api": "node server/index.mjs"
+    "api": "node server/index.mjs",
+    "backend:readiness": "node scripts/backend-readiness.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",

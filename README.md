@@ -12,9 +12,17 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.8 - Local Owner Access (development)**
+**V6.0.9 - Backend Architecture and Deployment Readiness (development)**
 
-V5.4.0 is published. V6.0.8 adds a temporary local-owner access token to the real Node API for project metadata operations. The existing V6.0.6 guarded backup import, V6.0.5 recovery and V6.0.4 revision checks are preserved. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 local owner access](docs/v6-local-owner-access.md).
+V5.4.0 is published. V6.0.9 adds a **fail-closed runtime guard** and a read-only `npm run backend:readiness` command to distinguish safe local operation from the significant requirements for hosted services. V6.0.8 local-owner tokens, guarded backup import, recovery and revision checks remain intact. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 deployment readiness](docs/v6-deployment-readiness.md) and [V6 local owner access](docs/v6-local-owner-access.md).
+
+```powershell
+npm run backend:readiness
+npm run backend:readiness -- --target=hosted
+npm run backend:readiness -- --target=local --json
+```
+
+The hosted target **intentionally exits unsuccessfully** until hosted identity, tenant isolation, durable storage and the other security requirements are implemented. This CLI is an audit of documented local preconditions, **not** a production certification.
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 

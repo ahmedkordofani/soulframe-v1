@@ -39,7 +39,7 @@ test('protected API health advertises required unlock but does not reveal secret
     const response = await fetch(`${origin}/api/health`);
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.equal(body.version, 'v6.0.8');
+    assert.equal(body.version, 'v6.0.9');
     assert.equal(body.capabilities.localTokenRequired, true);
     assert.equal(body.capabilities.authentication, false);
     assert.equal(body.capabilities.audioUpload, false);

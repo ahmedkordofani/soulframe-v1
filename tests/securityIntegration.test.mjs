@@ -31,7 +31,7 @@ test('real API health advertises request hardening without claiming authenticati
     const res = await fetch(`${base}/api/health`);
     assert.equal(res.status, 200);
     const json = await res.json();
-    assert.equal(json.version, 'v6.0.8');
+    assert.equal(json.version, 'v6.0.9');
     assert.equal(json.capabilities.localSecurityHardening, true);
     assert.equal(json.capabilities.authentication, false);
     assert.equal(json.capabilities.audioUpload, false);
