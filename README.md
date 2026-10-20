@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.2 - Local Project Persistence (development)**
+**V6.0.3 - Local Project API Integration (development)**
 
-V5.4.0 is published. V6.0.2 adds local-only, metadata-only project persistence to the V6 API, after the health-check foundation of V6.0.1. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 project persistence](docs/v6-project-persistence.md).
+V5.4.0 is published. V6.0.3 adds user-controlled Save, Load, Overwrite and Delete actions for the local project API built in V6.0.2. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 project UI integration](docs/v6-project-ui-integration.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -124,9 +124,24 @@ Before designing cloud persistence or user accounts, validate the producer workf
 - V5.1.0 - Real Layout Refactor
 - V5.2.0 - Visual Polish and Public Beta Presentation
 - V5.3.0 - Report Sharing and Export
-- V5.4.0 - UI Simplification and Codebase Cleanup (pending publication)
+- V5.4.0 - UI Simplification and Codebase Cleanup (published)
 
+
+## V6.0.3 - Local Project API Integration
+
+The **Output > Saved Projects** workspace now has a separate Local API Projects panel.
+With the local Node server running, you can explicitly:
+
+- Save the current project's metadata as a new server record
+- Refresh and list local API records
+- Load a record into the current workspace (with confirmation and audio-state reset)
+- Overwrite an existing API record (with confirmation)
+- Delete an API record (with confirmation)
+
+Browser LocalStorage saves and backups remain independent. Nothing syncs automatically. The API receives only allowlisted text project metadata (including client name and producer notes), review mode, and selected preset. It never receives audio files or analysis results. This loopback-only development server has **no authentication**; do not use sensitive client material or expose it to the internet.
+
+To try it: open two terminals and run `npm run dev:api` and `npm run dev`; then open **Product > Output > Saved Projects**. Use **Refresh API projects** or **Save current project to local API**.
 
 ## V6.0.2 Local project metadata
 
-The development API listens on 127.0.0.1 and stores explicitly submitted, text-only project metadata under `.soulframe-local/projects.json` (gitignored). Use `npm run dev:api` alongside `npm run dev`. There is no authentication or remote storage, so do not expose this development service to the network. Existing browser LocalStorage saves remain untouched; syncing them requires a later opt-in UI. Run `npm run verify` to test and build.
+The development API listens on 127.0.0.1 and stores explicitly submitted, text-only project metadata under `.soulframe-local/projects.json` (gitignored). Use `npm run dev:api` alongside `npm run dev`. There is no authentication or remote storage, so do not expose this development service to the network. Existing browser LocalStorage saves remain untouched; V6.0.3 allows explicitly saving the current project as a separate API record, not automatic migration of browser backups. Run `npm run verify` to test and build.

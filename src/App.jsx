@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { BackendStatus } from "./api/BackendStatus";
+import { ApiProjectManager } from "./api/ApiProjectManager";
 import {
   V51FocusedWorkspaceHeader,
   V51ProductWorkspace,
@@ -6342,7 +6343,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V6.0.2 local project persistence: the local API supports explicit metadata-only project saving, loading, updating and deleting, with V5.4 architecture underneath: focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. The API is local-only and saves metadata only when called explicitly; browser projects are not automatically synced, and there are no hosted reports, cloud storage, or production backend services.",
+    "V6.0.3 local project API integration: the local API supports explicit metadata-only project saving, loading, updating and deleting, with V5.4 architecture underneath: focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. The API is local-only and saves metadata only when called explicitly; browser projects are not automatically synced, and there are no hosted reports, cloud storage, or production backend services.",
   ].join(newline);
 }
 
@@ -6499,7 +6500,28 @@ export default function SoulFrameDraftReviewV2() {
             </div>
           }
           sessionsContent={
-            <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
+            <div className="space-y-6">
+              <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
+              <ApiProjectManager
+                projectSession={projectSession}
+                reviewMode={reviewMode}
+                selectedPreset={selectedPreset}
+                onLoadProject={(record) => {
+                  setProjectSession({ ...defaultProjectSession, ...record.projectSession });
+                  setReviewMode(record.reviewMode === "compare" ? "compare" : "draft");
+                  setSelectedPreset(draftReports[record.selectedPreset] ? record.selectedPreset : "marcel");
+                  setDraftFile("");
+                  setHumanizedFile("");
+                  setDraftAudioUrl("");
+                  setHumanizedAudioUrl("");
+                  setDraftAudioMetadata(null);
+                  setHumanizedAudioMetadata(null);
+                  setDraftAudioAnalysis(null);
+                  setHumanizedAudioAnalysis(null);
+                  setActiveStep(0);
+                }}
+              />
+            </div>
           }
         />
       )}
@@ -6556,7 +6578,7 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V6.0.2 Project Store</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V6.0.3 API Projects</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
