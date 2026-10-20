@@ -48,7 +48,7 @@ async function postJson(origin, path, payload, options = {}) {
 test('health advertises local project persistence, not audio upload or cloud authentication', async () => {
   await fixture(async ({ origin }) => {
     const h = await (await fetch(`${origin}/api/health`)).json();
-    assert.equal(h.version, 'v6.0.5');
+    assert.equal(h.version, 'v6.0.6');
     assert.equal(h.capabilities.projectPersistence, true);
     assert.equal(h.capabilities.audioUpload, false);
     assert.equal(h.capabilities.hostedReports, false);

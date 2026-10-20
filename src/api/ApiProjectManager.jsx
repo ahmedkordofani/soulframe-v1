@@ -51,7 +51,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     setConnection(status);
     setBusy("");
     if (status.status !== "connected" || (!status.capabilities?.projectPersistence || !status.capabilities?.projectRevisions)) {
-      setFeedback({ kind: "error", text: "Start the V6.0.5 local API with npm run dev:api and retry. An older server cannot safely process revision-protected actions." });
+      setFeedback({ kind: "error", text: "Start the V6.0.6 local API with npm run dev:api and retry. An older server cannot safely process revision-protected actions." });
     } else {
       setFeedback({ kind: "success", text: "Local API available. Refresh the project list when ready." });
     }
@@ -140,7 +140,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5 md:p-6" aria-label="Local API projects">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.5 - Recovery-Protected Projects</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.6 - Import-Protected Projects</p>
           <h2 className="mt-2 text-xl font-semibold text-zinc-100">Server project metadata</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
             Explicitly save project details to your own local Node API, or retrieve them later. These records are separate from SoulFrame's browser-saved projects.
@@ -197,7 +197,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
         ))}
       </div>
       <ProjectRecoveryPanel
-        enabled={connected && connection.capabilities?.projectRecovery === true && connection.capabilities?.metadataBackupExport === true}
+        enabled={connected && connection.capabilities?.projectRecovery === true && connection.capabilities?.metadataBackupExport === true && connection.capabilities?.metadataBackupImport === true}
         onRecoveryChanged={refreshProjects}
       />
     </section>

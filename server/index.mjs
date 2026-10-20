@@ -1,11 +1,11 @@
-// SoulFrame V6.0.5 - local metadata API with recovery snapshots and manual backups.
+// SoulFrame V6.0.6 - local metadata API with recovery snapshots and manual backups.
 // Listen only on loopback; no cloud authentication or hosted user data.
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
 
-export const API_VERSION = 'v6.0.5';
+export const API_VERSION = 'v6.0.6';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
@@ -13,6 +13,7 @@ export const API_CAPABILITIES = Object.freeze({
   projectRevisions: true,
   projectRecovery: true,
   metadataBackupExport: true,
+  metadataBackupImport: true,
   hostedReports: false,
   authentication: false,
 });
@@ -61,14 +62,14 @@ function writeJson(response, statusCode, payload, requestMethod = 'GET', extraHe
   response.end(requestMethod === 'HEAD' ? undefined : body);
 }
 
-async function readJson(request) {
+async function readJson(request, maxBytes = MAX_BODY_BYTES) {
   const type = request.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
   if (type !== 'application/json') throw new ProjectStoreError(415, 'Use application/json');
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > MAX_BODY_BYTES) throw new ProjectStoreError(413, 'Project metadata exceeds 16 KB');
+    if (size > maxBytes) throw new ProjectStoreError(413, 'JSON request exceeds the allowed size');
     chunks.push(chunk);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
@@ -119,6 +120,21 @@ export function createApiHandler({ store = new LocalProjectStore() } = {}) {
           return;
         }
         writeJson(response, 405, { ok: false, error: 'Method not allowed' }, method, { Allow: 'GET, POST' });
+        return;
+      }
+      if (url.pathname === '/api/backup/preview' && method === 'POST') {
+        const preview = await store.previewBackupImport(await readJson(request, 3 * 1024 * 1024));
+        writeJson(response, 200, { ok: true, preview }, method);
+        return;
+      }
+      if (url.pathname === '/api/backup/import' && method === 'POST') {
+        const body = await readJson(request);
+        if (!body || Array.isArray(body) || typeof body !== 'object' ||
+            Object.keys(body).length !== 1 || typeof body.token !== 'string') {
+          throw new ProjectStoreError(422, 'Import requires only a valid preview token');
+        }
+        const summary = await store.commitBackupImport(body.token);
+        writeJson(response, 200, { ok: true, summary }, method);
         return;
       }
       if (url.pathname === '/api/backup' && method === 'GET') {

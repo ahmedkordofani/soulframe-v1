@@ -36,3 +36,7 @@ export const listRecoverySnapshots = (options = {}) => requestProjectApi('/api/r
 export const readRecoverySnapshot = (id, options = {}) => requestProjectApi(`/api/recovery/${encodeURIComponent(id)}`, options);
 export const restoreRecoverySnapshot = (id, options = {}) => requestProjectApi(`/api/recovery/${encodeURIComponent(id)}/restore`, { ...options, method: 'POST' });
 export const exportLocalApiBackup = (options = {}) => requestProjectApi('/api/backup', options);
+
+// Explicit two-stage import: preview first, then confirm with an expiring token.
+export const previewLocalApiBackup = (backup, options = {}) => requestProjectApi('/api/backup/preview', { ...options, method: 'POST', body: backup });
+export const confirmLocalApiBackupImport = (token, options = {}) => requestProjectApi('/api/backup/import', { ...options, method: 'POST', body: { token } });

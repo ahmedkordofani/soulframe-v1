@@ -29,7 +29,7 @@ async function fixture(fn) {
 test('local API advertises recovery and metadata backup without claiming cloud hosting', async () => fixture(async ({ base }) => {
   const response = await fetch(`${base}/api/health`);
   const health = await response.json();
-  assert.equal(health.version, 'v6.0.5');
+  assert.equal(health.version, 'v6.0.6');
   assert.equal(health.capabilities.projectRecovery, true);
   assert.equal(health.capabilities.metadataBackupExport, true);
   assert.equal(health.capabilities.authentication, false);

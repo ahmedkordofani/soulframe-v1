@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.5 - Local Project Recovery and Backup (development)**
+**V6.0.6 - Backup Import and Validation (development)**
 
-V5.4.0 is published. V6.0.5 adds metadata-only recovery snapshots before local project overwrites and deletions, conditional restore and manual JSON backup export. Existing V6.0.4 revision protection remains in place. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 project recovery](docs/v6-project-recovery.md).
+V5.4.0 is published. V6.0.6 adds explicit two-stage import of previously downloaded local API JSON backups, with validation, collision-safe additive merging, and stale-preview protection. V6.0.5 recovery and V6.0.4 revision checks remain in place. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 backup import](docs/v6-backup-import.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -158,6 +158,12 @@ To try it: open two terminals and run `npm run dev:api` and `npm run dev`; then 
 ## V6.0.2 Local project metadata
 
 The development API listens on 127.0.0.1 and stores explicitly submitted, text-only project metadata under `.soulframe-local/projects.json` (gitignored). Use `npm run dev:api` alongside `npm run dev`. There is no authentication or remote storage, so do not expose this development service to the network. Existing browser LocalStorage saves remain untouched; V6.0.3 allows explicitly saving the current project as a separate API record, not automatic migration of browser backups. Run `npm run verify` to test and build.
+
+## V6.0.6 - Backup Import and Validation
+
+In **Product > Output > Saved Projects**, choose a previously downloaded SoulFrame API JSON metadata backup and **Preview backup import**. The server validates all records before preparing a short-lived import plan. Review the number of new projects and skipped existing IDs, then explicitly confirm. The server rejects an expired or stale preview; imported data never replaces an existing project. Eligible recovery history is merged for non-colliding IDs only. No audio is ever included.
+
+The local API remains unauthenticated, bound to loopback and intended for demonstration data only. Keep metadata backups private. This is not cloud sync, multi-user persistence or a disaster recovery guarantee.
 
 ## V6.0.5 - Project Recovery and Manual Metadata Backup
 

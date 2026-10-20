@@ -4,6 +4,8 @@ import {
   readRecoverySnapshot,
   restoreRecoverySnapshot,
   exportLocalApiBackup,
+  previewLocalApiBackup,
+  confirmLocalApiBackupImport,
 } from "./projectClient";
 
 const button = "rounded-2xl border border-zinc-800 bg-black px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-40";
@@ -21,6 +23,8 @@ export function ProjectRecoveryPanel({ enabled = false, onRecoveryChanged }) {
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState("");
   const [feedback, setFeedback] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importAcknowledged, setImportAcknowledged] = useState(false);
 
   async function refreshHistory() {
     if (!enabled) return;
@@ -115,9 +119,54 @@ export function ProjectRecoveryPanel({ enabled = false, onRecoveryChanged }) {
     }
   }
 
+  async function previewBackupFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!enabled || !file) return;
+    setImportPreview(null);
+    setImportAcknowledged(false);
+    setFeedback(null);
+    setBusy("import-preview");
+    try {
+      if (file.size > 3 * 1024 * 1024) throw new Error("Backup is too large (maximum 3 MB)");
+      const backup = JSON.parse(await file.text());
+      const result = await previewLocalApiBackup(backup);
+      if (!result.preview?.token) throw new Error("Invalid import preview response");
+      setImportPreview(result.preview);
+    } catch (error) {
+      setFeedback({ error: true, message: error.message || "Could not preview backup" });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function confirmImport() {
+    if (!enabled || !importPreview?.token || !importAcknowledged) return;
+    const token = importPreview.token;
+    setBusy("import");
+    setFeedback(null);
+    setImportPreview(null); // Never retry a committed or conflicted preview automatically.
+    setImportAcknowledged(false);
+    try {
+      const result = await confirmLocalApiBackupImport(token);
+      const summary = result.summary;
+      setFeedback({ error: false, message: `Imported ${summary.importedProjects} new projects and ${summary.importedSnapshots} recovery snapshots. ${summary.skippedProjects} existing projects were kept unchanged.` });
+      if (typeof onRecoveryChanged === "function") await onRecoveryChanged();
+      const historyResult = await listRecoverySnapshots();
+      setHistory(historyResult.entries);
+      setLoaded(true);
+    } catch (error) {
+      setFeedback({ error: true, message: error.status === 412 || error.status === 410
+        ? "Backup preview is stale or expired. No changes made. Refresh the project list and preview again."
+        : error.message || "Import failed" });
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <section className="mt-6 rounded-3xl border border-zinc-800 bg-black p-5" aria-label="Local project recovery and backup">
-      <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.5 - Local recovery and backup</p>
+      <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.6 - Recovery and backup import</p>
       <h3 className="mt-2 text-xl font-semibold text-zinc-100">Recover earlier project metadata</h3>
       <p className="mt-2 text-sm leading-6 text-zinc-400">
         Earlier project versions are saved locally when you overwrite, delete or restore an API project.
@@ -125,13 +174,34 @@ export function ProjectRecoveryPanel({ enabled = false, onRecoveryChanged }) {
       </p>
       <p className="mt-2 text-xs leading-6 text-zinc-500">
         Recovery keeps up to 10 prior versions per project. Changes from before V6.0.5 were not captured retroactively.
-        The manual JSON backup contains project names, client names and notes, but never audio. It is an export, not a cloud backup or automatic import service.
+        The manual JSON backup contains project names, client names and notes, but never audio. Use Preview backup import to inspect a backup before manually merging it. Existing API projects are never overwritten.
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button type="button" className={button} disabled={!enabled || Boolean(busy)} onClick={refreshHistory}>Refresh recovery history</button>
         <button type="button" className={primary} disabled={!enabled || Boolean(busy)} onClick={downloadBackup}>Download metadata backup</button>
       </div>
-      {!enabled && <p className="mt-3 text-sm text-zinc-500">Start the V6.0.5 local API to use recovery and backup.</p>}
+      <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-4" aria-label="Import metadata backup">
+        <h4 className="font-semibold text-zinc-100">Import metadata backup</h4>
+        <p className="mt-2 text-xs leading-6 text-zinc-400">Choose a SoulFrame local API JSON backup. Preview first; the import will add missing project IDs and eligible history only. Existing projects are never replaced. The preview expires after five minutes and becomes invalid if the database changes. No audio is imported.</p>
+        <label className="mt-4 block text-sm font-semibold text-zinc-200" htmlFor="soulframe-backup-import">Preview backup import</label>
+        <input id="soulframe-backup-import" type="file" accept=".json,application/json" disabled={!enabled || Boolean(busy)} onChange={previewBackupFile} className="mt-2 block w-full text-sm text-zinc-400 file:mr-4 file:rounded-xl file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-zinc-100 disabled:opacity-40" />
+        {importPreview && (
+          <div role="group" aria-label="Confirm backup import" className="mt-4 rounded-2xl border border-amber-900 bg-amber-950/20 p-4">
+            <p className="font-semibold text-zinc-100">Review import plan</p>
+            <p className="mt-2 text-sm leading-6 text-zinc-300">{importPreview.newProjects} new projects, {importPreview.recoverableSnapshots} recovery snapshots to import. {importPreview.skippedProjects} existing projects and {importPreview.skippedSnapshots} snapshots will be skipped.</p>
+            <p className="mt-1 text-xs text-zinc-400">Preview expires: {formatDate(importPreview.expiresAt)}. Existing server records cannot be overwritten by this operation.</p>
+            <label className="mt-4 flex items-start gap-2 text-sm text-zinc-300">
+              <input type="checkbox" checked={importAcknowledged} onChange={(event) => setImportAcknowledged(event.target.checked)} className="mt-1" />
+              I have reviewed the import plan and understand this adds metadata only.
+            </label>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="button" className={primary} disabled={Boolean(busy) || !importAcknowledged} onClick={confirmImport}>Confirm backup import</button>
+              <button type="button" className={button} disabled={Boolean(busy)} onClick={() => { setImportPreview(null); setImportAcknowledged(false); }}>Cancel import</button>
+            </div>
+          </div>
+        )}
+      </div>
+      {!enabled && <p className="mt-3 text-sm text-zinc-500">Start the V6.0.6 local API to use recovery and backup.</p>}
       {feedback && <p role="status" aria-live="polite" className={`mt-4 rounded-2xl border p-4 text-sm ${feedback.error ? "border-red-900 bg-red-950/30 text-red-200" : "border-zinc-700 bg-zinc-950 text-zinc-200"}`}>{feedback.message}</p>}
       {loaded && (
         <div className="mt-4 space-y-2">
