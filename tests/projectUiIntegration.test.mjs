@@ -54,3 +54,13 @@ test("loading server metadata clears stale audio and preserves browser saved pro
   assert.match(app, /setDraftAudioAnalysis\(null\)/);
   assert.match(app, /setHumanizedAudioAnalysis\(null\)/);
 });
+
+
+test("V6.0.4 UI requires conflict-capable API and never retries stale destructive operations", () => {
+  const ui = read("src/api/ApiProjectManager.jsx");
+  assert.match(ui, /capabilities\?\.projectRevisions === true/);
+  assert.match(ui, /expectedRevision: currentRecord\.revision/);
+  assert.match(ui, /error\.status === 412/);
+  assert.match(ui, /setPending\(null\)/);
+  assert.match(ui, /Never automatically retry/);
+});

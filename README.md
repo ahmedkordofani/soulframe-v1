@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.3 - Local Project API Integration (development)**
+**V6.0.4 - Local Project Conflict Protection (development)**
 
-V5.4.0 is published. V6.0.3 adds user-controlled Save, Load, Overwrite and Delete actions for the local project API built in V6.0.2. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 project UI integration](docs/v6-project-ui-integration.md).
+V5.4.0 is published. V6.0.4 protects the local project API against stale overwrites and deletions using project revisions and HTTP `If-Match` preconditions. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 conflict protection](docs/v6-project-conflicts.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -126,6 +126,19 @@ Before designing cloud persistence or user accounts, validate the producer workf
 - V5.3.0 - Report Sharing and Export
 - V5.4.0 - UI Simplification and Codebase Cleanup (published)
 
+
+## V6.0.4 - Project Safety and Conflict Protection
+
+Project records now include a monotonically increasing `revision` number. The local API includes that revision in list and read responses, and the read endpoint returns an `ETag` such as `"1"`.
+
+- Updating and deleting **requires** `If-Match: "<revision>"`.
+- A missing revision returns HTTP `428 Precondition Required`.
+- A stale revision returns HTTP `412 Precondition Failed`; the existing project is left unchanged.
+- The Saved Projects interface shows revision numbers, sends the selected revision, cancels stale actions and refreshes the list; it **never retries overwrites or deletes automatically**.
+- Pre-existing V6.0.2/V6.0.3 JSON records lacking `revision` are treated as revision 1 and continue to work without migration steps.
+- The local JSON format stays at schemaVersion 1, and audio and analysis are never sent to the API.
+
+This only protects against stale writes within **one local API process**. It is not database-level locking across multiple server processes, cloud authentication, a backup system, or safe public hosting. Do not run multiple API servers against the same JSON file. Read the [technical notes and test steps](docs/v6-project-conflicts.md).
 
 ## V6.0.3 - Local Project API Integration
 

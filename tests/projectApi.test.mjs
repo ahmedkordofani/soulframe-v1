@@ -48,7 +48,7 @@ async function postJson(origin, path, payload, options = {}) {
 test('health advertises local project persistence, not audio upload or cloud authentication', async () => {
   await fixture(async ({ origin }) => {
     const h = await (await fetch(`${origin}/api/health`)).json();
-    assert.equal(h.version, 'v6.0.2');
+    assert.equal(h.version, 'v6.0.4');
     assert.equal(h.capabilities.projectPersistence, true);
     assert.equal(h.capabilities.audioUpload, false);
     assert.equal(h.capabilities.hostedReports, false);
@@ -59,19 +59,22 @@ test('health advertises local project persistence, not audio upload or cloud aut
 test('create, list, read, update and delete project metadata via HTTP client', async () => {
   await fixture(async ({ fetcher }) => {
     const created = await createApiProject(project('Vocal Draft'), { fetcher });
+    assert.equal(created.project.revision, 1);
     assert.equal(created.project.projectSession.projectName, 'Vocal Draft');
     assert.match(created.project.id, /^[a-f0-9-]{36}$/);
     const listed = await listApiProjects({ fetcher });
     assert.equal(listed.projects.length, 1);
     assert.equal(listed.projects[0].title, 'Vocal Draft');
+    assert.equal(listed.projects[0].revision, 1);
     assert.equal(listed.projects[0].projectSession, undefined); // summary list only
     const loaded = await readApiProject(created.project.id, { fetcher });
     assert.equal(loaded.project.projectSession.clientName, 'Private client');
-    const updated = await updateApiProject(created.project.id, { ...project('Instrumental Mix'), reviewMode: 'compare' }, { fetcher });
+    const updated = await updateApiProject(created.project.id, { ...project('Instrumental Mix'), reviewMode: 'compare' }, { fetcher, expectedRevision: created.project.revision });
     assert.equal(updated.project.projectSession.projectName, 'Instrumental Mix');
     assert.equal(updated.project.reviewMode, 'compare');
+    assert.equal(updated.project.revision, 2);
     assert.equal(updated.project.createdAt, created.project.createdAt);
-    assert.equal((await deleteApiProject(created.project.id, { fetcher })).deleted, true);
+    assert.equal((await deleteApiProject(created.project.id, { fetcher, expectedRevision: updated.project.revision })).deleted, true);
     assert.deepEqual((await listApiProjects({ fetcher })).projects, []);
   });
 });
@@ -137,8 +140,8 @@ test('unknown projects return 404 and cannot be silently updated', async () => {
   await fixture(async ({ origin }) => {
     const missing = '00000000-0000-4000-8000-000000000000';
     assert.equal((await fetch(`${origin}/api/projects/${missing}`)).status, 404);
-    assert.equal((await postJson(origin, `/api/projects/${missing}`, project(), { method: 'PUT' })).status, 404);
-    assert.equal((await fetch(`${origin}/api/projects/${missing}`, { method: 'DELETE' })).status, 404);
+    assert.equal((await postJson(origin, `/api/projects/${missing}`, project(), { method: 'PUT', headers: { 'If-Match': '"1"' } })).status, 404);
+    assert.equal((await fetch(`${origin}/api/projects/${missing}`, { method: 'DELETE', headers: { 'If-Match': '"1"' } })).status, 404);
   });
 });
 

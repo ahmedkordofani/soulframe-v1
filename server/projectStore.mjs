@@ -1,4 +1,4 @@
-// V6.0.2 - explicit, local-only project metadata persistence.
+// V6.0.4 - local metadata persistence with optimistic concurrency checks.
 // No file/audio bytes, accounts, sync, or hosted services.
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, unlink } from 'node:fs/promises';
@@ -60,9 +60,26 @@ export function validateProjectPayload(payload) {
   return { projectSession, reviewMode, selectedPreset };
 }
 
+// Existing V6.0.2 records may have no revision; they are treated as revision 1.
+function recordRevision(record) {
+  return record.revision ?? 1;
+}
+
+function requireExpectedRevision(expectedRevision) {
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+    throw new ProjectStoreError(428, 'A current project revision is required before changing this record');
+  }
+  return expectedRevision;
+}
+
+function withRevision(record) {
+  return { ...record, revision: recordRevision(record) };
+}
+
 function validDatabase(data) {
   if (!isPlainObject(data) || data.schemaVersion !== 1 || !Array.isArray(data.projects) || data.projects.length > MAX_RECORDS) return false;
   return data.projects.every((p) => isPlainObject(p) && typeof p.id === 'string' && typeof p.updatedAt === 'string' &&
+    (p.revision === undefined || (Number.isSafeInteger(p.revision) && p.revision >= 1)) &&
     isPlainObject(p.projectSession) && typeof p.projectSession.projectName === 'string');
 }
 
@@ -112,14 +129,20 @@ export class LocalProjectStore {
   async list() {
     await this.pending;
     const data = await this.read();
-    return data.projects.map(({ id, projectSession, reviewMode, updatedAt, createdAt }) => ({
-      id, title: projectSession.projectName, reviewMode, createdAt, updatedAt,
+    return data.projects.map((record) => ({
+      id: record.id,
+      title: record.projectSession.projectName,
+      reviewMode: record.reviewMode,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      revision: recordRevision(record),
     }));
   }
 
   async get(id) {
     await this.pending;
-    return (await this.read()).projects.find((p) => p.id === id) ?? null;
+    const record = (await this.read()).projects.find((p) => p.id === id);
+    return record ? withRevision(record) : null;
   }
 
   create(payload) {
@@ -128,30 +151,43 @@ export class LocalProjectStore {
       const data = await this.read();
       if (data.projects.length >= MAX_RECORDS) throw new ProjectStoreError(409, 'Local project limit reached');
       const now = new Date().toISOString();
-      const record = { id: randomUUID(), ...validated, createdAt: now, updatedAt: now };
+      const record = { id: randomUUID(), ...validated, revision: 1, createdAt: now, updatedAt: now };
       data.projects.push(record);
       await this.write(data);
       return record;
     });
   }
 
-  update(id, payload) {
+  update(id, payload, { expectedRevision } = {}) {
     const validated = validateProjectPayload(payload);
+    requireExpectedRevision(expectedRevision);
     return this.queue(async () => {
       const data = await this.read();
       const index = data.projects.findIndex((p) => p.id === id);
       if (index === -1) return null;
-      data.projects[index] = { ...data.projects[index], ...validated, updatedAt: new Date().toISOString() };
+      const current = data.projects[index];
+      if (recordRevision(current) !== expectedRevision) {
+        throw new ProjectStoreError(412, 'This project changed since you last refreshed it. Refresh, review, and try again.');
+      }
+      // A monotonic revision prevents two edits in the same millisecond from sharing a version.
+      data.projects[index] = {
+        ...current, ...validated, revision: expectedRevision + 1,
+        updatedAt: new Date().toISOString(),
+      };
       await this.write(data);
-      return data.projects[index];
+      return withRevision(data.projects[index]);
     });
   }
 
-  delete(id) {
+  delete(id, { expectedRevision } = {}) {
+    requireExpectedRevision(expectedRevision);
     return this.queue(async () => {
       const data = await this.read();
       const index = data.projects.findIndex((p) => p.id === id);
       if (index === -1) return false;
+      if (recordRevision(data.projects[index]) !== expectedRevision) {
+        throw new ProjectStoreError(412, 'This project changed since you last refreshed it. Refresh, review, and try again.');
+      }
       data.projects.splice(index, 1);
       await this.write(data);
       return true;

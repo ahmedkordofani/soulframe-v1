@@ -27,7 +27,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     return () => controller.abort();
   }, []);
 
-  const connected = connection.status === "connected" && connection.capabilities?.projectPersistence === true;
+  const connected = connection.status === "connected" && connection.capabilities?.projectPersistence === true && connection.capabilities?.projectRevisions === true;
 
   async function refreshProjects() {
     setBusy("refresh");
@@ -49,8 +49,8 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     const status = await checkSoulFrameApi();
     setConnection(status);
     setBusy("");
-    if (status.status !== "connected" || !status.capabilities?.projectPersistence) {
-      setFeedback({ kind: "error", text: "The local project API is unavailable. Start npm run dev:api and retry." });
+    if (status.status !== "connected" || (!status.capabilities?.projectPersistence || !status.capabilities?.projectRevisions)) {
+      setFeedback({ kind: "error", text: "Start the V6.0.4 local API with npm run dev:api and retry. An older server cannot safely process revision-protected actions." });
     } else {
       setFeedback({ kind: "success", text: "Local API available. Refresh the project list when ready." });
     }
@@ -76,7 +76,13 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
   async function confirmAction() {
     if (!pending) return;
     const { kind, id } = pending;
-    const label = records.find((record) => record.id === id)?.title || "Project";
+    const currentRecord = records.find((record) => record.id === id);
+    const label = currentRecord?.title || "Project";
+    if (!currentRecord || !Number.isSafeInteger(currentRecord.revision) || currentRecord.revision < 1) {
+      setPending(null);
+      setFeedback({ kind: "error", text: "Project revision is missing. Refresh the list before changing this record." });
+      return;
+    }
     setBusy(kind);
     setFeedback(null);
     try {
@@ -87,18 +93,36 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
         setFeedback({ kind: "success", text: `Loaded ${label}. Attached audio and previous analysis were cleared; upload audio again to review this project.` });
       } else if (kind === "overwrite") {
         const payload = buildLocalApiProjectPayload(projectSession, reviewMode, selectedPreset);
-        await updateApiProject(id, payload);
+        await updateApiProject(id, payload, { expectedRevision: currentRecord.revision });
         const listed = await listApiProjects();
         setRecords(listed.projects);
         setFeedback({ kind: "success", text: `Updated ${label} with the current project metadata.` });
       } else if (kind === "delete") {
-        await deleteApiProject(id);
+        await deleteApiProject(id, { expectedRevision: currentRecord.revision });
         setRecords((current) => current.filter((record) => record.id !== id));
         setFeedback({ kind: "success", text: `Deleted ${label} from the local API. Browser-saved projects were not changed.` });
       }
       setPending(null);
     } catch (error) {
-      setFeedback({ kind: "error", text: error.message || "The action failed" });
+      if (error.status === 412) {
+        // Never automatically retry a destructive action with the new revision.
+        setPending(null);
+        try {
+          const latest = await listApiProjects();
+          if (Array.isArray(latest.projects)) {
+            setRecords(latest.projects);
+            setHasListed(true);
+          }
+        } catch {
+          // A failed refresh still leaves the attempted overwrite/delete cancelled.
+        }
+        setFeedback({
+          kind: "error",
+          text: "Project conflict: another change was saved since your last refresh. The action was cancelled. Review the latest project before trying again.",
+        });
+      } else {
+        setFeedback({ kind: "error", text: error.message || "The action failed" });
+      }
     } finally {
       setBusy("");
     }
@@ -108,20 +132,20 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
   const pendingAction = pending?.kind === "load"
     ? "Load this API project into the current workspace? Your current project fields and review mode will be replaced, and attached audio and analysis will be cleared. Save any unsaved work first."
     : pending?.kind === "overwrite"
-      ? "Replace this saved API project with the CURRENT project's metadata? This overwrites the previous API version. Browser backups and saved projects remain unchanged."
-      : "Permanently delete this project from the local API? This cannot be undone unless you have a separate backup.";
+      ? "Replace this saved API project with the CURRENT project's metadata? The API will block the action if someone changed the saved project since you refreshed. Browser backups remain unchanged."
+      : "Permanently delete this project from the local API? The API will block deletion if the record has changed since you refreshed. Keep a separate backup.";
 
   return (
     <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5 md:p-6" aria-label="Local API projects">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.3 - Local API Projects</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.4 - Conflict-Protected Projects</p>
           <h2 className="mt-2 text-xl font-semibold text-zinc-100">Server project metadata</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
             Explicitly save project details to your own local Node API, or retrieve them later. These records are separate from SoulFrame's browser-saved projects.
           </p>
           <p className="mt-2 text-xs leading-5 text-zinc-500">
-            Only project metadata, including client name and producer notes, is sent when you click Save or Overwrite. No audio files or analysis results are sent. The API is unauthenticated local development software - do not use sensitive client information or expose it publicly.
+            Only project metadata, including client name and producer notes, is sent when you click Save or Overwrite. No audio files or analysis results are sent. The API is unauthenticated local development software - do not use sensitive client information or expose it publicly. Overwrites and deletes require the latest revision, preventing stale changes.
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-xs font-semibold text-zinc-300" role="status">
@@ -161,7 +185,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
           <div key={record.id} className="flex flex-col justify-between gap-3 rounded-2xl border border-zinc-800 bg-black p-4 lg:flex-row lg:items-center">
             <div>
               <p className="font-semibold text-zinc-100">{record.title}</p>
-              <p className="mt-1 text-xs text-zinc-500">{record.reviewMode === "compare" ? "Before / After" : "Draft Review"} - Updated {displayDate(record.updatedAt)}</p>
+              <p className="mt-1 text-xs text-zinc-500">{record.reviewMode === "compare" ? "Before / After" : "Draft Review"} - Revision {record.revision ?? "?"} - Updated {displayDate(record.updatedAt)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" className={button} disabled={Boolean(busy)} onClick={() => setPending({ kind: "load", id: record.id })}>Load</button>

@@ -1,19 +1,38 @@
-// SoulFrame V6.0.2 - local API plus explicitly requested project metadata persistence.
+// SoulFrame V6.0.4 - local metadata API with revision-based conflict protection.
 // Listen only on loopback; no cloud authentication or hosted user data.
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
 
-export const API_VERSION = 'v6.0.2';
+export const API_VERSION = 'v6.0.4';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
   projectPersistence: true,
+  projectRevisions: true,
   hostedReports: false,
   authentication: false,
 });
 const MAX_BODY_BYTES = 16 * 1024;
+
+// ETag/If-Match use an integer revision in a quoted HTTP entity tag: "1", "2", etc.
+// Require a fresh revision for BOTH updating and deleting a saved record.
+function parseExpectedRevision(request) {
+  const header = request.headers['if-match'];
+  if (header === undefined) {
+    throw new ProjectStoreError(428, 'Refresh the project list before editing or deleting (If-Match revision required)');
+  }
+  if (typeof header !== 'string' || !/^"[1-9]\d*"$/.test(header)) {
+    throw new ProjectStoreError(400, 'If-Match must be a quoted numeric project revision, such as "1"');
+  }
+  const revision = Number(header.slice(1, -1));
+  if (!Number.isSafeInteger(revision)) {
+    throw new ProjectStoreError(400, 'Project revision is invalid');
+  }
+  return revision;
+}
+
 const UUID_ROUTE = /^\/api\/projects\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 
 function writeJson(response, statusCode, payload, requestMethod = 'GET', extraHeaders = {}) {
@@ -93,17 +112,24 @@ export function createApiHandler({ store = new LocalProjectStore() } = {}) {
         const id = match[1].toLowerCase();
         if (method === 'GET') {
           const project = await store.get(id);
-          writeJson(response, project ? 200 : 404, project ? { ok: true, project } : { ok: false, error: 'Project not found' }, method);
+          writeJson(response, project ? 200 : 404,
+            project ? { ok: true, project } : { ok: false, error: 'Project not found' },
+            method, project ? { ETag: `"${project.revision}"` } : {});
           return;
         }
         if (method === 'PUT') {
-          const project = await store.update(id, await readJson(request));
-          writeJson(response, project ? 200 : 404, project ? { ok: true, project } : { ok: false, error: 'Project not found' }, method);
+          const expectedRevision = parseExpectedRevision(request);
+          const project = await store.update(id, await readJson(request), { expectedRevision });
+          writeJson(response, project ? 200 : 404,
+            project ? { ok: true, project } : { ok: false, error: 'Project not found' },
+            method, project ? { ETag: `"${project.revision}"` } : {});
           return;
         }
         if (method === 'DELETE') {
-          const deleted = await store.delete(id);
-          writeJson(response, deleted ? 200 : 404, deleted ? { ok: true, deleted: true } : { ok: false, error: 'Project not found' }, method);
+          const expectedRevision = parseExpectedRevision(request);
+          const deleted = await store.delete(id, { expectedRevision });
+          writeJson(response, deleted ? 200 : 404,
+            deleted ? { ok: true, deleted: true } : { ok: false, error: 'Project not found' }, method);
           return;
         }
         writeJson(response, 405, { ok: false, error: 'Method not allowed' }, method, { Allow: 'GET, PUT, DELETE' });
