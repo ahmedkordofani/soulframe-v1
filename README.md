@@ -12,21 +12,22 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.9 - Backend Architecture and Deployment Readiness (development)**
+**V6.1.0 - Hosted Backend Architecture (development, not deployed)**
 
-V5.4.0 is published. V6.0.9 adds a **fail-closed runtime guard** and a read-only `npm run backend:readiness` command to distinguish safe local operation from the significant requirements for hosted services. V6.0.8 local-owner tokens, guarded backup import, recovery and revision checks remain intact. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 deployment readiness](docs/v6-deployment-readiness.md) and [V6 local owner access](docs/v6-local-owner-access.md).
+SoulFrame now includes a **proposed** Supabase/PostgreSQL hosted project metadata schema and owner-scoped Row Level Security design. This is source-only architecture, with a pure metadata mapper, SQL catalog smoke check and static contract tests. **No Supabase connection, user accounts, hosted project saves, audio uploads, or browser-project migration are active.** The local API stays at V6.0.9 with its local-only deployment guard and temporary owner token.
+
+Read [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
 
 ```powershell
-npm run backend:readiness
-npm run backend:readiness -- --target=hosted
-npm run backend:readiness -- --target=local --json
+npm run hosted:contract       # Static guardrails only; NOT a database security test
+npm test                      # Node unit/integration tests
+npm run verify                # Node tests + Vite build
+npm run backend:readiness -- --target=hosted  # Still BLOCKED (expected)
 ```
 
-The hosted target **intentionally exits unsuccessfully** until hosted identity, tenant isolation, durable storage and the other security requirements are implemented. This CLI is an audit of documented local preconditions, **not** a production certification.
+A candidate SQL migration is under `supabase/migrations/`, and a read-only SQL grant/RLS smoke check is under `supabase/tests/`. Neither file is automatically executed. Before using it in a live service we must run two-user allow/deny tests against the real database, verify credentials and session ownership, and implement revision-safe writes and backups. **Do not run the migration against production or put secret/service-role keys into the frontend.**
 
-V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
-
-The Product flow remains: **Dashboard -> Analyze -> Report -> Output -> Advanced**.
+The Product flow remains **Dashboard -> Analyze -> Report -> Output -> Advanced**. Audio technical proxies remain decision aids for a human producer, not verified AI-artifact detection.
 
 ## V5.4 Highlights
 
