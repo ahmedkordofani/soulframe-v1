@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.6 - Backup Import and Validation (development)**
+**V6.0.8 - Local Owner Access (development)**
 
-V5.4.0 is published. V6.0.6 adds explicit two-stage import of previously downloaded local API JSON backups, with validation, collision-safe additive merging, and stale-preview protection. V6.0.5 recovery and V6.0.4 revision checks remain in place. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 backup import](docs/v6-backup-import.md).
+V5.4.0 is published. V6.0.8 adds a temporary local-owner access token to the real Node API for project metadata operations. The existing V6.0.6 guarded backup import, V6.0.5 recovery and V6.0.4 revision checks are preserved. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 local owner access](docs/v6-local-owner-access.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -182,3 +182,17 @@ Recovery snapshots share the same local database file as active projects, so the
 The loopback-only development API now validates browser request context more strictly, sends defensive response headers, rejects announced oversized JSON bodies early, limits repeated metadata requests and uses HTTP timeouts. The existing local project database and backup format remain unchanged.
 
 This is not login authentication, authorization, encryption at rest or a secure public deployment. Keep the API bound to 127.0.0.1, keep .soulframe-local private, and use demo metadata until a proper security architecture is implemented.
+
+
+## V6.0.8 - Local Owner Access
+
+The normal `npm run dev:api` command now generates a cryptographically random, process-scoped local owner token and prints it only in the **backend terminal**. Open `npm run dev` in a second terminal, then navigate to **Product > Output > Saved Projects** and enter the token to unlock API projects. The token is held in browser tab memory and is cleared by the Lock projects button or a page refresh. Restarting the API generates a fresh token.
+
+- The `/api/health` endpoint is public and only reports capabilities. Project, recovery and backup requests require `Authorization: Bearer <token>`.
+- Existing browser LocalStorage project saves work without the API or its token. No project data is transferred until an explicit action.
+- The local owner token is **not** user account authentication, per-project authorization, multi-user isolation or encryption at rest.
+- Do not publish the token, store it in code or browser LocalStorage, or host this API on the public internet. Any program or script running under the same computer account may still have local access.
+- Both the CLI server and the generic API factory require a token by default; automated test fixtures can explicitly use `authToken: null` for compatibility.
+- Existing JSON database and backup formats are unchanged.
+
+Earlier V6.0.2 to V6.0.7 documentation describes the security capabilities available **at those versions**. This V6.0.8 section supersedes older statements that the normal CLI server has no token gate.

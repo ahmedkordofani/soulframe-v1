@@ -16,7 +16,7 @@ export function BackendStatus() {
   const label = api.status === "checking"
     ? "Checking local API"
     : connected
-      ? `Local API connected (${api.version})`
+      ? `Local API connected (${api.version})${api.capabilities?.localTokenRequired ? " - projects require unlock" : ""}`
       : "Browser-only mode";
 
   return (

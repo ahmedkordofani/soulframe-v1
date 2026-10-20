@@ -16,7 +16,7 @@ async function fixture(run) {
   const dir = await mkdtemp(join(tmpdir(), 'soulframe-v606-'));
   const path = join(dir, 'projects.json');
   const store = new LocalProjectStore({ filePath: path });
-  const server = createSoulFrameApiServer({ store });
+  const server = createSoulFrameApiServer({ store, authToken: null });
   await new Promise((res, rej) => { server.once('error', rej); server.listen(0, '127.0.0.1', res); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const fetcher = (url, init) => fetch(base + url, init);
@@ -36,7 +36,7 @@ async function makeBackup(name) {
 
 test('health advertises only local metadata import, not hosting or authentication', () => fixture(async ({ base }) => {
   const data = await (await fetch(base + '/api/health')).json();
-  assert.equal(data.version, 'v6.0.7');
+  assert.equal(data.version, 'v6.0.8');
   assert.equal(data.capabilities.metadataBackupImport, true);
   assert.equal(data.capabilities.audioUpload, false);
   assert.equal(data.capabilities.authentication, false);

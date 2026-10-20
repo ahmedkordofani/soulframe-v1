@@ -1,4 +1,5 @@
 import { ProjectRecoveryPanel } from "./ProjectRecoveryPanel";
+import { setLocalAccessToken, clearLocalAccessToken } from "./localAccessToken";
 import { useEffect, useState } from "react";
 import { checkSoulFrameApi } from "./apiClient";
 import { buildLocalApiProjectPayload } from "./projectMetadata";
@@ -19,6 +20,8 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
   const [busy, setBusy] = useState("");
   const [pending, setPending] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [tokenDraft, setTokenDraft] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -28,9 +31,45 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     return () => controller.abort();
   }, []);
 
-  const connected = connection.status === "connected" && connection.capabilities?.projectPersistence === true && connection.capabilities?.projectRevisions === true;
+  const connected = connection.status === "connected" && connection.capabilities?.projectPersistence === true && connection.capabilities?.projectRevisions === true && connection.capabilities?.localTokenRequired === true && connection.capabilities?.localOwnerAccess === true;
+  const requiresToken = connection.capabilities?.localTokenRequired === true;
+  const canUseProjects = connected && (!requiresToken || unlocked);
+
+  function lockProjects() {
+    clearLocalAccessToken();
+    setTokenDraft("");
+    setUnlocked(false);
+    setRecords([]);
+    setHasListed(false);
+    setPending(null);
+    setFeedback({ kind: "success", text: "Local project access locked. Browser-saved projects remain available." });
+  }
+
+  async function unlockProjects(event) {
+    event.preventDefault();
+    if (!connected || !requiresToken || busy) return;
+    setBusy("unlock");
+    setFeedback(null);
+    try {
+      setLocalAccessToken(tokenDraft);
+      const listed = await listApiProjects(); // Validate token with the real API.
+      if (!Array.isArray(listed.projects)) throw new Error("Invalid local project list");
+      setRecords(listed.projects);
+      setHasListed(true);
+      setUnlocked(true);
+      setTokenDraft("");
+      setFeedback({ kind: "success", text: "Local project storage unlocked for this browser tab. The token is held only in memory." });
+    } catch (error) {
+      clearLocalAccessToken();
+      setUnlocked(false);
+      setFeedback({ kind: "error", text: error.status === 401 ? "Incorrect or expired access token. Restarting the backend generates a new one." : (error.message || "Could not unlock local projects") });
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function refreshProjects() {
+    if (!canUseProjects) return;
     setBusy("refresh");
     setFeedback(null);
     try {
@@ -39,6 +78,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
       setRecords(result.projects);
       setHasListed(true);
     } catch (error) {
+      if (error.status === 401) lockProjects();
       setFeedback({ kind: "error", text: error.message || "Could not list projects" });
     } finally {
       setBusy("");
@@ -50,14 +90,15 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     const status = await checkSoulFrameApi();
     setConnection(status);
     setBusy("");
-    if (status.status !== "connected" || (!status.capabilities?.projectPersistence || !status.capabilities?.projectRevisions)) {
-      setFeedback({ kind: "error", text: "Start the V6.0.6 local API with npm run dev:api and retry. An older server cannot safely process revision-protected actions." });
+    if (status.status !== "connected" || (!status.capabilities?.projectPersistence || !status.capabilities?.projectRevisions || !status.capabilities?.localTokenRequired || !status.capabilities?.localOwnerAccess)) {
+      setFeedback({ kind: "error", text: "Start the V6.0.8 local API with npm run dev:api and retry. An older server cannot safely process revision-protected actions." });
     } else {
       setFeedback({ kind: "success", text: "Local API available. Refresh the project list when ready." });
     }
   }
 
   async function saveNewProject() {
+    if (!canUseProjects) return;
     setBusy("create");
     setFeedback(null);
     try {
@@ -68,6 +109,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
       setHasListed(true);
       setFeedback({ kind: "success", text: `Saved ${saved.project.projectSession.projectName} as a new local API project.` });
     } catch (error) {
+      if (error.status === 401) lockProjects();
       setFeedback({ kind: "error", text: error.message || "Could not save the project" });
     } finally {
       setBusy("");
@@ -75,7 +117,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
   }
 
   async function confirmAction() {
-    if (!pending) return;
+    if (!pending || !canUseProjects) return;
     const { kind, id } = pending;
     const currentRecord = records.find((record) => record.id === id);
     const label = currentRecord?.title || "Project";
@@ -105,7 +147,10 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
       }
       setPending(null);
     } catch (error) {
-      if (error.status === 412) {
+      if (error.status === 401) {
+        lockProjects();
+        setFeedback({ kind: "error", text: "Local API token expired or changed. Unlock with the current token in the API terminal." });
+      } else if (error.status === 412) {
         // Never automatically retry a destructive action with the new revision.
         setPending(null);
         try {
@@ -140,24 +185,44 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
     <section className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-5 md:p-6" aria-label="Local API projects">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.6 - Import-Protected Projects</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">V6.0.8 - Local Owner Access</p>
           <h2 className="mt-2 text-xl font-semibold text-zinc-100">Server project metadata</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
             Explicitly save project details to your own local Node API, or retrieve them later. These records are separate from SoulFrame's browser-saved projects.
           </p>
           <p className="mt-2 text-xs leading-5 text-zinc-500">
-            Only project metadata, including client name and producer notes, is sent when you click Save or Overwrite. No audio files or analysis results are sent. The API is unauthenticated local development software - do not use sensitive client information or expose it publicly. Overwrites and deletes require the latest revision, preventing stale changes.
+            Only project metadata, including client name and producer notes, is sent when you click Save or Overwrite. No audio files or analysis results are sent. The API uses a temporary local-owner token, not real user accounts. Do not expose it publicly or use sensitive client data. Overwrites and deletes require the latest revision, preventing stale changes.
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-xs font-semibold text-zinc-300" role="status">
-          {connection.status === "checking" ? "Checking local API..." : connected ? `Connected (${connection.version})` : "Offline - browser saves still work"}
+          {connection.status === "checking" ? "Checking local API..." : connected ? `Connected (${connection.version})` : connection.status === "connected" ? "Update API to v6.0.8 before saving projects" : "Offline - browser saves still work"}
         </div>
       </div>
 
+      {requiresToken && connected ? (
+        <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+          <p className="text-sm font-semibold text-zinc-100">{unlocked ? "Local projects unlocked" : "Unlock local project storage"}</p>
+          <p className="mt-2 text-xs leading-6 text-zinc-400">{unlocked
+            ? "Your temporary token is held in memory for this tab. Lock access whenever you finish working."
+            : "Start npm run dev:api, copy the access token printed in that terminal, then enter it here. A new token is generated whenever the API restarts."}</p>
+          {unlocked ? (
+            <button type="button" className={`${button} mt-3`} onClick={lockProjects} disabled={Boolean(busy)}>Lock projects</button>
+          ) : (
+            <form className="mt-3 flex flex-col gap-3 sm:flex-row" onSubmit={unlockProjects}>
+              <input type="password" autoComplete="off" name="local-access-token" value={tokenDraft}
+                onChange={(event) => setTokenDraft(event.target.value)}
+                placeholder="Paste temporary API access token" aria-label="Local API access token"
+                className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-sm text-white" />
+              <button className={primaryButton} type="submit" disabled={Boolean(busy) || !tokenDraft.trim()}>Unlock projects</button>
+            </form>
+          )}
+        </div>
+      ) : null}
+
       <div className="mt-5 flex flex-wrap gap-3">
         <button type="button" className={button} disabled={Boolean(busy)} onClick={retryConnection}>Retry connection</button>
-        <button type="button" className={button} disabled={!connected || Boolean(busy)} onClick={refreshProjects}>Refresh API projects</button>
-        <button type="button" className={primaryButton} disabled={!connected || Boolean(busy)} onClick={saveNewProject}>Save current project to local API</button>
+        <button type="button" className={button} disabled={!canUseProjects || Boolean(busy)} onClick={refreshProjects}>Refresh API projects</button>
+        <button type="button" className={primaryButton} disabled={!canUseProjects || Boolean(busy)} onClick={saveNewProject}>Save current project to local API</button>
       </div>
 
       {feedback ? (
@@ -178,7 +243,9 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
       )}
 
       <div className="mt-5 space-y-3">
-        {!hasListed ? (
+        {!canUseProjects && requiresToken ? (
+          <p className="rounded-2xl border border-zinc-800 bg-black p-4 text-sm text-zinc-500">Unlock the local API before listing or changing server projects.</p>
+        ) : !hasListed ? (
           <p className="rounded-2xl border border-zinc-800 bg-black p-4 text-sm text-zinc-500">Choose Refresh API projects to list locally stored projects. No browser projects are uploaded automatically.</p>
         ) : records.length === 0 ? (
           <p className="rounded-2xl border border-zinc-800 bg-black p-4 text-sm text-zinc-500">No projects saved to the local API yet.</p>
@@ -197,7 +264,7 @@ export function ApiProjectManager({ projectSession, reviewMode, selectedPreset, 
         ))}
       </div>
       <ProjectRecoveryPanel
-        enabled={connected && connection.capabilities?.projectRecovery === true && connection.capabilities?.metadataBackupExport === true && connection.capabilities?.metadataBackupImport === true}
+        enabled={canUseProjects && connection.capabilities?.projectRecovery === true && connection.capabilities?.metadataBackupExport === true && connection.capabilities?.metadataBackupImport === true}
         onRecoveryChanged={refreshProjects}
       />
     </section>

@@ -1,3 +1,4 @@
+import { getLocalAccessToken } from './localAccessToken.js';
 // V6.0.4 explicit local API operations with optimistic concurrency tokens.
 // Nothing here automatically uploads browser projects or audio.
 
@@ -9,6 +10,7 @@ async function requestProjectApi(path, { fetcher = globalThis.fetch, method = 'G
     method, signal, cache: 'no-store',
     headers: {
       Accept: 'application/json',
+      ...(getLocalAccessToken() ? { Authorization: `Bearer ${getLocalAccessToken()}` } : {}),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       ...(expectedRevision === undefined ? {} : { 'If-Match': `"${expectedRevision}"` }),
       ...(requireAbsent ? { 'If-None-Match': '*' } : {}),

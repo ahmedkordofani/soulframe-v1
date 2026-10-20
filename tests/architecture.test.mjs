@@ -41,9 +41,9 @@ test("secondary views and Classic Demo remain lazy-loaded", () => {
   assert.match(app, /React\.Suspense/);
 });
 
-test("V6.0.6 version and product summary are in sync", () => {
-  assert.match(app, /V6\.0\.7 Local Security/);
-  assert.match(app, /V6\.0\.7 local API request hardening, validated backup import with preview and no overwrites/);
+test("V6.0.8 version and product summary are in sync", () => {
+  assert.match(app, /V6\.0\.8 Local Owner Access/);
+  assert.match(app, /V6\.0\.8 local-owner access token, request hardening, and protected project backups/);
   assert.doesNotMatch(app, /V5\.4\.9 Integration QA/);
 });
 

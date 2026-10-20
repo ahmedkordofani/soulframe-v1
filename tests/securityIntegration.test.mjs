@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createSoulFrameApiServer } from '../server/index.mjs';
 
 async function withServer(callback) {
-  const server = createSoulFrameApiServer();
+  const server = createSoulFrameApiServer({ authToken: null });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
@@ -31,7 +31,7 @@ test('real API health advertises request hardening without claiming authenticati
     const res = await fetch(`${base}/api/health`);
     assert.equal(res.status, 200);
     const json = await res.json();
-    assert.equal(json.version, 'v6.0.7');
+    assert.equal(json.version, 'v6.0.8');
     assert.equal(json.capabilities.localSecurityHardening, true);
     assert.equal(json.capabilities.authentication, false);
     assert.equal(json.capabilities.audioUpload, false);

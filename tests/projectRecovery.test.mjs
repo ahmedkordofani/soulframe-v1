@@ -15,7 +15,7 @@ async function fixture(fn) {
   const dir = await mkdtemp(join(tmpdir(), 'soulframe-v605-'));
   const filePath = join(dir, 'projects.json');
   const store = new LocalProjectStore({ filePath });
-  const server = createSoulFrameApiServer({ store });
+  const server = createSoulFrameApiServer({ store, authToken: null });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const fetcher = (url, options) => fetch(`${base}${url}`, options);
@@ -29,7 +29,7 @@ async function fixture(fn) {
 test('local API advertises recovery and metadata backup without claiming cloud hosting', async () => fixture(async ({ base }) => {
   const response = await fetch(`${base}/api/health`);
   const health = await response.json();
-  assert.equal(health.version, 'v6.0.7');
+  assert.equal(health.version, 'v6.0.8');
   assert.equal(health.capabilities.projectRecovery, true);
   assert.equal(health.capabilities.metadataBackupExport, true);
   assert.equal(health.capabilities.authentication, false);

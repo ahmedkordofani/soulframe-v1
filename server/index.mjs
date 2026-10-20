@@ -1,12 +1,13 @@
-// SoulFrame V6.0.6 - local metadata API with recovery snapshots and manual backups.
+// SoulFrame V6.0.8 - loopback-only, process-token-protected metadata API.
 // Listen only on loopback; no cloud authentication or hosted user data.
 import { createServer } from 'node:http';
+import { generateLocalAccessToken, isLocalRequestAuthorized, isValidLocalAccessToken } from './localAccess.mjs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
 import { isAllowedLocalRequest, setLocalSecurityHeaders, checkDeclaredContentLength, createLocalRateLimiter } from './requestSecurity.mjs';
 
-export const API_VERSION = 'v6.0.7';
+export const API_VERSION = 'v6.0.8';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
@@ -18,6 +19,7 @@ export const API_CAPABILITIES = Object.freeze({
   hostedReports: false,
   authentication: false,
   localSecurityHardening: true,
+  localOwnerAccess: true,
 });
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -83,7 +85,12 @@ function requestIsLocal(request) {
   return isAllowedLocalRequest(request);
 }
 
-export function createApiHandler({ store = new LocalProjectStore() } = {}) {
+export function createApiHandler({ store = new LocalProjectStore(), authToken = generateLocalAccessToken() } = {}) {
+  // Test fixtures can explicitly opt out with authToken:null.
+  // Normal CLI and programmatic factories use a strong generated token by default.
+  if (authToken !== null && !isValidLocalAccessToken(authToken)) {
+    throw new TypeError('authToken must be a 43-character base64url secret or null');
+  }
   const limiter = createLocalRateLimiter();
   return async (request, response) => {
     const method = request.method || 'GET';
@@ -105,8 +112,16 @@ export function createApiHandler({ store = new LocalProjectStore() } = {}) {
         }
         writeJson(response, 200, {
           ok: true, service: 'soulframe-api', version: API_VERSION,
-          mode: 'local-development', capabilities: API_CAPABILITIES,
+          mode: 'local-development', capabilities: { ...API_CAPABILITIES, localTokenRequired: authToken !== null },
         }, method);
+        return;
+      }
+      // Every project, recovery, export and import endpoint is protected by the owner token.
+      // Health is intentionally public and reveals no project metadata or secret.
+      if (authToken !== null && !isLocalRequestAuthorized(request, authToken)) {
+        writeJson(response, 401, { ok: false, error: 'Local project access is locked. Enter the token printed in the API terminal.' }, method, {
+          'WWW-Authenticate': 'Bearer realm="SoulFrame local API"',
+        });
         return;
       }
       if (url.pathname === '/api/projects') {
@@ -220,14 +235,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.error('SOULFRAME_API_PORT must be an integer between 1 and 65535.');
     process.exitCode = 1;
   } else {
-    const server = createSoulFrameApiServer();
+    const authToken = generateLocalAccessToken();
+    const server = createSoulFrameApiServer({ authToken });
     server.on('error', (error) => {
       console.error('Could not start SoulFrame API:', error.message);
       process.exitCode = 1;
     });
     server.listen(requestedPort, host, () => {
       console.log(`SoulFrame local API: http://${host}:${requestedPort}/api/health`);
-      console.log('Metadata-only local project storage. No audio uploads, remote sync, or authentication.');
+      console.log('Local project access token (enter under Product > Output > Saved Projects):');
+      console.log(authToken);
+      console.log('This token expires when the API stops. Do not share it or paste it into public issues.');
+      console.log('Local-only, single-owner protection. No hosted accounts, no remote sync, no audio upload.');
     });
   }
 }

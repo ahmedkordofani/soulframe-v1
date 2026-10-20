@@ -17,7 +17,7 @@ async function fixture(callback) {
   const directory = await mkdtemp(join(tmpdir(), 'soulframe-v604-'));
   const filePath = join(directory, 'projects.json');
   const store = new LocalProjectStore({ filePath });
-  const server = createSoulFrameApiServer({ store });
+  const server = createSoulFrameApiServer({ store, authToken: null });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);

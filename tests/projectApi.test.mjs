@@ -12,7 +12,7 @@ async function fixture(callback) {
   const dir = await mkdtemp(join(tmpdir(), 'soulframe-v602-'));
   const path = join(dir, 'projects.json');
   const store = new LocalProjectStore({ filePath: path });
-  const server = createSoulFrameApiServer({ store });
+  const server = createSoulFrameApiServer({ store, authToken: null });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
@@ -48,7 +48,7 @@ async function postJson(origin, path, payload, options = {}) {
 test('health advertises local project persistence, not audio upload or cloud authentication', async () => {
   await fixture(async ({ origin }) => {
     const h = await (await fetch(`${origin}/api/health`)).json();
-    assert.equal(h.version, 'v6.0.7');
+    assert.equal(h.version, 'v6.0.8');
     assert.equal(h.capabilities.projectPersistence, true);
     assert.equal(h.capabilities.audioUpload, false);
     assert.equal(h.capabilities.hostedReports, false);
