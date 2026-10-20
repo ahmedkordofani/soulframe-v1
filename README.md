@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.1 - Local API Foundation (development)**
+**V6.0.2 - Local Project Persistence (development)**
 
-V5.4.0 is published. V6.0.1 begins the transition to real backend functionality with a local, read-only health API and verified browser connection status. This is not a hosted backend. See [V6 local API setup](docs/v6-backend-foundation.md).
+V5.4.0 is published. V6.0.2 adds local-only, metadata-only project persistence to the V6 API, after the health-check foundation of V6.0.1. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 project persistence](docs/v6-project-persistence.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -125,3 +125,8 @@ Before designing cloud persistence or user accounts, validate the producer workf
 - V5.2.0 - Visual Polish and Public Beta Presentation
 - V5.3.0 - Report Sharing and Export
 - V5.4.0 - UI Simplification and Codebase Cleanup (pending publication)
+
+
+## V6.0.2 Local project metadata
+
+The development API listens on 127.0.0.1 and stores explicitly submitted, text-only project metadata under `.soulframe-local/projects.json` (gitignored). Use `npm run dev:api` alongside `npm run dev`. There is no authentication or remote storage, so do not expose this development service to the network. Existing browser LocalStorage saves remain untouched; syncing them requires a later opt-in UI. Run `npm run verify` to test and build.

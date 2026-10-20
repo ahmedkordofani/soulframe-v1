@@ -25,9 +25,9 @@ test("real local health endpoint responds with honest capabilities", async () =>
     assert.equal(response.headers.get("cache-control"), "no-store");
     const health = await response.json();
     assert.equal(isSoulFrameApiHealth(health), true);
-    assert.equal(health.version, "v6.0.1");
+    assert.equal(health.version, "v6.0.2");
     assert.equal(health.capabilities.audioUpload, false);
-    assert.equal(health.capabilities.projectPersistence, false);
+    assert.equal(health.capabilities.projectPersistence, true);
     assert.equal(health.capabilities.hostedReports, false);
     assert.equal(health.capabilities.authentication, false);
   });
@@ -37,7 +37,7 @@ test("browser client recognizes only a real SoulFrame health response", async ()
   await withApi(async (origin) => {
     const api = await checkSoulFrameApi((path, options) => fetch(`${origin}${path}`, options));
     assert.equal(api.status, "connected");
-    assert.equal(api.version, "v6.0.1");
+    assert.equal(api.version, "v6.0.2");
   });
 });
 
@@ -54,7 +54,7 @@ test("frontend fails safely when the API is unavailable", async () => {
 
 test("unknown endpoints return JSON 404 without leaking files", async () => {
   await withApi(async (origin) => {
-    const response = await fetch(`${origin}/api/projects`);
+    const response = await fetch(`${origin}/api/not-an-endpoint`);
     assert.equal(response.status, 404);
     assert.equal((await response.json()).ok, false);
   });
@@ -72,7 +72,7 @@ test("health calls send no project or audio payload", async () => {
   const calls = [];
   await checkSoulFrameApi(async (path, options) => {
     calls.push({ path, options });
-    return { ok: true, json: async () => ({ ok: true, service: "soulframe-api", version: "v6.0.1", mode: "local-development", capabilities: {healthCheck:true} }) };
+    return { ok: true, json: async () => ({ ok: true, service: "soulframe-api", version: "v6.0.2", mode: "local-development", capabilities: {healthCheck:true} }) };
   });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].path, "/api/health");

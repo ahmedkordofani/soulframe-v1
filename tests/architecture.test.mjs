@@ -41,9 +41,9 @@ test("secondary views and Classic Demo remain lazy-loaded", () => {
   assert.match(app, /React\.Suspense/);
 });
 
-test("V6.0.1 version and product summary are in sync", () => {
-  assert.match(app, /V6\.0\.1 Local API/);
-  assert.match(app, /V6\.0\.1 local API foundation/);
+test("V6.0.2 version and product summary are in sync", () => {
+  assert.match(app, /V6\.0\.2 Project Store/);
+  assert.match(app, /V6\.0\.2 local project persistence/);
   assert.doesNotMatch(app, /V5\.4\.9 Integration QA/);
 });
 
@@ -55,4 +55,13 @@ test("the release gate runs regression tests and a production build in CI", () =
   assert.match(workflow, /npm ci/);
   assert.match(workflow, /npm run verify/);
   assert.match(workflow, /pull_request:/);
+});
+
+
+test("V6.0.2 local persistence is explicit and never commits local metadata", () => {
+  const ignored = read(".gitignore");
+  const projectClient = read("src/api/projectClient.js");
+  assert.match(ignored, /\.soulframe-local\//);
+  assert.match(projectClient, /export const createApiProject/);
+  assert.doesNotMatch(app, /from ["']\.\/api\/projectClient["']/);
 });
