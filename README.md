@@ -12,9 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.0.4 - Local Project Conflict Protection (development)**
+**V6.0.5 - Local Project Recovery and Backup (development)**
 
-V5.4.0 is published. V6.0.4 protects the local project API against stale overwrites and deletions using project revisions and HTTP `If-Match` preconditions. Browser projects are **not** automatically synced; no audio is uploaded. See [V6 conflict protection](docs/v6-project-conflicts.md).
+V5.4.0 is published. V6.0.5 adds metadata-only recovery snapshots before local project overwrites and deletions, conditional restore and manual JSON backup export. Existing V6.0.4 revision protection remains in place. Browser projects are **not** automatically synced and audio is never uploaded. See [V6 project recovery](docs/v6-project-recovery.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 
@@ -107,7 +107,7 @@ The same verification runs in GitHub Actions on pushes to `main` and `v5-*` bran
 
 Audio inspection and current report generation operate in the browser, with no required audio upload backend. Project/session data is stored in the browser and may be lost if local site data is cleared. Export a backup before clearing site data or testing migration.
 
-SoulFrame does **not** yet provide authenticated accounts, persistent cloud projects, secure hosted report links, revocable sharing permissions, database-backed history, server PDFs, or a production API. The V4.1 API work is a prototype scaffold only.
+SoulFrame does **not** yet provide authenticated accounts, persistent cloud projects, secure hosted report links, revocable sharing permissions, server PDFs, or a production API. The V6 local API includes JSON metadata persistence and bounded local history; neither is a cloud database or automatic backup. The V4.1 API work was a prototype scaffold.
 
 ## Next Chapter
 
@@ -158,3 +158,14 @@ To try it: open two terminals and run `npm run dev:api` and `npm run dev`; then 
 ## V6.0.2 Local project metadata
 
 The development API listens on 127.0.0.1 and stores explicitly submitted, text-only project metadata under `.soulframe-local/projects.json` (gitignored). Use `npm run dev:api` alongside `npm run dev`. There is no authentication or remote storage, so do not expose this development service to the network. Existing browser LocalStorage saves remain untouched; V6.0.3 allows explicitly saving the current project as a separate API record, not automatic migration of browser backups. Run `npm run verify` to test and build.
+
+## V6.0.5 - Project Recovery and Manual Metadata Backup
+
+- Capture the previous project metadata revision before each successful API overwrite and deletion.
+- Keep up to ten recovery snapshots per project in the original schema version 1 JSON database, including older projects.
+- Review earlier snapshots in **Product > Output > Saved Projects** and restore with explicit confirmation.
+- Require conditional requests to prevent stale restorations overwriting newer changes.
+- Download an independent JSON file containing the local API's project and recovery metadata. This includes client names and producer notes and must be kept private.
+- No backup import, remote sync, audio upload, accounts, or cloud hosting has been added.
+
+Recovery snapshots share the same local database file as active projects, so they do not protect against total file loss or corruption. See [V6.0.5 recovery documentation](docs/v6-project-recovery.md).

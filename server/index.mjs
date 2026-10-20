@@ -1,16 +1,18 @@
-// SoulFrame V6.0.4 - local metadata API with revision-based conflict protection.
+// SoulFrame V6.0.5 - local metadata API with recovery snapshots and manual backups.
 // Listen only on loopback; no cloud authentication or hosted user data.
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LocalProjectStore, ProjectStoreError } from './projectStore.mjs';
 
-export const API_VERSION = 'v6.0.4';
+export const API_VERSION = 'v6.0.5';
 export const API_CAPABILITIES = Object.freeze({
   healthCheck: true,
   audioUpload: false,
   projectPersistence: true,
   projectRevisions: true,
+  projectRecovery: true,
+  metadataBackupExport: true,
   hostedReports: false,
   authentication: false,
 });
@@ -33,6 +35,18 @@ function parseExpectedRevision(request) {
   return revision;
 }
 
+function parseRecoveryPrecondition(request) {
+  if (request.headers['if-match'] !== undefined && request.headers['if-none-match'] !== undefined) {
+    throw new ProjectStoreError(400, 'Use exactly one revision precondition');
+  }
+  if (request.headers['if-none-match'] !== undefined) {
+    if (request.headers['if-none-match'] !== '*') throw new ProjectStoreError(400, 'If-None-Match must be * for recovery of a deleted project');
+    return { requireAbsent: true };
+  }
+  return { expectedRevision: parseExpectedRevision(request) };
+}
+
+const SNAPSHOT_ROUTE = /^\/api\/recovery\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(\/restore)?$/i;
 const UUID_ROUTE = /^\/api\/projects\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 
 function writeJson(response, statusCode, payload, requestMethod = 'GET', extraHeaders = {}) {
@@ -105,6 +119,35 @@ export function createApiHandler({ store = new LocalProjectStore() } = {}) {
           return;
         }
         writeJson(response, 405, { ok: false, error: 'Method not allowed' }, method, { Allow: 'GET, POST' });
+        return;
+      }
+      if (url.pathname === '/api/backup' && method === 'GET') {
+        writeJson(response, 200, { ok: true, backup: await store.exportBackup() }, method);
+        return;
+      }
+      if (url.pathname === '/api/recovery' && method === 'GET') {
+        writeJson(response, 200, { ok: true, entries: await store.recoveryList() }, method);
+        return;
+      }
+      const recovery = SNAPSHOT_ROUTE.exec(url.pathname);
+      if (recovery) {
+        const snapshotId = recovery[1].toLowerCase();
+        const isRestore = Boolean(recovery[2]);
+        if (!isRestore && method === 'GET') {
+          const snapshot = await store.recoveryGet(snapshotId);
+          writeJson(response, snapshot ? 200 : 404,
+            snapshot ? { ok: true, snapshot } : { ok: false, error: 'Recovery snapshot not found' }, method);
+          return;
+        }
+        if (isRestore && method === 'POST') {
+          const precondition = parseRecoveryPrecondition(request);
+          const project = await store.restore(snapshotId, precondition);
+          writeJson(response, project ? 200 : 404,
+            project ? { ok: true, project } : { ok: false, error: 'Recovery snapshot not found' }, method,
+            project ? { ETag: `"${project.revision}"` } : {});
+          return;
+        }
+        writeJson(response, 405, { ok: false, error: 'Method not allowed' }, method);
         return;
       }
       const match = UUID_ROUTE.exec(url.pathname);

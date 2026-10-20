@@ -9,6 +9,9 @@ export const PROJECT_FIELDS = Object.freeze([
   'currentStage', 'mainConcern', 'clientGoal', 'producerNotes',
 ]);
 const MAX_RECORDS = 1000;
+const MAX_HISTORY = 5000;
+const HISTORY_PER_PROJECT = 10;
+export const BACKUP_TYPE = 'soulframe-local-api-metadata-backup';
 const FILENAME = resolve(process.cwd(), '.soulframe-local', 'projects.json');
 
 export class ProjectStoreError extends Error {
@@ -76,8 +79,36 @@ function withRevision(record) {
   return { ...record, revision: recordRevision(record) };
 }
 
+function validHistoryEntry(entry) {
+  return isPlainObject(entry) &&
+    typeof entry.id === 'string' && /^[a-f0-9-]{36}$/i.test(entry.id) &&
+    ['update', 'delete', 'restore'].includes(entry.reason) &&
+    typeof entry.capturedAt === 'string' &&
+    isPlainObject(entry.record) &&
+    typeof entry.record.id === 'string' &&
+    typeof entry.record.createdAt === 'string' &&
+    typeof entry.record.updatedAt === 'string' &&
+    Number.isSafeInteger(recordRevision(entry.record)) && recordRevision(entry.record) >= 1 &&
+    isPlainObject(entry.record.projectSession) &&
+    typeof entry.record.projectSession.projectName === 'string' &&
+    Object.keys(entry.record.projectSession).every((key) => PROJECT_FIELDS.includes(key));
+}
+
+function recordSnapshot(data, record, reason) {
+  data.history ??= [];
+  data.history.push({ id: randomUUID(), reason, capturedAt: new Date().toISOString(), record: withRevision(record) });
+  // Keep the most recent 10 revisions per project and cap database-wide history.
+  const count = data.history.filter((entry) => entry.record.id === record.id).length;
+  if (count > HISTORY_PER_PROJECT) {
+    const index = data.history.findIndex((entry) => entry.record.id === record.id);
+    if (index !== -1) data.history.splice(index, 1);
+  }
+  if (data.history.length > MAX_HISTORY) data.history.splice(0, data.history.length - MAX_HISTORY);
+}
+
 function validDatabase(data) {
   if (!isPlainObject(data) || data.schemaVersion !== 1 || !Array.isArray(data.projects) || data.projects.length > MAX_RECORDS) return false;
+  if (data.history !== undefined && (!Array.isArray(data.history) || data.history.length > MAX_HISTORY || !data.history.every(validHistoryEntry))) return false;
   return data.projects.every((p) => isPlainObject(p) && typeof p.id === 'string' && typeof p.updatedAt === 'string' &&
     (p.revision === undefined || (Number.isSafeInteger(p.revision) && p.revision >= 1)) &&
     isPlainObject(p.projectSession) && typeof p.projectSession.projectName === 'string');
@@ -94,7 +125,7 @@ export class LocalProjectStore {
     try {
       raw = await readFile(this.filePath, 'utf8');
     } catch (error) {
-      if (error.code === 'ENOENT') return { schemaVersion: 1, projects: [] };
+      if (error.code === 'ENOENT') return { schemaVersion: 1, projects: [], history: [] };
       throw error;
     }
     let parsed;
@@ -104,7 +135,7 @@ export class LocalProjectStore {
       throw new ProjectStoreError(500, 'Project database is invalid; no data was changed');
     }
     if (!validDatabase(parsed)) throw new ProjectStoreError(500, 'Project database format is invalid; no data was changed');
-    return parsed;
+    return { ...parsed, history: parsed.history ?? [] };
   }
 
   async write(data) {
@@ -170,6 +201,8 @@ export class LocalProjectStore {
         throw new ProjectStoreError(412, 'This project changed since you last refreshed it. Refresh, review, and try again.');
       }
       // A monotonic revision prevents two edits in the same millisecond from sharing a version.
+      if (expectedRevision >= Number.MAX_SAFE_INTEGER) throw new ProjectStoreError(409, 'Revision limit reached');
+      recordSnapshot(data, current, 'update');
       data.projects[index] = {
         ...current, ...validated, revision: expectedRevision + 1,
         updatedAt: new Date().toISOString(),
@@ -188,9 +221,81 @@ export class LocalProjectStore {
       if (recordRevision(data.projects[index]) !== expectedRevision) {
         throw new ProjectStoreError(412, 'This project changed since you last refreshed it. Refresh, review, and try again.');
       }
+      recordSnapshot(data, data.projects[index], 'delete');
       data.projects.splice(index, 1);
       await this.write(data);
       return true;
     });
   }
+
+  async recoveryList() {
+    await this.pending;
+    const data = await this.read();
+    return [...data.history].reverse().map((entry) => {
+      const current = data.projects.find((record) => record.id === entry.record.id);
+      return {
+        id: entry.id,
+        projectId: entry.record.id,
+        title: entry.record.projectSession.projectName,
+        revision: recordRevision(entry.record),
+        reason: entry.reason,
+        capturedAt: entry.capturedAt,
+        activeRevision: current ? recordRevision(current) : null,
+      };
+    });
+  }
+
+  async recoveryGet(snapshotId) {
+    await this.pending;
+    const entry = (await this.read()).history.find((snapshot) => snapshot.id === snapshotId);
+    return entry ? structuredClone(entry) : null;
+  }
+
+  restore(snapshotId, { expectedRevision, requireAbsent = false } = {}) {
+    return this.queue(async () => {
+      const data = await this.read();
+      const entry = data.history.find((snapshot) => snapshot.id === snapshotId);
+      if (!entry) return null;
+      const index = data.projects.findIndex((p) => p.id === entry.record.id);
+      const current = index === -1 ? null : data.projects[index];
+      // Check preconditions inside the write queue: no stale tab can restore over newer work.
+      if (current) {
+        if (requireAbsent || !Number.isSafeInteger(expectedRevision) || expectedRevision !== recordRevision(current)) {
+          throw new ProjectStoreError(412, 'Project changed since recovery was reviewed. Refresh before restoring.');
+        }
+        recordSnapshot(data, current, 'restore'); // Recovery itself is reversible.
+      } else if (!requireAbsent) {
+        throw new ProjectStoreError(412, 'Project was deleted. Refresh recovery history before restoring.');
+      }
+      const highestRevision = Math.max(
+        current ? recordRevision(current) : 0,
+        ...data.history.filter((s) => s.record.id === entry.record.id).map((s) => recordRevision(s.record)),
+      );
+      if (highestRevision >= Number.MAX_SAFE_INTEGER) throw new ProjectStoreError(409, 'Revision limit reached');
+      if (!current && data.projects.length >= MAX_RECORDS) throw new ProjectStoreError(409, 'Local project limit reached');
+      const restored = {
+        ...entry.record,
+        revision: highestRevision + 1,
+        createdAt: current?.createdAt ?? entry.record.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      if (current) data.projects[index] = restored;
+      else data.projects.push(restored);
+      await this.write(data);
+      return withRevision(restored);
+    });
+  }
+
+  async exportBackup() {
+    await this.pending;
+    const data = await this.read();
+    return {
+      type: BACKUP_TYPE,
+      exportedAt: new Date().toISOString(),
+      schemaVersion: data.schemaVersion,
+      projects: structuredClone(data.projects),
+      history: structuredClone(data.history),
+    };
+  }
+
 }
