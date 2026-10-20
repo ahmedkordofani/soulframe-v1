@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { BackendStatus } from "./api/BackendStatus";
 import {
   V51FocusedWorkspaceHeader,
   V51ProductWorkspace,
@@ -749,7 +750,7 @@ function runSoulFrameTests() {
     demoWalkthroughSteps.length === 5 &&
     typeof SecondaryViews === "object" &&
     buildProductSummaryText().includes("SOULFRAME PRODUCT SUMMARY") &&
-    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
+    buildProductSummaryText().includes("V6.0.1 local API foundation") &&
     buildSavedProjectRecord(demoPresets.vocalDraft.projectSession, demoPresets.vocalDraft.reviewMode, demoPresets.vocalDraft.selectedPreset).title === "AI Vocal Humanization Demo" &&
     typeof QuickStartGuide === "function" &&
     typeof SoulFrameFooter === "function" &&
@@ -888,7 +889,7 @@ function runSoulFrameTests() {
     buildV51WorkspaceProgressRailText("dashboard", defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 WORKSPACE PROGRESS RAIL") &&
     buildV51LayoutRefactorHandoff(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Layout Refactor Handoff" &&
     buildV51LayoutRefactorHandoffText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.1 LAYOUT REFACTOR HANDOFF") &&
-    buildProductSummaryText().includes("V5.4 product cleanup and architecture refactor") &&
+    buildProductSummaryText().includes("V6.0.1 local API foundation") &&
     buildV52PresentationHeroState(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).feature === "Public Beta Presentation Hero" &&
     buildV52PresentationHeroText(defaultProjectSession, "draft", { status: "Ready", brightness: "Balanced", textureStability: "Stable", dynamics: "Moderate", clippingRisk: "Low" }, null).includes("SOULFRAME V5.2 PUBLIC BETA PRESENTATION HERO") &&
     buildV52PublicDemoScenarios().feature === "Public Demo Scenario Cards" &&
@@ -6341,7 +6342,7 @@ function buildProductSummaryText() {
     "- Export reports, client plans, revision checklists, and project summaries",
     "",
     "Current stage:",
-    "V5.4 product cleanup and architecture refactor: focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. SoulFrame remains a prototype without hosted reports or a live backend.",
+    "V6.0.1 local API foundation: a real health endpoint and browser connectivity check, with V5.4 architecture underneath. focused Dashboard, Analyze, Report, Output and Advanced workspaces; lazy-loaded Classic Demo and secondary pages; extracted audio analysis, report builders and session storage; browser-local report exports; automated regression tests and CI. The API is local-only and health-only; no hosted reports, cloud storage, or production backend are live.",
   ].join(newline);
 }
 
@@ -6555,10 +6556,11 @@ export default function SoulFrameDraftReviewV2() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500">SoulFrame</p>
-                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V5.4.10 Release Review</span>
+                <span className="rounded-full border border-zinc-800 bg-black px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">V6.0.1 Local API</span>
               </div>
               <h1 className="mt-3 max-w-4xl text-4xl font-bold tracking-tight text-white md:text-6xl">AI Music Humanization Review Tool</h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">Upload an AI draft, preview the audio, map the humanization priorities, and generate a clean client update from the review.</p>
+              <BackendStatus />
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button className={view === "product" ? "bg-white text-black hover:bg-zinc-200" : "border border-zinc-800 bg-black text-zinc-200 hover:bg-zinc-900"} onClick={() => setView("product")}>Product</Button>

@@ -12,7 +12,9 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V5.4.0 - UI Simplification & Codebase Cleanup** (release candidate until final QA, merge and tagging)
+**V6.0.1 - Local API Foundation (development)**
+
+V5.4.0 is published. V6.0.1 begins the transition to real backend functionality with a local, read-only health API and verified browser connection status. This is not a hosted backend. See [V6 local API setup](docs/v6-backend-foundation.md).
 
 V5.4 focuses on making the existing prototype easier to navigate, maintain and test. It does not add cloud services or claim to solve AI-artifact recognition.
 

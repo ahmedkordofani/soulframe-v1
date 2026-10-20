@@ -4,6 +4,13 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    // Same-origin browser calls to /api are forwarded to the local Node process.
+    // This is a development proxy, not a deployed production API.
+    proxy: {
+      "/api": "http://127.0.0.1:8787",
+    },
+  },
   build: {
     rolldownOptions: {
       output: {
