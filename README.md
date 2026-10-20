@@ -12,11 +12,11 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.1.0 - Hosted Backend Architecture (development, not deployed)**
+**V6.1.1 - Optional Hosted Identity Integration (development, not deployed)**
 
 SoulFrame now includes a **proposed** Supabase/PostgreSQL hosted project metadata schema and owner-scoped Row Level Security design. This is source-only architecture, with a pure metadata mapper, SQL catalog smoke check and static contract tests. **No Supabase connection, user accounts, hosted project saves, audio uploads, or browser-project migration are active.** The local API stays at V6.0.9 with its local-only deployment guard and temporary owner token.
 
-Read [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
+Read [V6.1.1 hosted identity setup](docs/v6-hosted-identity.md), [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
 
 ```powershell
 npm run hosted:contract       # Static guardrails only; NOT a database security test
@@ -28,6 +28,20 @@ npm run backend:readiness -- --target=hosted  # Still BLOCKED (expected)
 A candidate SQL migration is under `supabase/migrations/`, and a read-only SQL grant/RLS smoke check is under `supabase/tests/`. Neither file is automatically executed. Before using it in a live service we must run two-user allow/deny tests against the real database, verify credentials and session ownership, and implement revision-safe writes and backups. **Do not run the migration against production or put secret/service-role keys into the frontend.**
 
 The Product flow remains **Dashboard -> Analyze -> Report -> Output -> Advanced**. Audio technical proxies remain decision aids for a human producer, not verified AI-artifact detection.
+
+## V6.1.1 Optional Hosted Identity
+
+SoulFrame now includes an **optional email one-time-code identity panel** at **Product > Output > Saved Projects**. It remains disabled until you configure a Supabase project, so browser-only and local API workflows continue unchanged.
+
+Install the official Supabase client **before** verifying/building this version:
+
+```powershell
+npm install @supabase/supabase-js@^2
+```
+
+Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from your own Supabase project. Only publishable keys belong in Vite variables. The sign-in email template must include `{{ .Token }}` for a one-time code. V6.1.1 uses memory-only sessions and does not automatically create accounts. Configure a known test account in Supabase Auth first.
+
+**No Supabase database requests, audio upload, metadata sync, hosted report sharing or production deployment are enabled.** Existing local API ownership tokens are separate from Supabase identities. Do not expose service-role or secret keys to the browser. Details and an acceptance checklist: [V6.1.1 identity setup](docs/v6-hosted-identity.md).
 
 ## V5.4 Highlights
 

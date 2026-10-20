@@ -15,6 +15,11 @@ dist-ssr
 # V6 local project metadata - private, never commit
 .soulframe-local/
 
+# Private local Supabase environment settings
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

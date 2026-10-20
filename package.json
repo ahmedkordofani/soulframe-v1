@@ -16,6 +16,7 @@
     "hosted:contract": "node scripts/hosted-schema-check.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
