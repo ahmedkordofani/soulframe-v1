@@ -13,7 +13,8 @@
     "dev:api": "node --watch server/index.mjs",
     "api": "node server/index.mjs",
     "backend:readiness": "node scripts/backend-readiness.mjs",
-    "hosted:contract": "node scripts/hosted-schema-check.mjs"
+    "hosted:contract": "node scripts/hosted-schema-check.mjs",
+    "hosted:ownership": "node --env-file-if-exists=.env.rls.local scripts/verify-hosted-ownership.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

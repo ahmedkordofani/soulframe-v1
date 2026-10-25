@@ -12,11 +12,11 @@ https://soulframe-v1.vercel.app
 
 ## Current Version
 
-**V6.1.1 - Optional Hosted Identity Integration (development, not deployed)**
+**V6.1.2 - Database Ownership Verification Harness (live test required)**
 
-SoulFrame now includes a **proposed** Supabase/PostgreSQL hosted project metadata schema and owner-scoped Row Level Security design. This is source-only architecture, with a pure metadata mapper, SQL catalog smoke check and static contract tests. **No Supabase connection, user accounts, hosted project saves, audio uploads, or browser-project migration are active.** The local API stays at V6.0.9 with its local-only deployment guard and temporary owner token.
+V6.1.2 adds an **opt-in two-account Supabase Data API ownership test** for the proposed owner-scoped project table. This test is not a live cloud feature and does not activate hosted saves. Supabase email-code sign-in remains optional from V6.1.1; local/browser projects and audio remain unchanged. **Real account isolation remains UNVERIFIED until the live test passes in a disposable database.**
 
-Read [V6.1.1 hosted identity setup](docs/v6-hosted-identity.md), [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
+Read [V6.1.2 ownership verification](docs/v6-ownership-verification.md), [V6.1.1 hosted identity setup](docs/v6-hosted-identity.md), [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
 
 ```powershell
 npm run hosted:contract       # Static guardrails only; NOT a database security test
