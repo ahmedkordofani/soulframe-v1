@@ -55,3 +55,20 @@ export async function signOutIdentity(client) {
   const { error } = await requireAuth(client).signOut({ scope: 'local' });
   if (error) throw new Error(error.message || 'Could not sign out');
 }
+
+// Existing-password sign-in for two pre-provisioned test accounts only.
+// The caller must explicitly enable the DEV-only UI gate; this never signs up users.
+export async function signInDevTestAccountWithPassword(client, email, password, { enabled = false } = {}) {
+  if (!enabled) throw new Error('Development password sign-in is disabled');
+  const address = validateIdentityEmail(email);
+  if (typeof password !== 'string' || password.length === 0) {
+    throw new Error('Enter the test-account password');
+  }
+  if (typeof client?.auth?.signInWithPassword !== 'function') {
+    throw new TypeError('Supabase password authentication is unavailable');
+  }
+  const { error } = await client.auth.signInWithPassword({ email: address, password });
+  if (error) throw new Error('Test-account sign-in was not accepted');
+  // RLS project actions independently call this verification again.
+  return readVerifiedIdentity(client);
+}

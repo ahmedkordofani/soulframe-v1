@@ -6392,6 +6392,22 @@ export default function SoulFrameDraftReviewV2() {
     saveProjectSnapshot, loadSavedProjectSnapshot, deleteSavedProject,
     clearSavedProjects, importSavedProjectsBackup,
   } = useProjectSessions({ demoPresets, onPresetApplied: () => setActiveStep(0) });
+  // Used by BOTH cloud metadata and the existing local API. Audio remains in the browser.
+  function applyStoredProject(record) {
+    setProjectSession({ ...defaultProjectSession, ...record.projectSession });
+    setReviewMode(record.reviewMode === "compare" ? "compare" : "draft");
+    setSelectedPreset(draftReports[record.selectedPreset] ? record.selectedPreset : "marcel");
+    setDraftFile("");
+    setHumanizedFile("");
+    setDraftAudioUrl("");
+    setHumanizedAudioUrl("");
+    setDraftAudioMetadata(null);
+    setHumanizedAudioMetadata(null);
+    setDraftAudioAnalysis(null);
+    setHumanizedAudioAnalysis(null);
+    setActiveStep(0);
+  }
+
   const selectedReport = reviewMode === "compare" ? beforeAfterReport : draftReports[selectedPreset];
   const testsPassed = runSoulFrameTests();
 
@@ -6503,25 +6519,12 @@ export default function SoulFrameDraftReviewV2() {
           sessionsContent={
             <div className="space-y-6">
               <SavedProjectHistory savedProjects={savedProjects} loadSavedProjectSnapshot={loadSavedProjectSnapshot} deleteSavedProject={deleteSavedProject} clearSavedProjects={clearSavedProjects} importSavedProjectsBackup={importSavedProjectsBackup} />
-              <HostedIdentityPanel />
+              <HostedIdentityPanel projectSession={projectSession} reviewMode={reviewMode} selectedPreset={selectedPreset} onLoadProject={applyStoredProject} />
               <ApiProjectManager
                 projectSession={projectSession}
                 reviewMode={reviewMode}
                 selectedPreset={selectedPreset}
-                onLoadProject={(record) => {
-                  setProjectSession({ ...defaultProjectSession, ...record.projectSession });
-                  setReviewMode(record.reviewMode === "compare" ? "compare" : "draft");
-                  setSelectedPreset(draftReports[record.selectedPreset] ? record.selectedPreset : "marcel");
-                  setDraftFile("");
-                  setHumanizedFile("");
-                  setDraftAudioUrl("");
-                  setHumanizedAudioUrl("");
-                  setDraftAudioMetadata(null);
-                  setHumanizedAudioMetadata(null);
-                  setDraftAudioAnalysis(null);
-                  setHumanizedAudioAnalysis(null);
-                  setActiveStep(0);
-                }}
+                onLoadProject={applyStoredProject}
               />
             </div>
           }
