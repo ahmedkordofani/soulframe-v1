@@ -38,10 +38,14 @@ test('restore UI has no Delete action, direct table mutation, or local API coupl
   assert.doesNotMatch(ui, /deleteCloudProject|softDeleteCloudProject|\.from\(['"]soulframe_projects|\.storage\.from\(/);
   assert.doesNotMatch(ui, /createApiProject|readApiProject|localStorage|sessionStorage|window\.confirm/);
 });
-test('mount script inserts recovery panel below the active cloud list', () => {
-  const src = read('scripts/apply-v614-step320.mjs');
-  assert.match(src, /CloudRecoveryPanel/);
-  assert.match(src, /setHasListed\(false\)/);
-  assert.match(src, /Step 3\.3 Cloud Edit UI is missing/);
-  assert.doesNotMatch(src, /\.rpc\(|\.from\(/);
+test('runtime manager mounts recovery panel below the active cloud list', () => {
+  const ui = read('src/hosted/CloudProjectManager.jsx');
+  assert.match(ui, /import \{ CloudRecoveryPanel \} from '\.\/CloudRecoveryPanel';/);
+  const activeList = ui.indexOf('records.map(record => (');
+  const recoveryPanel = ui.indexOf('<CloudRecoveryPanel');
+  assert.ok(activeList >= 0, 'active cloud list should exist');
+  assert.ok(recoveryPanel > activeList, 'recovery panel should follow the active cloud list');
+  assert.match(ui, /key=\{recoveryEpoch\}/);
+  assert.match(ui, /onRestored=\{\(\) => \{/);
+  assert.match(ui, /setHasListed\(false\)/);
 });
