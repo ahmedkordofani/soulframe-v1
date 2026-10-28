@@ -16,10 +16,12 @@ test('V6.1.3 cloud Save, Refresh and Load require explicit button clicks and con
   assert.match(ui, /const loaded = await loadCloudProject\(client, action\.id\)/);
 });
 
-test('cloud project list does not load automatically and no cloud editing/deletion APIs are exposed', () => {
+test('cloud project list remains opt-in and Delete uses only the confirmed RPC', () => {
   const ui = read('src/hosted/CloudProjectManager.jsx');
   assert.match(ui, /await listCloudProjects\(client\)/);
-  assert.doesNotMatch(ui, /\b(?:updateCloudProject|deleteCloudProject|upsertCloudProject)\b/);
+  assert.match(ui, /\bupdateCloudProject\b/);
+  assert.match(ui, /await softDeleteCloudProject\(client, action\.id, action\.expectedRevision\)/);
+  assert.doesNotMatch(ui, /\b(?:deleteCloudProject|upsertCloudProject)\b/);
   assert.doesNotMatch(ui, /\.storage\.from\(/);
   assert.doesNotMatch(ui, /createApiProject|readApiProject|setLocalAccessToken/);
   const effect = ui.match(/useEffect\(\(\) => \{[\s\S]*?\}, \[\]\);/)?.[0] || '';

@@ -96,9 +96,9 @@ export function HostedIdentityPanel({ projectSession, reviewMode, selectedPreset
     <section className="rounded-3xl border border-zinc-800 bg-zinc-950/60 p-5 text-zinc-200" aria-label="Hosted identity (optional)">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-bold text-white">Hosted identity (optional beta)</h3>
-        <span className="text-xs font-semibold text-zinc-500">V6.1.3</span>
+        <span className="text-xs font-semibold text-zinc-500">V6.1.4</span>
       </div>
-      <p className="mt-2 text-sm text-zinc-400">Optional email-code authentication and explicit cloud project metadata saving/loading. No automatic sync, audio upload, cloud editing or deletion.</p>
+      <p className="mt-2 text-sm text-zinc-400">Optional email-code authentication and explicit cloud project metadata saving, loading and revision-safe updates. No automatic sync or audio upload. Cloud Delete is explicit, revision-checked and recoverable using Deleted cloud projects; permanent deletion is unavailable.</p>
       {phase === 'disabled' && <p className="mt-3 text-sm text-zinc-400">{config.reason === 'not-configured' ? 'Not configured. Browser and local API projects continue to work normally.' : 'Invalid Supabase environment configuration. Check the documented publishable key and URL.'}</p>}
       {phase === 'loading' && <p className="mt-3 text-sm text-zinc-400">Checking hosted identity provider...</p>}
       {phase === 'error' && <p className="mt-3 text-sm text-amber-300">Hosted sign-in unavailable. Local projects still work.</p>}
