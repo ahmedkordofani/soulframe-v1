@@ -10,38 +10,52 @@ SoulFrame is an experimental, browser-first tool for music producers reviewing A
 
 https://soulframe-v1.vercel.app
 
+**Release note:** This URL is the public demo. V6.1.4 is verified on the `v6-backend-foundation` development branch; do not assume the public demo includes these development-beta cloud features until a separate deployment is approved.
+
 ## Current Version
 
-**V6.1.2 - Database Ownership Verification Harness (live test required)**
+**V6.1.4 - Revision-safe Cloud Project Editing, Soft Deletion and Recovery (development beta)**
 
-V6.1.2 adds an **opt-in two-account Supabase Data API ownership test** for the proposed owner-scoped project table. This test is not a live cloud feature and does not activate hosted saves. Supabase email-code sign-in remains optional from V6.1.1; local/browser projects and audio remain unchanged. **Real account isolation remains UNVERIFIED until the live test passes in a disposable database.**
+V6.1.4 completes an **opt-in, authenticated cloud project metadata workflow** backed by the configured SoulFrame Dev Supabase project using synthetic test records. Under **Product > Output > Saved Projects**, a verified test account can explicitly **Save, Refresh, Load, Update, Soft Delete and Restore** project metadata. These operations are user-initiated; there is **no automatic synchronization**.
 
-Read [V6.1.2 ownership verification](docs/v6-ownership-verification.md), [V6.1.1 hosted identity setup](docs/v6-hosted-identity.md), [V6.1.0 hosted architecture](docs/v6-hosted-architecture.md) and [V6.0.9 deployment boundaries](docs/v6-deployment-readiness.md).
+- **Account isolation:** Owner-scoped project access is checked against Supabase Auth. Two-account live verification was performed against synthetic records in that configured Supabase project; cross-account reads and mutations were rejected in those tests.
+- **Revision-safe updates:** Updates use an expected revision and fail closed on stale state rather than silently overwriting another change. The UI requires explicit confirmation.
+- **Recoverable cloud deletion:** Delete marks metadata as deleted and removes it from the active list. Deleted-project metadata can be refreshed and explicitly restored with a current-revision check. **No permanent cloud deletion is provided.**
+- **Audio stays local:** Cloud operations send project text metadata (which can include client names and producer notes), not audio files, stems, browser analysis or report audio. A restored cloud project does not restore audio.
+- **Separate workflows:** Browser-saved projects, browser backups and the loopback-only local Node API remain separate from hosted Supabase projects.
+
+### Verification and release status
+
+- The synthetic two-account live tests covered owner isolation, direct-write restrictions, revision conflicts, soft deletion and restoring a tombstone. They are **separate from** the ordinary local unit-test command and are not evidence of full production security.
+- The `v6-backend-foundation` branch passed GitHub Actions on **28 October 2026**, including **301 tests passing, 0 failures** and a Vite production build. Local verification also passed with one environment-dependent test skipped.
+- V6.1.4 is a **development beta**, not an approved public release. Its SQL changes were exercised with synthetic records in the SoulFrame Dev Supabase project; SQL files in the repository are **not automatically applied** by GitHub or Vercel. The public `main` release and hosted deployment require separate review.
 
 ```powershell
-npm run hosted:contract       # Static guardrails only; NOT a database security test
-npm test                      # Node unit/integration tests
-npm run verify                # Node tests + Vite build
-npm run backend:readiness -- --target=hosted  # Still BLOCKED (expected)
+npm run hosted:contract   # Static schema/invariant checks; not a live database security test
+npm test                  # Node unit/integration tests
+npm run verify            # Node tests + Vite production build
+npm run backend:readiness -- --target=hosted   # Review hosted-readiness blockers before release
 ```
 
-A candidate SQL migration is under `supabase/migrations/`, and a read-only SQL grant/RLS smoke check is under `supabase/tests/`. Neither file is automatically executed. Before using it in a live service we must run two-user allow/deny tests against the real database, verify credentials and session ownership, and implement revision-safe writes and backups. **Do not run the migration against production or put secret/service-role keys into the frontend.**
+**Security boundary:** V6.1.4 uses owner/revision-checked Supabase RPC operations, restricted database privileges and Row Level Security. The RPC implementations use a private schema that must **not** be exposed through the Data API; direct authenticated table UPDATE/DELETE remain prohibited. Do not use service-role keys in the frontend. Never run development migrations against a production database without a reviewed rollout and backup plan. Use synthetic metadata until deployment, security and privacy checks are approved.
 
-The Product flow remains **Dashboard -> Analyze -> Report -> Output -> Advanced**. Audio technical proxies remain decision aids for a human producer, not verified AI-artifact detection.
+Read [cloud mutation safety](docs/v6-cloud-mutation-safety.md), [cloud recovery policy](docs/v6-cloud-recovery-policy.md), [cloud restore UI](docs/v6-cloud-restore-ui.md), [V6.1.2 ownership verification](docs/v6-ownership-verification.md), [V6.1.1 hosted identity setup](docs/v6-hosted-identity.md) and [deployment readiness](docs/v6-deployment-readiness.md).
+
+The Product flow remains **Dashboard -> Analyze -> Report -> Output -> Advanced**. Audio measurements are technical decision aids for producers, not verified AI-artifact detection.
 
 ## V6.1.1 Optional Hosted Identity
 
-SoulFrame now includes an **optional email one-time-code identity panel** at **Product > Output > Saved Projects**. It remains disabled until you configure a Supabase project, so browser-only and local API workflows continue unchanged.
+V6.1.1 introduced the **optional email one-time-code identity panel** at **Product > Output > Saved Projects**. It remains inactive without Supabase configuration. Browser-only and local API workflows continue to work separately.
 
-Install the official Supabase client **before** verifying/building this version:
+The project uses the official Supabase client (declared in `package.json`; install dependencies with `npm ci`):
 
 ```powershell
-npm install @supabase/supabase-js@^2
+npm ci
 ```
 
 Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from your own Supabase project. Only publishable keys belong in Vite variables. The sign-in email template must include `{{ .Token }}` for a one-time code. V6.1.1 uses memory-only sessions and does not automatically create accounts. Configure a known test account in Supabase Auth first.
 
-**No Supabase database requests, audio upload, metadata sync, hosted report sharing or production deployment are enabled.** Existing local API ownership tokens are separate from Supabase identities. Do not expose service-role or secret keys to the browser. Details and an acceptance checklist: [V6.1.1 identity setup](docs/v6-hosted-identity.md).
+At the **V6.1.1 milestone**, hosted identity did not yet provide cloud project storage; that limitation was superseded by V6.1.3 and V6.1.4's opt-in development-beta metadata workflows described above. There is still **no audio upload, automatic metadata sync, hosted report sharing or approved production deployment**. Existing local API ownership tokens remain separate from Supabase identities. Do not expose service-role or secret keys to the browser. Details: [V6.1.1 identity setup](docs/v6-hosted-identity.md).
 
 ## V5.4 Highlights
 
@@ -64,6 +78,7 @@ Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABA
 - Producer/client report previews and TXT downloads
 - Browser-native text sharing or clipboard copy where supported
 - Saved project metadata, localStorage persistence, and JSON backup import/export
+- Optional Supabase development-beta cloud metadata saves, revision-safe updates, recoverable soft deletion and manual restoration
 - Classic Demo and educational/developer panels, separate from the primary workflow
 
 **Important:** The audio analysis does not reliably determine whether a recording was AI-generated, identify specific AI synthesis artifacts, or measure emotional authenticity. It supplies technical clues for human listening and review. Certain demo progress and planning sequences are simulated.
@@ -88,12 +103,19 @@ src/
   advanced/AdvancedWorkspace.jsx
   demo/ClassicDemo.jsx        # Lazy-loaded legacy interface
   views/SecondaryViews.jsx    # Lazy-loaded secondary pages
+  hosted/                     # Optional authenticated cloud metadata UI and workflows
 
 tests/
   reportBuilders.test.mjs
   sessionStorage.test.mjs
   integration.test.mjs
   architecture.test.mjs
+  cloudRestoreUi.test.mjs     # Cloud restore UI guardrails
+  cloudDeleteUi.test.mjs      # Cloud delete UI guardrails
+
+supabase/
+  migrations/                 # Reviewed SQL changes; not auto-applied
+  tests/                      # Database safety assertions and checks
 
 docs/
   quality-checklist.md
@@ -124,19 +146,23 @@ Run the tests and a production build together:
 npm run verify
 ```
 
-The same verification runs in GitHub Actions on pushes to `main` and `v5-*` branches, and on pull requests. Browser acceptance testing remains necessary; see [docs/quality-checklist.md](docs/quality-checklist.md).
+The same verification runs in GitHub Actions on pushes to `main`, `v5-*` and `v6-*` branches, and on pull requests. These checks do not perform live Supabase ownership tests. Browser acceptance testing remains necessary; see [docs/quality-checklist.md](docs/quality-checklist.md).
 
 ## Privacy and Prototype Limitations
 
-Audio inspection and current report generation operate in the browser, with no required audio upload backend. Project/session data is stored in the browser and may be lost if local site data is cleared. Export a backup before clearing site data or testing migration.
+Audio inspection and report generation operate in the browser; there is no required audio upload backend. Browser project/session data can be lost if local site data is cleared, so export a separate backup before clearing or migrating it.
 
-SoulFrame does **not** yet provide authenticated accounts, persistent cloud projects, secure hosted report links, revocable sharing permissions, server PDFs, or a production API. The V6 local API includes JSON metadata persistence and bounded local history; neither is a cloud database or automatic backup. The V4.1 API work was a prototype scaffold.
+An explicitly configured **Supabase development beta** now offers authenticated accounts and persistent **cloud project metadata**. It stores only the metadata you choose to save, including possible client names and producer notes, so **do not use confidential client information in test projects**. Cloud metadata storage is not an audio backup, automatic synchronisation or a general disaster-recovery guarantee. Soft-deleted cloud metadata can be manually restored, but audio cannot. The browser project store, local JSON API and Supabase account are distinct.
+
+SoulFrame still does **not** provide hosted audio storage, secure client report links, revocable report-sharing permissions, server-generated PDFs or a production-approved public API. The local Node API uses loopback-only JSON persistence and a process-scoped owner token; it is not the same as Supabase multi-account authorization. The V4.1 API work was a prototype scaffold.
 
 ## Next Chapter
 
-**V6 - Backend and Real-World Validation (proposed)**
+**Release readiness and real-world validation**
 
-Before designing cloud persistence or user accounts, validate the producer workflow with representative tracks and real feedback. Scope authentication, storage, report sharing, consent and audio/privacy handling deliberately. See [docs/architecture-v5.4.md](docs/architecture-v5.4.md) for remaining risks.
+Before merging V6.1.4 into `main` or enabling its cloud features for public users, review deployment environment separation, Supabase schema/function exposure, SQL rollout and rollback procedures, privacy/consent, monitoring and data-retention rules. Keep using synthetic metadata during this review. The GitHub CI pass and Supabase live tests are **necessary checks, not a production sign-off**. The Supabase dashboard labels the project's `main` database branch `PRODUCTION`, even though the project is being used for development; verify environment separation before any further schema changes.
+
+Then validate the producer workflow with representative tracks and real creative feedback. Any future hosted audio storage or client sharing needs a separate security and product design. See [deployment boundaries](docs/v6-deployment-readiness.md) and [architecture risks](docs/architecture-v5.4.md).
 
 ## Release History
 
@@ -148,6 +174,11 @@ Before designing cloud persistence or user accounts, validate the producer workf
 - V5.2.0 - Visual Polish and Public Beta Presentation
 - V5.3.0 - Report Sharing and Export
 - V5.4.0 - UI Simplification and Codebase Cleanup (published)
+- V6.1.0 - Hosted Backend Architecture
+- V6.1.1 - Optional Hosted Identity
+- V6.1.2 - Database Ownership Verification
+- V6.1.3 - Authenticated Cloud Project Save and Load (development beta)
+- V6.1.4 - Revision-safe Cloud Update, Soft Delete and Restore (development beta; GitHub CI verified)
 
 
 ## V6.0.4 - Project Safety and Conflict Protection
